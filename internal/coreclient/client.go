@@ -12,9 +12,12 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	dbp "github.com/lomocoin/lws/internal/coreclient/DBPMsg/go"
+	"github.com/satori/go.uuid"
 )
 
-const version = 1
+const VERSION = 1
+const CLIENT = "lws"
+const UNKNOWN_MSG_TYPE = -1
 
 type CoreClient struct {
 	Conn         net.Conn
@@ -25,6 +28,16 @@ type CoreClient struct {
 	isNegotiated bool
 }
 
+// set Conn for CoreClient
+func (c *CoreClient) SetConn(conn *net.Conn) error {
+	c.Conn = *conn
+	c.w = bufio.NewWriter(c.Conn)
+	c.r = bufio.NewReader(c.Conn)
+
+	return nil
+}
+
+// Connect to Core Wallet Server, dev - not to use the one
 func (c *CoreClient) Connect(netloc string) error {
 	conn, err := net.Dial("tcp", netloc)
 	if err != nil {
@@ -44,24 +57,37 @@ func (c *CoreClient) SendMethod(msgType dbp.Msg, msg *proto.Message) error {
 }
 
 func (c *CoreClient) generateMsgId() string {
-	return "123"
+	id, err := uuid.NewV4()
+	if err != nil {
+		fmt.Printf("Something went wrong: %s", err)
+		return ""
+	}
+	return id.String()
 }
 
+// Negotiate version, send CONNECT DBP
 func (c *CoreClient) negotiate() error {
-	panic("Unimplenmented")
 	// 1. package CONNECT pb
+	connect := &dbp.Connect{
+		Version: VERSION,
+		Session: c.session,
+		Client:  CLIENT,
+	}
 
-	return nil
+	return c.Send(connect, "")
 }
 
-func (c *CoreClient) Send(msg *proto.Message) error {
-	panic("Unimplenmented")
-	// 1. package CONNECT pb
+func (c *CoreClient) Send(msg proto.Message, id string) error {
+	bytes, err := c.Pack(msg, id)
+	if err != nil {
+		return err
+	}
 
-	return nil
+	return c.PrependLengthSend(bytes)
 }
 
-func (c *CoreClient) Pack(msg proto.Message) ([]byte, error) {
+// Pack business struct to serialized BaseMsg bytes
+func (c *CoreClient) Pack(msg proto.Message, id string) ([]byte, error) {
 	var msgType dbp.Msg
 	switch interface{}(msg).(type) {
 	case *dbp.Connect:
@@ -71,17 +97,17 @@ func (c *CoreClient) Pack(msg proto.Message) ([]byte, error) {
 		msgType = dbp.Msg_PING
 	default:
 		fmt.Println("===i dont know")
-		msgType = -1
+		msgType = UNKNOWN_MSG_TYPE
 	}
 
-	if msgType == -1 {
+	if msgType == UNKNOWN_MSG_TYPE {
 		log.Println("can not match msgType", msg)
 		return nil, errors.New("can not match msgType")
 	}
 
 	msgValues := reflect.ValueOf(msg)
 	if field := msgValues.Elem().FieldByName("Id"); field.IsValid() {
-		field.SetString(c.generateMsgId())
+		field.SetString(id)
 	}
 
 	serializedObject, err := ptypes.MarshalAny(msg)
@@ -122,4 +148,46 @@ func (c *CoreClient) PrependLengthSend(msg []byte) error {
 	c.w.Flush()
 
 	return nil
+}
+
+func (c *CoreClient) Unpack(bytes []byte) (dbp.Msg, proto.Message) {
+	var err error
+	baseMsg := &dbp.Base{}
+
+	if err = proto.Unmarshal(bytes, baseMsg); err != nil {
+		log.Fatal("unkonwn message received", bytes, err)
+	}
+
+	var object proto.Message
+
+	switch baseMsg.Msg {
+	case dbp.Msg_CONNECTED:
+		object = &dbp.Connect{}
+	case dbp.Msg_FAILED:
+		object = &dbp.Failed{}
+	}
+
+	log.Println("received baseMsg: ", baseMsg)
+
+	err = ptypes.UnmarshalAny(baseMsg.Object, object)
+	if err != nil {
+		log.Println("unpack Object failed", err)
+	}
+	return baseMsg.Msg, object
+}
+
+func (c *CoreClient) HandleReceivedMsg(bytes []byte) {
+	msgType, object := c.Unpack(bytes)
+	switch msgType {
+	case dbp.Msg_CONNECTED:
+	case dbp.Msg_FAILED:
+		log.Fatalln("negotiate failed")
+	case dbp.Msg_ADDED, dbp.Msg_REMOVED, dbp.Msg_CHANGED:
+		// TODO subscribe map
+	}
+}
+
+func (c *CoreClient) Start() {
+	// for {
+	// }
 }

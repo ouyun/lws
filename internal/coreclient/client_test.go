@@ -9,6 +9,14 @@ import (
 	"testing"
 )
 
+func TestGenerateMsgId(t *testing.T) {
+	c := &CoreClient{}
+	id := c.generateMsgId()
+	if id == "" {
+		t.Error("generated msg id empty string")
+	}
+}
+
 func TestPack(t *testing.T) {
 	c := &CoreClient{}
 	var err error
