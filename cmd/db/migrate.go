@@ -28,7 +28,7 @@ func main() {
 		}
 	}
 
-	switch true {
+	switch {
 	case step > 0:
 		if err := m.Migrate(); err != nil {
 			log.Fatalf("migrate failed: %v", err)
