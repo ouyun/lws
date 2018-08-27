@@ -6,12 +6,14 @@ Development
 
 ### Package management
 
-Since Go hasn't a best package management solution until v1.11 (2018-08-31), we use [**govendor**](https://github.com/kardianos/govendor) for managing packages simply and temporarily.
+Since Go hasn't a best package management solution until v1.11 (2018-08-31), we use [**dep**](https://golang.github.io/dep) (officially supported) for managing packages simply and temporarily.
 
 ~~~bash
-go get -u github.com/kardianos/govendor # install govendor tool
+brew install dep # install dep tool
 
-govendor sync # sync all packages defined in vendor/vendor.json from remote repositories
+dep init # migrate depedencies from `vendor/` by other tools
 
-govendor fetch github.com/user/xxx-repo # something like `go get` but fetch package into vendor/ and update vendor.json file
+dep ensure # sync and install all dependencies into `vender/`
+
+dep ensure -add github.com/user/xxx-repo # something like `go get` but fetch package into `vendor/` and update Gopkg.toml/Gopkg.lock file
 ~~~
