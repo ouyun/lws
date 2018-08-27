@@ -16,4 +16,19 @@ dep init # migrate depedencies from `vendor/` by other tools
 dep ensure # sync and install all dependencies into `vender/`
 
 dep ensure -add github.com/user/xxx-repo # something like `go get` but fetch package into `vendor/` and update Gopkg.toml/Gopkg.lock file
+
+### Database
+
+#### Migration
+
+Up:
+
+~~~
+go run cmd/db/migrate.go
+~~~
+
+Down:
+
+~~~
+go run cmd/db/migrate.go -1
 ~~~

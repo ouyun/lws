@@ -1,0 +1,9 @@
+package constant
+
+const (
+	BLOCK_TYPE_GENESIS    uint16 = 0xffff
+	BLOCK_TYPE_ORIGIN     uint16 = 0xff00
+	BLOCK_TYPE_PRIMARY    uint16 = 0x0001
+	BLOCK_TYPE_SUBSIDIARY uint16 = 0x0002
+	BLOCK_TYPE_EXTENDED   uint16 = 0x0004
+)
