@@ -14,9 +14,6 @@ import (
 	dbp "github.com/lomocoin/lws/internal/coreclient/DBPMsg/go"
 )
 
-const VERSION = 1
-const CLIENT = "lws"
-
 const UNKNOWN_MSG_TYPE = -1
 
 type wireRequest struct {
@@ -45,7 +42,7 @@ func (enc *messageEncoder) WriteMsg(wr *wireRequest) error {
 	Request := wr.Request
 	msg, ok := Request.(proto.Message)
 	if !ok {
-		err := fmt.Errorf("coreclient bad request %s")
+		err := fmt.Errorf("coreclient bad request %s", wr.Request)
 		return err
 	}
 	msgBuf, err := enc.PackMsg(msg, wr.ID)
@@ -73,6 +70,10 @@ func (enc *messageEncoder) PackMsg(msg proto.Message, id string) ([]byte, error)
 		msgType = dbp.Msg_CONNECT
 	case *dbp.Ping:
 		msgType = dbp.Msg_PING
+	case *dbp.Connected:
+		msgType = dbp.Msg_CONNECTED
+	case *dbp.Failed:
+		msgType = dbp.Msg_FAILED
 	default:
 		fmt.Println("===i dont know")
 		msgType = UNKNOWN_MSG_TYPE
@@ -146,9 +147,12 @@ func (dec *messageDecoder) Unpack(bytes []byte) (dbp.Msg, proto.Message) {
 
 	var object proto.Message
 
+	// TODO mark empty_ID messages
 	switch baseMsg.Msg {
-	case dbp.Msg_CONNECTED:
+	case dbp.Msg_CONNECT:
 		object = &dbp.Connect{}
+	case dbp.Msg_CONNECTED:
+		object = &dbp.Connected{}
 	case dbp.Msg_FAILED:
 		object = &dbp.Failed{}
 	}

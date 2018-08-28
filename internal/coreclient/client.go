@@ -526,17 +526,18 @@ func clientHandleConnection(c *Client, conn io.ReadWriteCloser) {
 		}
 		conn = newConn
 	}
+	var err error
 
-	var buf [1]byte
-	if !c.DisableCompression {
-		buf[0] = 1
-	}
-	_, err := conn.Write(buf[:])
-	if err != nil {
-		c.LogError("gorpc.Client: [%s]. Error when writing handshake to server: [%s]", c.Addr, err)
-		conn.Close()
-		return
-	}
+	// var buf [1]byte
+	// if !c.DisableCompression {
+	// 	buf[0] = 1
+	// }
+	// _, err := conn.Write(buf[:])
+	// if err != nil {
+	// 	c.LogError("gorpc.Client: [%s]. Error when writing handshake to server: [%s]", c.Addr, err)
+	// 	conn.Close()
+	// 	return
+	// }
 
 	stopChan := make(chan struct{})
 
@@ -695,6 +696,11 @@ func clientReader(c *Client, r io.Reader, pendingRequests map[string]*AsyncResul
 			return
 		}
 
+		if wr.ID == "" {
+			err = fmt.Errorf("coreclient: empty ID message received: [%s]", wr.Response)
+			return
+		}
+
 		pendingRequestsLock.Lock()
 		m, ok := pendingRequests[wr.ID]
 		if ok {
@@ -703,11 +709,10 @@ func clientReader(c *Client, r io.Reader, pendingRequests map[string]*AsyncResul
 		pendingRequestsLock.Unlock()
 
 		if !ok {
-			err = fmt.Errorf("gorpc.Client: [%s]. Unexpected msgID=[%d] obtained from server", c.Addr, wr.ID)
+			err = fmt.Errorf("gorpc.Client: [%s]. Unexpected msgID=[%s] obtained from server", c.Addr, wr.ID)
 			return
 		}
 
-		// soooooot  ^uint32(0) represents -1
 		atomic.AddUint32(&c.pendingRequestsCount, ^uint32(0))
 
 		m.Response = wr.Response
