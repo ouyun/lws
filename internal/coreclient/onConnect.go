@@ -5,7 +5,7 @@ import (
 	"io"
 	"time"
 
-	dbp "github.com/lomocoin/lws/internal/coreclient/DBPMsg/go"
+	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/dbp"
 )
 
 const VERSION = 1

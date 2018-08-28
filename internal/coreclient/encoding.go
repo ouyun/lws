@@ -11,7 +11,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
-	dbp "github.com/lomocoin/lws/internal/coreclient/DBPMsg/go"
+	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/dbp"
 )
 
 const UNKNOWN_MSG_TYPE = -1
@@ -68,12 +68,34 @@ func (enc *messageEncoder) PackMsg(msg proto.Message, id string) ([]byte, error)
 	case *dbp.Connect:
 		fmt.Println("dbp.connect detect")
 		msgType = dbp.Msg_CONNECT
-	case *dbp.Ping:
-		msgType = dbp.Msg_PING
 	case *dbp.Connected:
 		msgType = dbp.Msg_CONNECTED
 	case *dbp.Failed:
 		msgType = dbp.Msg_FAILED
+	case *dbp.Ping:
+		msgType = dbp.Msg_PING
+	case *dbp.Pong:
+		msgType = dbp.Msg_PONG
+	case *dbp.Sub:
+		msgType = dbp.Msg_SUB
+	case *dbp.Unsub:
+		msgType = dbp.Msg_UNSUB
+	case *dbp.Nosub:
+		msgType = dbp.Msg_NOSUB
+	case *dbp.Ready:
+		msgType = dbp.Msg_READY
+	case *dbp.Added:
+		msgType = dbp.Msg_ADDED
+	case *dbp.Changed:
+		msgType = dbp.Msg_CHANGED
+	case *dbp.Removed:
+		msgType = dbp.Msg_REMOVED
+	case *dbp.Method:
+		msgType = dbp.Msg_METHOD
+	case *dbp.Result:
+		msgType = dbp.Msg_RESULT
+	case *dbp.Error:
+		msgType = dbp.Msg_ERROR
 	default:
 		fmt.Println("===i dont know")
 		msgType = UNKNOWN_MSG_TYPE
@@ -155,6 +177,30 @@ func (dec *messageDecoder) Unpack(bytes []byte) (dbp.Msg, proto.Message) {
 		object = &dbp.Connected{}
 	case dbp.Msg_FAILED:
 		object = &dbp.Failed{}
+	case dbp.Msg_PING:
+		object = &dbp.Ping{}
+	case dbp.Msg_PONG:
+		object = &dbp.Pong{}
+	case dbp.Msg_SUB:
+		object = &dbp.Sub{}
+	case dbp.Msg_UNSUB:
+		object = &dbp.Unsub{}
+	case dbp.Msg_NOSUB:
+		object = &dbp.Nosub{}
+	case dbp.Msg_READY:
+		object = &dbp.Ready{}
+	case dbp.Msg_ADDED:
+		object = &dbp.Added{}
+	case dbp.Msg_CHANGED:
+		object = &dbp.Changed{}
+	case dbp.Msg_REMOVED:
+		object = &dbp.Removed{}
+	case dbp.Msg_METHOD:
+		object = &dbp.Method{}
+	case dbp.Msg_RESULT:
+		object = &dbp.Result{}
+	case dbp.Msg_ERROR:
+		object = &dbp.Error{}
 	}
 
 	log.Println("received baseMsg: ", baseMsg)
@@ -193,7 +239,6 @@ func (dec *messageDecoder) ReadMsg(wr *wireResponse) error {
 	// 	wr.Id = rMsg.Id
 	// }
 	switch msgType {
-	// dbp.Msg_ERROR
 	case dbp.Msg_PING,
 		dbp.Msg_RESULT,
 		dbp.Msg_PONG,
@@ -204,7 +249,8 @@ func (dec *messageDecoder) ReadMsg(wr *wireResponse) error {
 		dbp.Msg_ADDED,
 		dbp.Msg_CHANGED,
 		dbp.Msg_REMOVED,
-		dbp.Msg_METHOD:
+		dbp.Msg_METHOD,
+		dbp.Msg_ERROR:
 		// for those msg types who has Id field
 		msgValues := reflect.ValueOf(msg)
 		if field := msgValues.Elem().FieldByName("Id"); field.IsValid() {

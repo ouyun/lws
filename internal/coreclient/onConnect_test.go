@@ -2,7 +2,7 @@ package coreclient
 
 import (
 	"fmt"
-	dbp "github.com/lomocoin/lws/internal/coreclient/DBPMsg/go"
+	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/dbp"
 	"io"
 	"net"
 	"testing"
@@ -53,7 +53,7 @@ func TestOnConnectFailed(t *testing.T) {
 
 		var wreq wireRequest
 		wreq.Request = &dbp.Failed{
-			Version: int32(3),
+			Version: []int32{3, 4, 5},
 		}
 		encoder := newMessageEncoder(conn, 1024)
 		if err := encoder.WriteMsg(&wreq); err != nil {
