@@ -9,7 +9,7 @@ import (
 )
 
 func Connect() (*gorm.DB, error) {
-	if err := godotenv.Overload(); err != nil {
+	if err := godotenv.Overload("../../.env"); err != nil {
 		log.Println("no .env file found, will try to use native environment variables")
 	}
 

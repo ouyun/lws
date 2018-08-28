@@ -10,15 +10,15 @@ import (
 )
 
 func main() {
-	db, err := db.Connect()
+	connection, err := db.Connect()
 	if err != nil {
 		log.Fatalf("could not connect to database: %v", err)
 	}
 
-	defer db.Close()
+	defer connection.Close()
 
-	migrations := migration.All(db)
-	m := gormigrate.New(db, gormigrate.DefaultOptions, migrations)
+	migrations := migration.All(connection)
+	m := gormigrate.New(connection, gormigrate.DefaultOptions, migrations)
 
 	step := 1
 	if len(os.Args) == 2 {
