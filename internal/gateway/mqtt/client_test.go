@@ -15,7 +15,6 @@ func TestClient(t *testing.T) {
 	}
 }
 
-
 func TestInit(t *testing.T) {
 	p := &Program{Id: "LWS/lws/ServiceReq", isLws: false}
 	if err := p.Init(); err != nil {
