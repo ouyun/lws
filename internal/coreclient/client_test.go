@@ -1,85 +1,147 @@
 package coreclient
 
-// import (
-// 	// "github.com/lomocoin/soolws/client"
-// 	"fmt"
-// 	"github.com/golang/protobuf/proto"
-// 	"github.com/golang/protobuf/ptypes"
-// 	dbp "github.com/lomocoin/lws/internal/coreclient/DBPMsg/go"
-// 	"testing"
-// )
+import (
+	"fmt"
+	"io"
+	"net"
+	"testing"
+	"time"
 
-// func TestGenerateMsgId(t *testing.T) {
-// 	c := &CoreClient{}
-// 	id := c.generateMsgId()
-// 	if id == "" {
-// 		t.Error("generated msg id empty string")
-// 	}
-// }
+	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/dbp"
+)
 
-// func TestPack(t *testing.T) {
-// 	c := &CoreClient{}
-// 	var err error
+func TestPing(t *testing.T) {
+	serverConn, clientConn := net.Pipe()
 
-// 	data := &dbp.Connect{
-// 		Version: 12,
-// 		Session: "testsession",
-// 		Client:  "lws",
-// 	}
+	go (func(conn io.ReadWriteCloser) {
+		var wr wireResponse
+		decoder := newMessageDecoder(conn, 1024)
+		if err := decoder.ReadMsg(&wr); err != nil {
+			t.Fatalf("ReadMsg failed[%s]", err)
+		}
+		fmt.Println("Received MsgType: ", wr.MsgType)
+		fmt.Println("Received Response: ", wr.Response)
 
-// 	msgBytes, err := c.Pack(data)
-// 	if err != nil {
-// 		t.Error("pack failed", err)
-// 	}
+		response := wr.Response
 
-// 	fmt.Println("msg", string(msgBytes[:]))
+		ping, ok := response.(*dbp.Ping)
+		if !ok {
+			t.Fatalf("received non-ping message type:[%s] content:[%s] ", wr.MsgType, wr.Response)
+		}
 
-// 	baseMsg := &dbp.Base{}
-// 	err = proto.Unmarshal(msgBytes, baseMsg)
-// 	if err != nil {
-// 		t.Error("unpack failed", err)
-// 	}
+		var wreq wireRequest
+		wreq.ID = ping.Id
+		wreq.Request = &dbp.Pong{}
+		encoder := newMessageEncoder(conn, 1024)
+		if err := encoder.WriteMsg(&wreq); err != nil {
+			t.Fatalf("WriteMsg failed[%s]", err)
+		}
+		if err := encoder.Flush(); err != nil {
+			t.Fatalf("Write flush failed: [%s]", err)
+		}
+	})(serverConn)
 
-// 	fmt.Println("baseMsg: ", baseMsg)
+	c := &Client{
+		Addr: "whatever",
+		Dial: func(addr string) (conn io.ReadWriteCloser, err error) {
+			return clientConn, nil
+		},
+		// OnConnect: onConnectNegotiation,
+	}
 
-// 	unpackedConnect := &dbp.Connect{}
+	c.Start()
 
-// 	err = ptypes.UnmarshalAny(baseMsg.Object, unpackedConnect)
-// 	if err != nil {
-// 		t.Error("unpack Object failed", err)
-// 	}
+	m, err := c.CallAsync(&dbp.Ping{})
+	if err != nil {
+		t.Fatalf("CallAsync error [%s]", err)
+	}
 
-// 	fmt.Printf("unpackedConnect = %+v\n", unpackedConnect)
-// }
+	select {
+	case <-time.After(c.RequestTimeout):
+		t.Fatal("call async timeout")
+	case <-m.Done:
+		mRes := m.Response
+		_, ok := mRes.(*dbp.Pong)
+		if !ok {
+			t.Fatal("receved non-pong", mRes)
+		}
+	}
+}
 
-// func TestPack2(t *testing.T) {
-// 	c := &CoreClient{}
-// 	var err error
+func TestConnectAndPing(t *testing.T) {
+	serverConn, clientConn := net.Pipe()
 
-// 	data := &dbp.Ping{}
+	go (func(conn io.ReadWriteCloser) {
+		var wr wireResponse
+		var wreq wireRequest
+		decoder := newMessageDecoder(conn, 1024)
+		encoder := newMessageEncoder(conn, 1024)
 
-// 	msgBytes, err := c.Pack(data)
-// 	if err != nil {
-// 		t.Error("pack failed", err)
-// 	}
+		// receive CONNECT
+		if err := decoder.ReadMsg(&wr); err != nil {
+			t.Fatalf("ReadMsg failed[%s]", err)
+		}
+		fmt.Println("Received MsgType: ", wr.MsgType)
+		fmt.Println("Received Response: ", wr.Response)
 
-// 	fmt.Println("msg", string(msgBytes[:]))
+		// write CONNECTED
+		wreq.Request = &dbp.Connected{
+			Session: "hahaha",
+		}
+		if err := encoder.WriteMsg(&wreq); err != nil {
+			t.Fatalf("WriteMsg failed[%s]", err)
+		}
+		if err := encoder.Flush(); err != nil {
+			t.Fatalf("Write flush failed: [%s]", err)
+		}
 
-// 	baseMsg := &dbp.Base{}
-// 	err = proto.Unmarshal(msgBytes, baseMsg)
-// 	if err != nil {
-// 		t.Error("unpack failed", err)
-// 	}
+		// receive PING
+		if err := decoder.ReadMsg(&wr); err != nil {
+			t.Fatalf("ReadMsg failed[%s]", err)
+		}
+		fmt.Println("Received MsgType: ", wr.MsgType)
+		fmt.Println("Received Response: ", wr.Response)
 
-// 	fmt.Println("baseMsg: ", baseMsg)
+		response := wr.Response
 
-// 	object := &dbp.Ping{}
+		ping, ok := response.(*dbp.Ping)
+		if !ok {
+			t.Fatalf("received non-ping message type:[%s] content:[%s] ", wr.MsgType, wr.Response)
+		}
 
-// 	err = ptypes.UnmarshalAny(baseMsg.Object, object)
-// 	if err != nil {
-// 		t.Error("unpack Object failed", err)
-// 	}
+		wreq.ID = ping.Id
+		wreq.Request = &dbp.Pong{}
+		if err := encoder.WriteMsg(&wreq); err != nil {
+			t.Fatalf("WriteMsg failed[%s]", err)
+		}
+		if err := encoder.Flush(); err != nil {
+			t.Fatalf("Write flush failed: [%s]", err)
+		}
+	})(serverConn)
 
-// 	fmt.Printf("object = %+v\n", object)
+	c := &Client{
+		Addr: "whatever",
+		Dial: func(addr string) (conn io.ReadWriteCloser, err error) {
+			return clientConn, nil
+		},
+		OnConnect: onConnectNegotiation,
+	}
 
-// }
+	c.Start()
+
+	m, err := c.CallAsync(&dbp.Ping{})
+	if err != nil {
+		t.Fatalf("CallAsync error [%s]", err)
+	}
+
+	select {
+	case <-time.After(c.RequestTimeout):
+		t.Fatal("call async timeout")
+	case <-m.Done:
+		mRes := m.Response
+		_, ok := mRes.(*dbp.Pong)
+		if !ok {
+			t.Fatal("receved non-pong", mRes)
+		}
+	}
+}

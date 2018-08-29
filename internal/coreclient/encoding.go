@@ -169,7 +169,6 @@ func (dec *messageDecoder) Unpack(bytes []byte) (dbp.Msg, proto.Message) {
 
 	var object proto.Message
 
-	// TODO mark empty_ID messages
 	switch baseMsg.Msg {
 	case dbp.Msg_CONNECT:
 		object = &dbp.Connect{}

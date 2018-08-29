@@ -1,7 +1,6 @@
 package coreclient
 
 import (
-	"fmt"
 	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/dbp"
 	"io"
 	"net"
@@ -17,8 +16,8 @@ func TestOnConnectSuccess(t *testing.T) {
 		if err := decoder.ReadMsg(&wr); err != nil {
 			t.Fatalf("ReadMsg failed[%s]", err)
 		}
-		fmt.Println("Received MsgType: ", wr.MsgType)
-		fmt.Println("Received Response: ", wr.Response)
+		// fmt.Println("Received MsgType: ", wr.MsgType)
+		// fmt.Println("Received Response: ", wr.Response)
 
 		var wreq wireRequest
 		wreq.Request = &dbp.Connected{
@@ -48,8 +47,8 @@ func TestOnConnectFailed(t *testing.T) {
 		if err := decoder.ReadMsg(&wr); err != nil {
 			t.Fatalf("ReadMsg failed[%s]", err)
 		}
-		fmt.Println("Received MsgType: ", wr.MsgType)
-		fmt.Println("Received Response: ", wr.Response)
+		// fmt.Println("Received MsgType: ", wr.MsgType)
+		// fmt.Println("Received Response: ", wr.Response)
 
 		var wreq wireRequest
 		wreq.Request = &dbp.Failed{
