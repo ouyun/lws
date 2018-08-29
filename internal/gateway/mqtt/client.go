@@ -124,7 +124,7 @@ func (p *Program) Stop() error {
 	return nil
 }
 
-func (p *Program)Publish(topic string, msg []byte) error {
+func (p *Program) Publish(topic string, msg []byte) error {
 	// msg, err := GeneratePayload("ServicePayload")
 	// if err != nil {
 	// 	return errors.New("GeneratePayload fail")
