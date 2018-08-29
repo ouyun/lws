@@ -2,6 +2,7 @@ package coreclient
 
 import (
 	"fmt"
+	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/dbp"
 	"io"
 	"runtime"
 	"strconv"
@@ -100,6 +101,8 @@ type Client struct {
 	// By default the function set via SetErrorLogger() is used.
 	LogError LoggerFunc
 
+	LogDebug LoggerFunc
+
 	// Connection statistics.
 	//
 	// The stats doesn't reset automatically. Feel free resetting it
@@ -111,6 +114,9 @@ type Client struct {
 
 	clientStopChan chan struct{}
 	stopWg         sync.WaitGroup
+
+	subLock       sync.Mutex
+	subscriptions map[string]*Subscription
 }
 
 // Start starts rpc client. Establishes connection to the server on Client.Addr.
@@ -122,6 +128,9 @@ type Client struct {
 func (c *Client) Start() {
 	if c.LogError == nil {
 		c.LogError = errorLogger
+	}
+	if c.LogDebug == nil {
+		c.LogDebug = NilErrorLogger
 	}
 	if c.clientStopChan != nil {
 		panic("gorpc.Client: the given client is already started. Call Client.Stop() before calling Client.Start() again!")
@@ -145,6 +154,7 @@ func (c *Client) Start() {
 
 	c.requestsChan = make(chan *AsyncResult, c.PendingRequests)
 	c.clientStopChan = make(chan struct{})
+	c.subscriptions = make(map[string]*Subscription)
 
 	if c.Conns <= 0 {
 		c.Conns = 1
@@ -479,6 +489,7 @@ func clientHandler(c *Client) {
 	for {
 		dialChan := make(chan struct{})
 		go func() {
+			// TODO handle re-dial
 			if conn, err = c.Dial(c.Addr); err != nil {
 				if stopping.Load() == nil {
 					c.LogError("gorpc.Client: [%s]. Cannot establish rpc connection: [%s]", c.Addr, err)
@@ -527,17 +538,6 @@ func clientHandleConnection(c *Client, conn io.ReadWriteCloser) {
 		conn = newConn
 	}
 	var err error
-
-	// var buf [1]byte
-	// if !c.DisableCompression {
-	// 	buf[0] = 1
-	// }
-	// _, err := conn.Write(buf[:])
-	// if err != nil {
-	// 	c.LogError("gorpc.Client: [%s]. Error when writing handshake to server: [%s]", c.Addr, err)
-	// 	conn.Close()
-	// 	return
-	// }
 
 	stopChan := make(chan struct{})
 
@@ -638,15 +638,23 @@ func clientWriter(c *Client, w io.Writer, pendingRequests map[string]*AsyncResul
 			if msgID == 0 {
 				msgID = 1
 			}
-			msgIdStr := strconv.FormatUint(msgID, 10)
+			var msgIdStr string
+
+			// subcribe ID should be unique
+			if subMsg, ok := m.request.(*dbp.Sub); ok {
+				msgIdStr = subMsg.Id
+			}
+
 			pendingRequestsLock.Lock()
 			n := len(pendingRequests)
-			for {
-				msgIdStr = strconv.FormatUint(msgID, 10)
-				if _, ok := pendingRequests[msgIdStr]; !ok {
-					break
+			if msgIdStr == "" {
+				for {
+					msgIdStr = strconv.FormatUint(msgID, 10)
+					if _, ok := pendingRequests[msgIdStr]; !ok {
+						break
+					}
+					msgID++
 				}
-				msgID++
 			}
 			pendingRequests[msgIdStr] = m
 			pendingRequestsLock.Unlock()
@@ -699,6 +707,17 @@ func clientReader(c *Client, r io.Reader, pendingRequests map[string]*AsyncResul
 		if wr.ID == "" {
 			err = fmt.Errorf("coreclient: empty ID message received: [%s]", wr.Response)
 			return
+		}
+
+		// handle subscription - notification
+		switch wr.MsgType {
+		case dbp.Msg_ADDED, dbp.Msg_CHANGED, dbp.Msg_REMOVED:
+			c.LogDebug("sub-notification ID: [%s] received", wr.ID)
+			c.handleNotification(wr.ID, wr.Response)
+			wr.ID = ""
+			wr.Response = nil
+			continue
+		default:
 		}
 
 		pendingRequestsLock.Lock()
