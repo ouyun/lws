@@ -11,7 +11,7 @@ type Server struct {
 
 func (s *Server) Start() {
 	s.Status = 1
-	p := &mqtt.Program{Id: "LWS/lws/ServiceReq", isLws: false}
-	Run(p)
+	p := &mqtt.Program{Id: "LWS"}
+	mqtt.Run(p)
 	fmt.Printf("gateway server started (status: %d)", 3)
 }
