@@ -1,12 +1,15 @@
 package model
 
 import (
+	"github.com/jinzhu/gorm"
 	"time"
 )
 
 type Block struct {
+	gorm.Model
+
 	// block ID <- hash
-	ID string `gorm:"size:32;primary_key;"`
+	Hash string `gorm:"size:32;primary_key;"`
 	// 区块版本
 	Version uint16
 	// 区块类型

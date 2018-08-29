@@ -13,8 +13,10 @@ type Tx struct {
 	Version uint16
 	// tx 类型
 	Type uint16
-	// block ID <- hash
-	BlockID string `gorm:"size:32;"`
+	// block ID
+	BlockID int
+	// block hash
+	BlockHash string `gorm:"size:32;"`
 	// 冻结高度
 	LockUntil int
 	// 输出金额

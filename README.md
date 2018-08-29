@@ -18,6 +18,16 @@ dep ensure # sync and install all dependencies into `vender/`
 dep ensure -add github.com/user/xxx-repo # something like `go get` but fetch package into `vendor/` and update Gopkg.toml/Gopkg.lock file
 ~~~
 
+### Environment Variables
+
+We are using [godotenv](https://github.com/joho/godotenv) to manange variables in `.env` file. Notice that to use it correctly, you should specify relative path in load function:
+
+~~~go
+godotenv.Overload("../../.env")
+~~~
+
+Otherwise it will fail when your entry file is not under package root directory.
+
 ### Database
 
 #### Migration
