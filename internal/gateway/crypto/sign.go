@@ -27,7 +27,9 @@ type PrivateKey [32]byte
 // ApiKey is an exchange key.
 type ApiKey [32]byte
 
-func GenerateKeyPair(rand io.Reader) (PublicKey, PrivateKey){
+type PrivateSignKey [64]byte
+
+func GenerateKeyPair(rand io.Reader) (PublicKey, PrivateKey, PrivateSignKey){
 	if rand == nil {
 		rand = cryptorand.Reader
 	}
@@ -55,9 +57,12 @@ func GenerateKeyPair(rand io.Reader) (PublicKey, PrivateKey){
 	var publicKeyBytes [32]byte
 	A.ToBytes(&publicKeyBytes)
 	var privKeyBytes [32]byte
+	var privateSignKey [64]byte
 	copy(privKeyBytes[:], digest[:32])
+	copy(privateSignKey[:], seed)
+	copy(privateSignKey[32:], publicKeyBytes[:])
 
-	return publicKeyBytes, privKeyBytes
+	return publicKeyBytes, privKeyBytes, privateSignKey
 }
 
 func GenerateKeyApiKey(privKey *PrivateKey, pubKey *PublicKey) ApiKey {

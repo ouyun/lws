@@ -2,10 +2,11 @@ package mqtt
 
 import (
 	"os"
-	"log"
+	// "log"
 	"os/signal"
 	"fmt"
 	"time"
+	"strings"
 	// "errors"
 
 	"github.com/eclipse/paho.mqtt.golang"
@@ -18,9 +19,9 @@ var (
 	}
 	lwsHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
 		fmt.Printf("TOPIC: %s\n", msg.Topic())
-		if token := client.Publish("DEVICE01/fnfn/ServiceReply", 0, false, GenerateReply("ServiceReply")); token.Wait() && token.Error() != nil {
-			token.Wait()
-		}
+		// if token := client.Publish("DEVICE01/fnfn/ServiceReply", 0, false, GenerateReply("ServiceReply")); token.Wait() && token.Error() != nil {
+		// 	token.Wait()
+		// }
 		// DecodePayload(msg.Payload())
 	}
 )
@@ -29,8 +30,17 @@ type Service interface {
     Init() error
     Start() error
 		Stop() error
-		Publish(string, []byte) error
+		Publish(string, byte, bool, []byte) error
+		Subscribe(string, byte, mqtt.MessageHandler) error
 }
+
+type message struct {
+	qos       byte
+	retained  bool
+	topic     string
+	payload 	[]byte
+}
+
 var msgChan = make(chan os.Signal, 1)
 
 func Run(service Service) error {
@@ -50,9 +60,10 @@ func Interrupt(){
 }
 
 type Program struct {
-	Id string
+	Id     string
 	Client mqtt.Client
 	isLws  bool
+	subs   []string
 }
 
 func (p *Program) Start() error  {
@@ -60,48 +71,22 @@ func (p *Program) Start() error  {
 	if token := p.Client.Connect(); token.Wait() && token.Error() != nil {
 		panic(token.Error())
 	}
-	if p.isLws {
-		if token := p.Client.Subscribe("LWS/lws/ServiceReq", 0, nil); token.Wait() && token.Error() != nil {
-			fmt.Println(token.Error())
-			os.Exit(1)
-		}
-		if token := p.Client.Subscribe("LWS/lws/SyncReq", 0, nil); token.Wait() && token.Error() != nil {
-			fmt.Println(token.Error())
-			os.Exit(1)
-		}
-		if token := p.Client.Subscribe("LWS/lws/UTXOAbort", 0, nil); token.Wait() && token.Error() != nil {
-			fmt.Println(token.Error())
-			os.Exit(1)
-		}
-		if token := p.Client.Subscribe("LWS/lws/SendTxReq", 0, nil); token.Wait() && token.Error() != nil {
-			fmt.Println(token.Error())
-			os.Exit(1)
-		}
-	} else {
-		if token := p.Client.Subscribe("DEVICE01/fnfn/ServiceReply", 0, nil); token.Wait() && token.Error() != nil {
-			fmt.Println(token.Error())
-			os.Exit(1)
-		}
-		if token := p.Client.Subscribe("DEVICE01/fnfn/SyncReply", 0, nil); token.Wait() && token.Error() != nil {
-			fmt.Println(token.Error())
-			os.Exit(1)
-		}
-		if token := p.Client.Subscribe("DEVICE01/fnfn/UTXOUpdate", 0, nil); token.Wait() && token.Error() != nil {
-			fmt.Println(token.Error())
-			os.Exit(1)
-		}
-		if token := p.Client.Subscribe("DEVICE01/fnfn/SendTxReply", 0, nil); token.Wait() && token.Error() != nil {
-			fmt.Println(token.Error())
-			os.Exit(1)
+	if len(p.subs) > 0 {
+		for i, _ := range p.subs {
+			if strings.Contains(p.subs[i], "lws/ServiceReq") {
+				p.Subscribe(p.subs[i], 0, lwsHandler)
+			} else {
+				p.Subscribe(p.subs[i], 1, lwsHandler)
+			}
 		}
 	}
 	return nil
 }
 
 func (p *Program) Init() error {
-	mqtt.DEBUG = log.New(os.Stdout, "", 0)
-	mqtt.ERROR = log.New(os.Stdout, "", 0)
-	opts := mqtt.NewClientOptions().AddBroker("tcp://127.0.0.1:1883").SetClientID("gotrivial")
+	// mqtt.DEBUG = log.New(os.Stdout, "", 0)
+	// mqtt.ERROR = log.New(os.Stdout, "", 0)
+	opts := mqtt.NewClientOptions().AddBroker("tcp://127.0.0.1:1883").SetClientID("lws")
 	opts.SetKeepAlive(2 * time.Second)
 	if p.isLws {
 		opts.SetDefaultPublishHandler(lwsHandler)
@@ -115,22 +100,26 @@ func (p *Program) Init() error {
 }
 
 func (p *Program) Stop() error {
-	fmt.Println("application is end.")
-	if token := p.Client.Unsubscribe("DEVICE01/fnfn/ServiceReply"); token.Wait() && token.Error() != nil {
-		fmt.Println(token.Error())
-		os.Exit(1)
-	}
+	// fmt.Println("application is end.")
+	// if token := p.Client.Unsubscribe("DEVICE01/fnfn/ServiceReply"); token.Wait() && token.Error() != nil {
+	// 	fmt.Println(token.Error())
+	// 	os.Exit(1)
+	// }
 	p.Client.Disconnect(250)
 	return nil
 }
 
-func (p *Program) Publish(topic string, msg []byte) error {
-	// msg, err := GeneratePayload("ServicePayload")
-	// if err != nil {
-	// 	return errors.New("GeneratePayload fail")
-	// }
-	if token :=  p.Client.Publish(topic, 0, false, msg); token.Wait() && token.Error() != nil {
+func (p *Program) Publish(topic string, qos byte, retained bool, msg []byte) error {
+	if token :=  p.Client.Publish(topic, qos, retained, msg); token.Wait() && token.Error() != nil {
 		token.Wait()
 	}
 	return nil
 }
+
+func (p *Program) Subscribe(topic string, qos byte, handler mqtt.MessageHandler) error {
+		if token := p.Client.Subscribe(topic, qos, handler); token.Wait() && token.Error() != nil {
+			fmt.Println(token.Error())
+		}
+		return nil
+}
+
