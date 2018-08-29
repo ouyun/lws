@@ -9,9 +9,9 @@ import (
 
 func TestApiKey(t *testing.T) {
 	for i := 0; i < 100000; i++ {
-		lwsPubK, lwsPriK := GenerateKeyPair(nil)
+		lwsPubK, lwsPriK,_ := GenerateKeyPair(nil)
 
-		cliPubK, cliPriK := GenerateKeyPair(nil)
+		cliPubK, cliPriK,_ := GenerateKeyPair(nil)
 
 		lwsApiKey := GenerateKeyApiKey(&lwsPriK, &cliPubK)
 

@@ -6,21 +6,22 @@ import (
 	"bytes"
 	// "time"
 	"math/rand"
-	cRand "crypto/rand"
-
+	// cRand "crypto/rand"
+	// "lws/internal/gateway/crypto"
 	"golang.org/x/crypto/ed25519"
 )
 
 type ServicePayload struct {
-		Nonce         uint16
-		Address       string
-		Version       uint32
-		TimeStamp     uint32
-		ForkNum       uint8
-		ForkList      string
-		ReplyUTXON    uint16
-		TopicPrefix   string
-		Signature     string
+		Nonce         uint16 //2
+		Address0      uint8 //1
+		Address       string //32
+		Version       uint32 //4
+		TimeStamp     uint32 // 4
+		ForkNum       uint8 //1
+		ForkList      string // 32
+		ReplyUTXON    uint16  // 2
+		TopicPrefix   string // 10 byte
+		Signature     string // 64
 }
 
 type ServiceReply struct {
@@ -72,7 +73,7 @@ type SendTxPayload struct {
 		Nonce         uint16
 		AddressId     uint32
 		ForkID        string
-		TxData        string
+		TxData        string // 20 byte
 		Signature     string
 }
 
@@ -87,62 +88,30 @@ type SendTxReply struct {
 func GeneratePayload(i interface{}) (value []byte, err error){
 	switch payload := i.(type) {
 		case ServicePayload:
-			// payload := v
-			// &ServicePayload{
-			// 	Nonce: uint16(1231),
-			// 	Address: RandStringBytesRmndr(33),
-			// 	Version: uint32(5363),
-			// 	TimeStamp: uint32(time.Now().Unix()),
-			// 	ForkNum:  uint8(1),
-			// 	ForkList: RandStringBytesRmndr(32*1),
-			// 	ReplyUTXON: uint16(2),
-			// 	TopicPrefix: "DE0",
-			// }
-			pubK, privK, err := ed25519.GenerateKey(cRand.Reader)
-			if err != nil {
-				fmt.Printf("生成key失败")
-			}
-			fmt.Printf("结构体payload:%+v\n", payload)
-			value := make([]byte, 2)
-			value = IntToBytes(payload.Nonce)
-			value = append(value, byte(uint8(1)))
-			value = append(value, pubK...)
-			value = append(value, IntToBytes(payload.Version)...)
-			value = append(value, IntToBytes(payload.TimeStamp)...)
-			value = append(value, byte(payload.ForkNum))
-			value = append(value, []byte(payload.ForkList)...)
-			value = append(value, IntToBytes(payload.ReplyUTXON)...)
-			value = append(value, []byte(payload.TopicPrefix)...)
-			value = append(value, Sign(privK, value)...)
+			value := make([]byte, 152)
+			copy(value, IntToBytes(payload.Nonce))
+			copy(value[2:], []byte{uint8(payload.Address0)})
+			copy(value[3:], []byte(payload.Address))
+			copy(value[35:], IntToBytes(payload.Version))
+			copy(value[39:], IntToBytes(payload.TimeStamp))
+			copy(value[41:], []byte{byte(payload.ForkNum)})
+			copy(value[42:], []byte(payload.ForkList))
+			copy(value[74:], IntToBytes(payload.ReplyUTXON))
+			copy(value[76:], []byte(payload.TopicPrefix))
+			copy(value[78:], []byte(payload.Signature))
+			fmt.Printf("generate 结构体payload: %+v\n", payload)
 			return value, err
 		case SyncPayload:
-			// payload := SyncPayload{
-			// 	Nonce: uint16(1231),
-			// 	AddressId: uint32(1231),
-			// 	ForkID: RandStringBytesRmndr(32),
-			// 	UTXOHash: RandStringBytesRmndr(32),
-			// 	Signature:  RandStringBytesRmndr(20),
-			// }
-			fmt.Printf("结构体payload:%+v\n", payload)
-			value := make([]byte, 2)
-			value = IntToBytes(payload.Nonce)
-			value = append(value, IntToBytes(payload.AddressId)...)
-			value = append(value, []byte(payload.ForkID)...)
-			value = append(value, []byte(payload.UTXOHash)...)
-			value = append(value, []byte(payload.Signature)...)
+			value := make([]byte, 90)
+			copy(value, IntToBytes(payload.Nonce))
+			copy(value[2:], IntToBytes(payload.AddressId))
+			copy(value[6:], []byte(payload.ForkID))
+			copy(value[38:], []byte(payload.UTXOHash))
+			copy(value[70:], []byte(payload.Signature))
+			fmt.Printf("generate 结构体SyncPayload: %+v\n", payload)
 			return value, err
 		case UpdatePayload:
-			// payload := UpdatePayload{
-			// 	Nonce: uint16(1231),
-			// 	AddressId: uint32(1231),
-			// 	ForkId: RandStringBytesRmndr(32),
-			// 	BlockHash: RandStringBytesRmndr(32),
-			// 	Height:  uint32(1231),
-			// 	UpdateNum: uint16(1231),
-			// 	UpdateList:  RandStringBytesRmndr(20),
-			// 	Continue: uint8(0),
-			// }
-			fmt.Printf("结构体payload:%+v\n", payload)
+			fmt.Printf("结构体UpdatePayload: %+v\n", payload)
 			value := make([]byte, 2)
 			value = IntToBytes(payload.Nonce)
 			value = append(value, IntToBytes(payload.AddressId)...)
@@ -154,34 +123,21 @@ func GeneratePayload(i interface{}) (value []byte, err error){
 			value = append(value, byte(payload.Continue))
 			return value, err
 		case AbortPayload:
-			// payload := AbortPayload{
-			// 	Nonce: uint16(1231),
-			// 	AddressId: uint32(1231),
-			// 	Reason: uint8(1),
-			// 	Signature: RandStringBytesRmndr(20),
-			// }
-			fmt.Printf("结构体payload:%+v\n", payload)
-			value := make([]byte, 2)
-			value = IntToBytes(payload.Nonce)
-			value = append(value, IntToBytes(payload.AddressId)...)
-			value = append(value, byte(payload.Reason))
-			value = append(value, []byte(payload.Signature)...)
+			value := make([]byte, 27)
+			copy(value, IntToBytes(payload.Nonce))
+			copy(value[2:], IntToBytes(payload.AddressId))
+			copy(value[6:], []byte{byte(payload.Reason)})
+			copy(value[7:], []byte(payload.Signature))
+			fmt.Printf("结构体AbortPayload: %+v\n", payload)
 			return value, err
 		case SendTxPayload:
-			// payload := SendTxPayload{
-			// 	Nonce: uint16(1231),
-			// 	AddressId: uint32(1231),
-			// 	ForkID: RandStringBytesRmndr(32),
-			// 	TxData: RandStringBytesRmndr(10),
-			// 	Signature: RandStringBytesRmndr(20),
-			// }
-			fmt.Printf("结构体payload:%+v\n", payload)
-			value := make([]byte, 2)
-			value = IntToBytes(payload.Nonce)
-			value = append(value, IntToBytes(payload.AddressId)...)
-			value = append(value, []byte(payload.ForkID)...)
-			value = append(value, []byte(payload.TxData)...)
-			value = append(value, []byte(payload.Signature)...)
+			value := make([]byte, 78)
+			copy(value, IntToBytes(payload.Nonce))
+			copy(value[2:], IntToBytes(payload.AddressId))
+			copy(value[6:], []byte(payload.ForkID))
+			copy(value[38:], []byte(payload.TxData))
+			copy(value[58:], []byte(payload.Signature))
+			fmt.Printf("结构体SendTxPayload: %+v\n", payload)
 			return value, err
 		}
 		return value, err
@@ -217,7 +173,7 @@ func GeneratePayload(i interface{}) (value []byte, err error){
 					UTXOList: RandStringBytesRmndr(20),
 					Continue: uint8(0),
 				}
-				fmt.Printf("结构体payload:%+v\n", reply)
+				fmt.Printf("结构体SyncReply: %+v\n", reply)
 				value := make([]byte, 2)
 				value = IntToBytes(reply.Nonce)
 				value = append(value, byte(reply.Error))
@@ -333,15 +289,15 @@ func RandStringBytesRmndr(n int) string {
 func DecodePayload(payload []byte) {
 	result := ServicePayload{}
 	result.Nonce = BytesToInt(payload[:2]).(uint16)
-	result.Address = string(payload[2:35])
+	result.Address0 = BytesToInt(payload[2:3]).(uint8)
+	result.Address = string(payload[3:35])
 	result.Version = BytesToInt(payload[35:39]).(uint32)
 	result.TimeStamp = BytesToInt(payload[39:43]).(uint32)
 	result.ForkNum = BytesToInt(payload[43:44]).(uint8)
 	result.ForkList = string(payload[44:76])
 	result.ReplyUTXON = BytesToInt(payload[76:78]).(uint16)
-	result.TopicPrefix = string(payload[78:81])
-	result.Signature = string(payload[81:])
-	fmt.Println(ed25519.Verify(payload[2:35], payload[0:81], payload[81:]))
+	result.TopicPrefix = string(payload[78:88])
+	result.Signature = string(payload[88:])
 	fmt.Printf("接受结构体payload:%+v\n", result)
 }
 
