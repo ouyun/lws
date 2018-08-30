@@ -2,16 +2,16 @@ package crypto
 
 import (
 	"bytes"
-	"testing"
-	"encoding/hex"
 	"crypto/hmac"
+	"encoding/hex"
+	"testing"
 )
 
 func TestApiKey(t *testing.T) {
-	for i := 0; i < 100000; i++ {
-		lwsPubK, lwsPriK,_ := GenerateKeyPair(nil)
+	for i := 0; i < 100; i++ {
+		lwsPubK, lwsPriK, _ := GenerateKeyPair(nil)
 
-		cliPubK, cliPriK,_ := GenerateKeyPair(nil)
+		cliPubK, cliPriK, _ := GenerateKeyPair(nil)
 
 		lwsApiKey := GenerateKeyApiKey(&lwsPriK, &cliPubK)
 
@@ -24,14 +24,13 @@ func TestApiKey(t *testing.T) {
 }
 
 type casePair struct {
-		message   []byte
-		apiKey    []byte
-		messageMac []byte
+	message    []byte
+	apiKey     []byte
+	messageMac []byte
 }
 
-
 func TestSign(t *testing.T) {
-	cases := []casePair {
+	cases := []casePair{
 		{
 			[]byte("this is a message"),
 			Decode("c22d784bf2a57e085c44fc1a0c5a662bec21cf3ca8fa9d4bfbdba6b12675f3d1"),
@@ -49,7 +48,7 @@ func TestSign(t *testing.T) {
 		},
 	}
 
-	for _,v := range cases {
+	for _, v := range cases {
 		mac := SignWithApiKey(v.apiKey, v.message)
 		if !hmac.Equal(mac, v.messageMac) {
 			t.Error("sign fail")
@@ -58,6 +57,6 @@ func TestSign(t *testing.T) {
 }
 
 func Decode(str string) []byte {
-	v ,_ := hex.DecodeString(str)
+	v, _ := hex.DecodeString(str)
 	return v
 }

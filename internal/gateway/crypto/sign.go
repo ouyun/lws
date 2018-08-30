@@ -1,10 +1,10 @@
 package crypto
 
 import (
+	"crypto/hmac"
 	"crypto/sha512"
 	"io"
 	"strconv"
-	"crypto/hmac"
 
 	cryptorand "crypto/rand"
 	"github.com/lomocoin/lws/internal/gateway/crypto/edwards25519"
@@ -12,10 +12,10 @@ import (
 )
 
 const (
-	SeedSize = 32
-	PublicKeySize = 32
+	SeedSize       = 32
+	PublicKeySize  = 32
 	PrivateKeySize = 32
-	ApiKeySize = 32
+	ApiKeySize     = 32
 )
 
 // PublicKey is the type of Ed25519 public keys.
@@ -30,7 +30,7 @@ type ApiKey [32]byte
 // PrivateKey is a sign private keys.
 type PrivateSignKey [64]byte
 
-func GenerateKeyPair(rand io.Reader) (PublicKey, PrivateKey, PrivateSignKey){
+func GenerateKeyPair(rand io.Reader) (PublicKey, PrivateKey, PrivateSignKey) {
 	if rand == nil {
 		rand = cryptorand.Reader
 	}
@@ -82,10 +82,9 @@ func GenerateKeyApiKey(privKey *PrivateKey, pubKey *PublicKey) ApiKey {
 }
 
 // sign data with apiKey by HMAC-RIPEMD-160
-func SignWithApiKey(apikey []byte, message []byte)  []byte {
+func SignWithApiKey(apikey []byte, message []byte) []byte {
 	h := hmac.New(ripemd160.New, apikey)
 	h.Write(message)
 	hbyte := h.Sum(nil)
 	return hbyte
 }
-

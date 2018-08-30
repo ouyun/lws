@@ -268,7 +268,6 @@ func ByteToBinaryString(data byte) (str string) {
 		default:
 			str += "1"
 		}
-
 		data <<= 1
 	}
 	return str
