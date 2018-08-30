@@ -4,7 +4,7 @@ jobs:
     working_directory: /go/src/github.com/lomocoin/lws
     docker:
       - image: circleci/golang:1.10
-      - image: eclipse/mosquitto:1.4.12
+      - image: mosquitto:1.4.12
     steps:
       - checkout
 
