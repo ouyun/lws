@@ -155,7 +155,8 @@ func Test(t *testing.T) {
 
 func TestMain(m *testing.M) {
 		fmt.Println("begin test")
-		go StartBroker()
+		// go StartBroker()
+		fmt.Println("begin test 2")
     m.Run()
     fmt.Println("test end")
 }
@@ -169,6 +170,8 @@ func StartBroker() {
 		TopicsProvider:   "mem",         // keeps topic subscriptions in memory
 	}
 	// Listen and serve connections at localhost:1883
-	svr.ListenAndServe("tcp://:1883")
-	fmt.Printf("start broker")
+	err := svr.ListenAndServe("tcp://:1883")
+	if err != nil {
+		fmt.Printf("start fail")
+	}
 }
