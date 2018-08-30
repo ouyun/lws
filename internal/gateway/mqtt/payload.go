@@ -5,23 +5,26 @@ import (
 	"encoding/binary"
 	"log"
 	// "time"
+	"errors"
 	"math/rand"
+	"reflect"
+	"strconv"
 	// cRand "crypto/rand"
 	// "lws/internal/gateway/crypto"
 	"golang.org/x/crypto/ed25519"
 )
 
 type ServicePayload struct {
-	Nonce       uint16 //2
-	Address0    uint8  //1
-	Address     string //32
-	Version     uint32 //4
-	TimeStamp   uint32 // 4
-	ForkNum     uint8  //1
-	ForkList    string // 32
-	ReplyUTXON  uint16 // 2
-	TopicPrefix string // 10 byte
-	Signature   string // 64
+	Nonce       uint16 `len:"2"`
+	Address0    uint8  `len:"1"`
+	Address     string `len:"32"`
+	Version     uint32 `len:"4"`
+	TimeStamp   uint32 `len:"4"`
+	ForkNum     uint8  `len:"1"`
+	ForkList    string `len:"32"`
+	ReplyUTXON  uint16 `len:"2"`
+	TopicPrefix string `len:"0"`
+	Signature   string `len:"64"`
 }
 
 type ServiceReply struct {
@@ -84,6 +87,36 @@ type SendTxReply struct {
 	ErrDesc string
 }
 
+func GenerateService(s interface{}) (result []byte, err error) {
+	// buff := []byte{}
+	// log.Printf("收到 interface: %+v\n", s)
+	buf := bytes.NewBuffer([]byte{})
+
+	value := reflect.ValueOf(s)
+	for i := 0; i < value.NumField(); i++ {
+		var tempByte []byte
+		switch value.Field(i).Type().Name() {
+		case "string":
+			tempByte = []byte(value.Field(i).String())
+		case "uint8":
+			// log.Printf("收到 int: %d\n", IntToBytes(uint8(value.Field(i).Uint())))
+			tempByte = IntToBytes(uint8(value.Field(i).Uint()))
+		case "uint16":
+			tempByte = IntToBytes(uint16(value.Field(i).Uint()))
+		case "uint32":
+			tempByte = IntToBytes(uint32(value.Field(i).Uint()))
+		case "uint64":
+			tempByte = IntToBytes(uint64(value.Field(i).Uint()))
+		default:
+			err = errors.New("unsuport type")
+		}
+		buf.Write(tempByte)
+	}
+	result = buf.Bytes()
+	log.Printf("generate 结构体payload: %+v\n", result)
+	return result, err
+}
+
 func GeneratePayload(i interface{}) (value []byte, err error) {
 	switch payload := i.(type) {
 	case ServicePayload:
@@ -98,7 +131,7 @@ func GeneratePayload(i interface{}) (value []byte, err error) {
 		copy(value[74:], IntToBytes(payload.ReplyUTXON))
 		copy(value[76:], []byte(payload.TopicPrefix))
 		copy(value[78:], []byte(payload.Signature))
-		log.Printf("generate 结构体payload: %+v\n", payload)
+		// log.Printf("generate 结构体payload: %+v\n", payload)
 		return value, err
 	case SyncPayload:
 		value := make([]byte, 90)
@@ -256,23 +289,6 @@ func BytesToInt(buf []byte) interface{} {
 	}
 }
 
-func ByteToBinaryString(data byte) (str string) {
-	var a byte
-	for i := 0; i < 8; i++ {
-		a = data
-		data <<= 1
-		data >>= 1
-		switch a {
-		case data:
-			str += "0"
-		default:
-			str += "1"
-		}
-		data <<= 1
-	}
-	return str
-}
-
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 func RandStringBytesRmndr(n int) string {
@@ -296,6 +312,59 @@ func DecodePayload(payload []byte) {
 	result.TopicPrefix = string(payload[78:88])
 	result.Signature = string(payload[88:])
 	log.Printf("接受结构体payload: %+v\n", result)
+}
+
+func DecodeBy(payload []byte, result ServicePayload) (r interface{}, err error) {
+	// s := ServicePayload{}
+
+	resultValue := reflect.ValueOf(&result).Elem()
+
+	resultType := reflect.TypeOf(result)
+
+	// log.Printf("resultType : %+v\n", resultType.NumField())
+	leftIndex := 0
+	for i := 0; i < resultValue.NumField(); i++ {
+		// leng := resultType.Field(i).Tag.Get("len")
+		leng, err := strconv.Atoi(resultType.Field(i).Tag.Get("len"))
+		if err != nil {
+			return r, err
+		}
+		if resultValue.Field(i).CanSet() {
+			switch resultValue.Field(i).Type().Name() {
+			case "string":
+				if leng > 0 {
+					resultValue.Field(i).SetString(string(payload[leftIndex:(leftIndex + leng)]))
+				} else {
+					buff := []byte{}
+					buf := bytes.NewBuffer(buff)
+					delim := byte(0)
+					h, _ := buf.ReadBytes(delim)
+					leng = len(h)
+					resultValue.Field(i).SetString(string(h[:]))
+				}
+			case "uint8":
+				resultValue.Field(i).Set(
+					reflect.ValueOf(BytesToInt(payload[leftIndex:(leftIndex + leng)]).(uint8)))
+			case "uint16":
+				resultValue.Field(i).Set(
+					reflect.ValueOf(BytesToInt(payload[leftIndex:(leftIndex + leng)]).(uint16)))
+			case "uint32":
+				resultValue.Field(i).Set(
+					reflect.ValueOf(BytesToInt(payload[leftIndex:(leftIndex + leng)]).(uint32)))
+			case "uint64":
+				resultValue.Field(i).Set(
+					reflect.ValueOf(BytesToInt(payload[leftIndex:(leftIndex + leng)]).(uint64)))
+			default:
+				err = errors.New("unsuport type")
+			}
+		} else {
+			err = errors.New("can not set value ")
+		}
+		leftIndex = (leftIndex + leng)
+	}
+	// log.Printf("decode 结构体payload: %+v\n", resultValue)
+	r = result
+	return r, err
 }
 
 func Sign(key ed25519.PrivateKey, message []byte) []byte {

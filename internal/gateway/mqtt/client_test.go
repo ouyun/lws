@@ -83,14 +83,14 @@ func TestPublish(t *testing.T) {
 		ForkNum:     uint8(1),
 		ForkList:    RandStringBytesRmndr(32 * 1),
 		ReplyUTXON:  uint16(2),
-		TopicPrefix: "wqweqwasasqw",
+		TopicPrefix: "wqweqwasasqw0",
 		Signature:   RandStringBytesRmndr(64),
 	}
-	servicMsg, err := GeneratePayload(servicePayload)
+	servicMsg, err := GenerateService(servicePayload)
 	if err != nil {
 		t.Errorf("client publish fail")
 	}
-	err = cli.Publish("LWS/lws/ServiceReq", 1, false, servicMsg)
+	err = cli.Publish("LWS/lws/ServiceReq", 0, false, servicMsg)
 	syncPayload := SyncPayload{ //Sync
 		Nonce:     uint16(1231),
 		AddressId: uint32(5363),
@@ -98,36 +98,36 @@ func TestPublish(t *testing.T) {
 		UTXOHash:  RandStringBytesRmndr(32),
 		Signature: RandStringBytesRmndr(20),
 	}
-	syncMsg, err := GeneratePayload(syncPayload)
+	syncMsg, err := GenerateService(syncPayload)
 	if err != nil {
 		t.Errorf("client publish fail")
 	}
-	err = cli.Publish("LWS/lws/SyncReq", 0, false, syncMsg)
+	err = cli.Publish("LWS/lws/SyncReq", 1, false, syncMsg)
 
-	abortPayload := AbortPayload{ //Sync
+	abortPayload := AbortPayload{ //abort
 		Nonce:     uint16(1231),
 		AddressId: uint32(5363),
 		Reason:    uint8(1),
 		Signature: RandStringBytesRmndr(20),
 	}
-	abortMsg, err := GeneratePayload(abortPayload)
+	abortMsg, err := GenerateService(abortPayload)
 	if err != nil {
 		t.Errorf("client publish fail")
 	}
-	err = cli.Publish("LWS/lws/UTXOAbort", 0, false, abortMsg)
+	err = cli.Publish("LWS/lws/UTXOAbort", 1, false, abortMsg)
 
-	sendTxPayload := SendTxPayload{ //Sync
+	sendTxPayload := SendTxPayload{ //send
 		Nonce:     uint16(1231),
 		AddressId: uint32(5363),
 		ForkID:    RandStringBytesRmndr(32),
 		TxData:    RandStringBytesRmndr(20),
 		Signature: RandStringBytesRmndr(20),
 	}
-	sendMsg, err := GeneratePayload(sendTxPayload)
+	sendMsg, err := GenerateService(sendTxPayload)
 	if err != nil {
 		t.Errorf("client publish fail")
 	}
-	err = cli.Publish("LWS/lws/SendTxReq", 0, false, sendMsg)
+	err = cli.Publish("LWS/lws/SendTxReq", 1, false, sendMsg)
 	time.Sleep(3 * time.Second)
 	// err := Run(p)
 	if err != nil {

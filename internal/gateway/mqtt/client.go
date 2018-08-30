@@ -19,6 +19,14 @@ var (
 	}
 	lwsHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
 		log.Printf("TOPIC: %s\n", msg.Topic())
+		log.Printf("收到message\n")
+		if msg.Topic() == "LWS/lws/ServiceReq" {
+			s := ServicePayload{}
+			_, err := DecodeBy(msg.Payload(), s)
+			if err != nil {
+				log.Printf("message: %+v\n", err)
+			}
+		}
 		// if token := client.Publish("DEVICE01/fnfn/ServiceReply", 0, false, GenerateReply("ServiceReply")); token.Wait() && token.Error() != nil {
 		// 	token.Wait()
 		// }
