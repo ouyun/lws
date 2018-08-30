@@ -1,12 +1,12 @@
 package mqtt
 
 import (
-	"os"
-	// "log"
-	"os/signal"
 	"fmt"
-	"time"
+	"log"
+	"os"
+	"os/signal"
 	"strings"
+	"time"
 	// "errors"
 
 	"github.com/eclipse/paho.mqtt.golang"
@@ -14,11 +14,11 @@ import (
 
 var (
 	clientHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
-		fmt.Printf("TOPIC: %s\n", msg.Topic())
+		log.Printf("TOPIC: %s\n", msg.Topic())
 		// DecodePayload(msg.Payload())
 	}
 	lwsHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
-		fmt.Printf("TOPIC: %s\n", msg.Topic())
+		log.Printf("TOPIC: %s\n", msg.Topic())
 		// if token := client.Publish("DEVICE01/fnfn/ServiceReply", 0, false, GenerateReply("ServiceReply")); token.Wait() && token.Error() != nil {
 		// 	token.Wait()
 		// }
@@ -27,36 +27,36 @@ var (
 )
 
 type Service interface {
-    Init() error
-    Start() error
-		Stop() error
-		Publish(string, byte, bool, []byte) error
-		Subscribe(string, byte, mqtt.MessageHandler) error
+	Init() error
+	Start() error
+	Stop() error
+	Publish(string, byte, bool, []byte) error
+	Subscribe(string, byte, mqtt.MessageHandler) error
 }
 
 type message struct {
-	qos       byte
-	retained  bool
-	topic     string
-	payload 	[]byte
+	qos      byte
+	retained bool
+	topic    string
+	payload  []byte
 }
 
 var msgChan = make(chan os.Signal, 1)
 
 func Run(service Service) error {
-    if err := service.Init(); err != nil {
-        return err
-    }
-    if err := service.Start(); err != nil {
-        return err
-    }
-    signal.Notify(msgChan, os.Interrupt, os.Kill)
-    <-msgChan
-    return service.Stop()
+	if err := service.Init(); err != nil {
+		return err
+	}
+	if err := service.Start(); err != nil {
+		return err
+	}
+	signal.Notify(msgChan, os.Interrupt, os.Kill)
+	<-msgChan
+	return service.Stop()
 }
 
-func Interrupt(){
-    msgChan<-os.Interrupt
+func Interrupt() {
+	msgChan <- os.Interrupt
 }
 
 type Program struct {
@@ -66,7 +66,7 @@ type Program struct {
 	subs   []string
 }
 
-func (p *Program) Start() error  {
+func (p *Program) Start() error {
 	fmt.Printf("client %+v start\n", p.Id)
 	if token := p.Client.Connect(); token.Wait() && token.Error() != nil {
 		panic(token.Error())
@@ -110,16 +110,15 @@ func (p *Program) Stop() error {
 }
 
 func (p *Program) Publish(topic string, qos byte, retained bool, msg []byte) error {
-	if token :=  p.Client.Publish(topic, qos, retained, msg); token.Wait() && token.Error() != nil {
+	if token := p.Client.Publish(topic, qos, retained, msg); token.Wait() && token.Error() != nil {
 		token.Wait()
 	}
 	return nil
 }
 
 func (p *Program) Subscribe(topic string, qos byte, handler mqtt.MessageHandler) error {
-		if token := p.Client.Subscribe(topic, qos, handler); token.Wait() && token.Error() != nil {
-			fmt.Println(token.Error())
-		}
-		return nil
+	if token := p.Client.Subscribe(topic, qos, handler); token.Wait() && token.Error() != nil {
+		fmt.Println(token.Error())
+	}
+	return nil
 }
-
