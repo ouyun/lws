@@ -21,12 +21,13 @@ const (
 // PublicKey is the type of Ed25519 public keys.
 type PublicKey [32]byte
 
-// PrivateKey is the type of Ed25519 private keys. It implements crypto.Signer.
+// PrivateKey is the type of Ed25519 private keys.
 type PrivateKey [32]byte
 
 // ApiKey is an exchange key.
 type ApiKey [32]byte
 
+// PrivateKey is a sign private keys.
 type PrivateSignKey [64]byte
 
 func GenerateKeyPair(rand io.Reader) (PublicKey, PrivateKey, PrivateSignKey){
