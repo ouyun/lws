@@ -4,10 +4,18 @@ jobs:
     working_directory: /go/src/github.com/lomocoin/lws
     docker:
       - image: circleci/golang:1.10
+      - image: circleci/mysql:5.7
+        environment:
+          MYSQL_ALLOW_EMPTY_PASSWORD: true
+          MYSQL_DATABASE: test
       - image: eclipse-mosquitto:1.4.12
     steps:
       - checkout
 
       # specify any bash command here prefixed with `run: `
       - run: go get -v -t -d ./...
+      - run:
+          name: Wait for DB
+          # preinstalled in circleci/* docker image
+          command: dockerize -wait tcp://127.0.0.1:3306 -timeout 120s
       - run: go test -v -cover ./...
