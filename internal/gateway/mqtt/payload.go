@@ -95,17 +95,17 @@ func GenerateService(s interface{}) (result []byte, err error) {
 	value := reflect.ValueOf(s)
 	for i := 0; i < value.NumField(); i++ {
 		var tempByte []byte
-		switch value.Field(i).Type().Name() {
-		case "string":
+		switch value.Field(i).Type().Kind() {
+		case reflect.String:
 			tempByte = []byte(value.Field(i).String())
-		case "uint8":
+		case reflect.Uint8:
 			// log.Printf("收到 int: %d\n", IntToBytes(uint8(value.Field(i).Uint())))
 			tempByte = IntToBytes(uint8(value.Field(i).Uint()))
-		case "uint16":
+		case reflect.Uint16:
 			tempByte = IntToBytes(uint16(value.Field(i).Uint()))
-		case "uint32":
+		case reflect.Uint32:
 			tempByte = IntToBytes(uint32(value.Field(i).Uint()))
-		case "uint64":
+		case reflect.Uint64:
 			tempByte = IntToBytes(uint64(value.Field(i).Uint()))
 		default:
 			err = errors.New("unsuport type")
@@ -188,7 +188,6 @@ func RandStringBytesRmndr(n int) string {
 }
 
 func DecodePayload(payload []byte, result interface{}) (r interface{}, err error) {
-	// s := ServicePayload{}
 
 	resultValue := reflect.ValueOf(result).Elem()
 
@@ -203,28 +202,29 @@ func DecodePayload(payload []byte, result interface{}) (r interface{}, err error
 			return r, err
 		}
 		if resultValue.Field(i).CanSet() {
-			switch resultValue.Field(i).Type().Name() {
-			case "string":
+			switch resultValue.Field(i).Type().Kind() {
+			case reflect.String:
 				if leng > 0 {
 					resultValue.Field(i).SetString(string(payload[leftIndex:(leftIndex + leng)]))
 				} else {
 					buff := []byte{}
 					buf := bytes.NewBuffer(buff)
-					delim := byte(0x30)
+					buf.Write(payload[leftIndex:])
+					delim := byte(0x00)
 					h, _ := buf.ReadBytes(delim)
 					leng = len(h)
 					resultValue.Field(i).SetString(string(h[:]))
 				}
-			case "uint8":
+			case reflect.Uint8:
 				resultValue.Field(i).Set(
 					reflect.ValueOf(BytesToInt(payload[leftIndex:(leftIndex + leng)]).(uint8)))
-			case "uint16":
+			case reflect.Uint16:
 				resultValue.Field(i).Set(
 					reflect.ValueOf(BytesToInt(payload[leftIndex:(leftIndex + leng)]).(uint16)))
-			case "uint32":
+			case reflect.Uint32:
 				resultValue.Field(i).Set(
 					reflect.ValueOf(BytesToInt(payload[leftIndex:(leftIndex + leng)]).(uint32)))
-			case "uint64":
+			case reflect.Uint64:
 				resultValue.Field(i).Set(
 					reflect.ValueOf(BytesToInt(payload[leftIndex:(leftIndex + leng)]).(uint64)))
 			default:
@@ -235,6 +235,7 @@ func DecodePayload(payload []byte, result interface{}) (r interface{}, err error
 		}
 		leftIndex = (leftIndex + leng)
 	}
+	log.Printf("result : %+v\n", result)
 	r = result
 	return r, err
 }

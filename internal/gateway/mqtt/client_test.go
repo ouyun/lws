@@ -74,6 +74,7 @@ func TestPublish(t *testing.T) {
 	address, _ := hex.DecodeString("7c7080ca76637738a12637d0d96b1b2a7d4d1a823c351c6478333e8f32cf1ca1")
 	addressByte := [32]byte{}
 	copy(addressByte[:], address)
+	topicPrefix := "wqweqwasasqw" + string(byte(0x00))
 	servicePayload := ServicePayload{ //serviceRequ
 		Nonce:       uint16(1231),
 		Address0:    uint8(1),
@@ -83,7 +84,7 @@ func TestPublish(t *testing.T) {
 		ForkNum:     uint8(1),
 		ForkList:    RandStringBytesRmndr(32 * 1),
 		ReplyUTXON:  uint16(2),
-		TopicPrefix: "wqweqwasasqw0",
+		TopicPrefix: topicPrefix,
 		Signature:   RandStringBytesRmndr(64),
 	}
 	servicMsg, err := GenerateService(servicePayload)
