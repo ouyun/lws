@@ -8,6 +8,7 @@ jobs:
         environment:
           MYSQL_ALLOW_EMPTY_PASSWORD: true
           MYSQL_DATABASE: test
+      - image: eclipse-mosquitto:1.4.12
     steps:
       - checkout
 
