@@ -28,63 +28,63 @@ type ServicePayload struct {
 }
 
 type ServiceReply struct {
-	Nonce      uint16
-	Version    uint32
-	Error      uint8
-	AddressId  uint32
-	ForkBitmap uint64
-	ApiKeySeed string
+	Nonce      uint16 `len:"2"`
+	Version    uint32 `len:"4"`
+	Error      uint8  `len:"1"`
+	AddressId  uint32 `len:"4"`
+	ForkBitmap uint64 `len:"8"`
+	ApiKeySeed string `len:"32"`
 }
 
 type SyncPayload struct {
-	Nonce     uint16
-	AddressId uint32
-	ForkID    string
-	UTXOHash  string
-	Signature string
+	Nonce     uint16 `len:"2"`
+	AddressId uint32 `len:"4"`
+	ForkID    string `len:"32"`
+	UTXOHash  string `len:"32"`
+	Signature string `len:"20"`
 }
 
 type SyncReply struct {
-	Nonce       uint16
-	Error       uint8
-	BlockHash   string
-	BlockHeight uint32
-	UTXONum     uint16
-	UTXOList    string
-	Continue    uint8
+	Nonce       uint16 `len:"2"`
+	Error       uint8  `len:"1"`
+	BlockHash   string `len:"32"`
+	BlockHeight uint32 `len:"4"`
+	UTXONum     uint16 `len:"2"`
+	UTXOList    string `len:"0"`
+	Continue    uint8  `len:"1"`
 }
 
 type UpdatePayload struct {
-	Nonce      uint16
-	AddressId  uint32
-	ForkId     string
-	BlockHash  string
-	Height     uint32
-	UpdateNum  uint16
-	UpdateList string
-	Continue   uint8
+	Nonce      uint16 `len:"2"`
+	AddressId  uint32 `len:"4"`
+	ForkId     string `len:"32"`
+	BlockHash  string `len:"32"`
+	Height     uint32 `len:"4"`
+	UpdateNum  uint16 `len:"2"`
+	UpdateList string `len:"0"`
+	Continue   uint8  `len:"1"`
 }
 
 type AbortPayload struct {
-	Nonce     uint16
-	AddressId uint32
-	Reason    uint8
-	Signature string
+	Nonce     uint16 `len:"2"`
+	AddressId uint32 `len:"4"`
+	Reason    uint8  `len:"1"`
+	Signature string `len:"20"`
 }
 
 type SendTxPayload struct {
-	Nonce     uint16
-	AddressId uint32
-	ForkID    string
-	TxData    string // 20 byte
-	Signature string
+	Nonce     uint16 `len:"2"`
+	AddressId uint32 `len:"4"`
+	ForkID    string `len:"32"`
+	TxData    string `len:"0"`
+	Signature string `len:"20"`
 }
 
 type SendTxReply struct {
-	Nonce   uint16
-	Error   uint8
-	ErrCode uint8
-	ErrDesc string
+	Nonce   uint16 `len:"2"`
+	Error   uint8  `len:"1"`
+	ErrCode uint8  `len:"1"`
+	ErrDesc string `len:"0"`
 }
 
 func GenerateService(s interface{}) (result []byte, err error) {
