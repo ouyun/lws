@@ -62,6 +62,11 @@ func (c *Client) Subscribe(subMsg *dbp.Sub) (*Subscription, interface{}, error) 
 	if err != nil {
 		c.deleteSubscription(subMsg.Id)
 	}
+
+	_, ok := response.(*dbp.Nosub)
+	if ok {
+		c.deleteSubscription(subMsg.Id)
+	}
 	return subscription, response, err
 }
 
