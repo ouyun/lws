@@ -210,7 +210,7 @@ func DecodePayload(payload []byte, result interface{}) (r interface{}, err error
 				} else {
 					buff := []byte{}
 					buf := bytes.NewBuffer(buff)
-					delim := byte(0)
+					delim := byte(0x30)
 					h, _ := buf.ReadBytes(delim)
 					leng = len(h)
 					resultValue.Field(i).SetString(string(h[:]))
