@@ -22,7 +22,7 @@ var (
 		log.Printf("收到message\n")
 		if msg.Topic() == "LWS/lws/ServiceReq" {
 			s := ServicePayload{}
-			_, err := DecodeBy(msg.Payload(), s)
+			_, err := DecodePayload(msg.Payload(), &s)
 			if err != nil {
 				log.Printf("message: %+v\n", err)
 			}

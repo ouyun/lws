@@ -187,12 +187,12 @@ func RandStringBytesRmndr(n int) string {
 	return string(b)
 }
 
-func DecodeBy(payload []byte, result ServicePayload) (r interface{}, err error) {
+func DecodePayload(payload []byte, result interface{}) (r interface{}, err error) {
 	// s := ServicePayload{}
 
-	resultValue := reflect.ValueOf(&result).Elem()
+	resultValue := reflect.ValueOf(result).Elem()
 
-	resultType := reflect.TypeOf(result)
+	resultType := reflect.TypeOf(result).Elem()
 
 	// log.Printf("resultType : %+v\n", resultType.NumField())
 	leftIndex := 0
@@ -235,7 +235,6 @@ func DecodeBy(payload []byte, result ServicePayload) (r interface{}, err error) 
 		}
 		leftIndex = (leftIndex + leng)
 	}
-	// log.Printf("decode 结构体payload: %+v\n", resultValue)
 	r = result
 	return r, err
 }
