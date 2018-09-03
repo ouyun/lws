@@ -1,18 +1,24 @@
 package block
 
 import (
+	"context"
 	"log"
-	"sync"
+	"os"
+	"time"
+
+	// "sync"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/lomocoin/lws/internal/coreclient"
 	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/dbp"
+
 	// "github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/lws"
-	"github.com/lomocoin/lws/internal/stream"
+	// "github.com/lomocoin/lws/internal/stream"
+	"github.com/furdarius/rabbitroutine"
 	"github.com/streadway/amqp"
 )
 
-func subscribe(c *coreclient.Client, recoverPool *sync.Pool) {
+func subscribe(c *coreclient.Client) {
 	sub := &dbp.Sub{
 		Name: "all-block",
 	}
@@ -37,7 +43,8 @@ func subscribe(c *coreclient.Client, recoverPool *sync.Pool) {
 }
 
 func handleNotification(closeChan chan struct{}, notificationChan chan *coreclient.Notification) {
-	pbl := newPublisher(stream.GetAmqpClient())
+	ctx := context.Background()
+	pub := newPublisher(ctx)
 
 	for {
 		select {
@@ -56,14 +63,78 @@ func handleNotification(closeChan chan struct{}, notificationChan chan *coreclie
 			log.Printf("added = %+v\n", added)
 
 			serializedAdded, err := proto.Marshal(added)
+			if err != nil {
+				log.Println("ERROR: marshal failed", err)
+				continue
+			}
 
-			err = pbl.Publish(amqp.Publishing{
-				Body: serializedAdded,
-			})
+			err = publishBlock(ctx, pub, serializedAdded)
 
 			if err != nil {
 				log.Printf("Client publish error: %v", err)
+			} else {
+				log.Println("publish done")
 			}
 		}
 	}
+}
+
+func publishBlock(ctx context.Context, pub rabbitroutine.Publisher, data []byte) error {
+	log.Println("publish block")
+	return pub.Publish(ctx, EXCHANGE_NAME, QUEUE_NAME, amqp.Publishing{
+		Body:         data,
+		DeliveryMode: amqp.Persistent,
+	})
+}
+
+func newPublisher(ctx context.Context) rabbitroutine.Publisher {
+	// exc := cony.Exchange{
+	// 	Name:    EXCHANGE_NAME,
+	// 	Kind:    "direct",
+	// 	Durable: true,
+	// 	// AutoDelete: true,
+	// }
+
+	amqpUrl := os.Getenv("AMQP_URL")
+	conn := rabbitroutine.NewConnector(rabbitroutine.Config{
+		// Max reconnect attempts
+		ReconnectAttempts: 0,
+		// How long wait between reconnect
+		Wait: 30 * time.Second,
+	})
+
+	pool := rabbitroutine.NewPool(conn)
+	ensurePub := rabbitroutine.NewEnsurePublisher(pool)
+	pub := rabbitroutine.NewRetryPublisher(ensurePub)
+
+	// TODO consider to DeclareExchange
+	// decCtx, cancelDecCtx := context.WithCancel(context.Background())
+	// chKeeper, err := pool.ChannelWithConfirm(decCtx)
+	// if err != nil {
+	// 	log.Fatal("amqp channelWIthConfirm failed", err)
+	// }
+	// ch := chKeeper.Channel()
+	// err = ch.ExchangeDeclare(
+	// 	EXCHANGE_NAME, // name
+	// 	"direct",      // type
+	// 	// amqp.ExchangeDirect, // type
+	// 	true,  // durable
+	// 	false, // auto-deleted
+	// 	false, // internal
+	// 	false, // no-wait
+	// 	nil,   // arguments
+	// )
+	// if err != nil {
+	// 	log.Fatal("DeclareExchange failed", err)
+	// }
+	// cancelDecCtx()
+
+	go func() {
+		err := conn.Dial(ctx, amqpUrl)
+		if err != nil {
+			log.Println("failed to establish RabbitMQ connection:", err)
+		}
+	}()
+
+	return pub
 }
