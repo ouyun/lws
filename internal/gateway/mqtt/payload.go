@@ -113,7 +113,7 @@ func GenerateService(s interface{}) (result []byte, err error) {
 		buf.Write(tempByte)
 	}
 	result = buf.Bytes()
-	log.Printf("generate 结构体payload: %+v\n", result)
+	log.Printf("generate 结构体payload: %+v\n", s)
 	return result, err
 }
 
@@ -206,6 +206,14 @@ func DecodePayload(payload []byte, result interface{}) (r interface{}, err error
 			case reflect.String:
 				if leng > 0 {
 					resultValue.Field(i).SetString(string(payload[leftIndex:(leftIndex + leng)]))
+				} else if resultType.Field(i).Name == "TxData" {
+					allLength := len(payload)
+					length, err := getAllLength(payload, result)
+					if err != nil {
+						return r, err
+					}
+					leng = allLength - length
+					resultValue.Field(i).SetString(string(payload[leftIndex:(leftIndex + leng)]))
 				} else {
 					buff := []byte{}
 					buf := bytes.NewBuffer(buff)
@@ -238,6 +246,22 @@ func DecodePayload(payload []byte, result interface{}) (r interface{}, err error
 	log.Printf("result : %+v\n", result)
 	r = result
 	return r, err
+}
+
+func getAllLength(payload []byte, result interface{}) (length int, err error) {
+	resultValue := reflect.ValueOf(result).Elem()
+
+	resultType := reflect.TypeOf(result).Elem()
+	for i := 0; i < resultValue.NumField(); i++ {
+		leng, err := strconv.Atoi(resultType.Field(i).Tag.Get("len"))
+		if err != nil {
+			return length, err
+		}
+		if leng != 0 {
+			length += leng
+		}
+	}
+	return length, err
 }
 
 func Sign(key ed25519.PrivateKey, message []byte) []byte {
