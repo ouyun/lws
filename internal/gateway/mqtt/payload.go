@@ -221,7 +221,7 @@ func DecodePayload(payload []byte, result interface{}) (r interface{}, err error
 					delim := byte(0x00)
 					h, _ := buf.ReadBytes(delim)
 					leng = len(h)
-					resultValue.Field(i).SetString(string(h[:]))
+					resultValue.Field(i).SetString(string(h[:leng-1]))
 				}
 			case reflect.Uint8:
 				resultValue.Field(i).Set(
