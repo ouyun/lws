@@ -187,7 +187,7 @@ func RandStringBytesRmndr(n int) string {
 	return string(b)
 }
 
-func DecodePayload(payload []byte, result interface{}) (r interface{}, err error) {
+func DecodePayload(payload []byte, result interface{}) (err error) {
 
 	resultValue := reflect.ValueOf(result).Elem()
 
@@ -199,7 +199,7 @@ func DecodePayload(payload []byte, result interface{}) (r interface{}, err error
 		// leng := resultType.Field(i).Tag.Get("len")
 		leng, err := strconv.Atoi(resultType.Field(i).Tag.Get("len"))
 		if err != nil {
-			return r, err
+			return err
 		}
 		if resultValue.Field(i).CanSet() {
 			switch resultValue.Field(i).Type().Kind() {
@@ -210,7 +210,7 @@ func DecodePayload(payload []byte, result interface{}) (r interface{}, err error
 					allLength := len(payload)
 					length, err := getAllLength(payload, result)
 					if err != nil {
-						return r, err
+						return err
 					}
 					leng = allLength - length
 					resultValue.Field(i).SetString(string(payload[leftIndex:(leftIndex + leng)]))
@@ -244,8 +244,7 @@ func DecodePayload(payload []byte, result interface{}) (r interface{}, err error
 		leftIndex = (leftIndex + leng)
 	}
 	log.Printf("result : %+v\n", result)
-	r = result
-	return r, err
+	return err
 }
 
 func getAllLength(payload []byte, result interface{}) (length int, err error) {

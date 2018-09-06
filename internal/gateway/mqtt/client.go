@@ -29,9 +29,10 @@ var (
 		cliMap := CliMap{}
 		user := model.User{}
 		var pubKey []byte
-		_, err := DecodePayload(msg.Payload(), &s)
+		err := DecodePayload(msg.Payload(), &s)
 		if err != nil {
 			log.Printf("err: %+v\n", err)
+			ReplyServiceReq(&client, 16, &s, &user, pubKey)
 		}
 		pubKey = PayloadToUser(&user, &s)
 
@@ -90,7 +91,7 @@ var (
 	syncReqReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
 		// TODO ：
 		s := SyncPayload{}
-		_, err := DecodePayload(msg.Payload(), &s)
+		err := DecodePayload(msg.Payload(), &s)
 		log.Printf("SyncPayloads: %+v\n", s)
 		if err != nil {
 			log.Printf("err: %+v\n", err)
@@ -111,7 +112,7 @@ var (
 	}
 	uTXOAbortReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
 		a := AbortPayload{}
-		_, err := DecodePayload(msg.Payload(), &a)
+		err := DecodePayload(msg.Payload(), &a)
 		log.Printf("AbortPayload: %+v\n", a)
 		if err != nil {
 			log.Printf("err: %+v\n", err)
@@ -133,7 +134,7 @@ var (
 	}
 	sendTxReqReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
 		s := SendTxPayload{}
-		_, err := DecodePayload(msg.Payload(), &s)
+		err := DecodePayload(msg.Payload(), &s)
 		log.Printf("AbortPayload: %+v\n", s)
 		if err != nil {
 			log.Printf("err: %+v\n", err)

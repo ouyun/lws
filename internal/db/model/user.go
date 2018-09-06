@@ -8,8 +8,8 @@ type User struct {
 	gorm.Model
 
 	AddressId   uint32 `gorm:"primary_key;AUTO_INCREMENT"`
-	Address     []byte
-	ApiKey      []byte
+	Address     []byte `gorm:"size:32"`
+	ApiKey      []byte `gorm:"size:32"`
 	TopicPrefix string
 	ForkNum     uint8
 	ForkList    string

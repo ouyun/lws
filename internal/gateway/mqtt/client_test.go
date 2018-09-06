@@ -2,8 +2,10 @@ package mqtt
 
 import (
 	"encoding/hex"
+	"flag"
 	// "encoding/hex"
 	"log"
+	"os"
 	"testing"
 	"time"
 
@@ -101,7 +103,7 @@ func TestPublish(t *testing.T) {
 		t.Errorf("client publish fail")
 	}
 	err = cli.Publish("LWS/lws/ServiceReq", 0, false, servicMsg)
-	time.Sleep(10 * time.Second)
+	time.Sleep(1 * time.Second)
 	cli.Stop()
 }
 
@@ -209,6 +211,8 @@ func runClient() {
 
 func TestMain(m *testing.M) {
 	// go runClient()
-	m.Run()
-	log.Printf("there")
+	flag.Parse()
+	code := m.Run()
+	log.Printf("here")
+	os.Exit(code)
 }
