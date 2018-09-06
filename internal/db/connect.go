@@ -32,7 +32,7 @@ func GetGormDb() *gorm.DB {
 		if err != nil {
 			log.Fatal("connect sql failed ", err)
 		}
-		gormdb.LogMode(true)
+		// gormdb.LogMode(true)
 	}
 	return gormdb
 }
