@@ -30,9 +30,6 @@ func NewRedisPool() *redis.Pool {
 	log.Printf("address: %+s", address)
 	dbOption := redis.DialDatabase(0)
 	// pwOption := redis.DialPassword()
-	// readTimeout := redis.DialReadTimeout(time.Second)
-	// writeTimeout := redis.DialWriteTimeout(time.Second * )
-	// conTimeout := redis.DialConnectTimeout(time.Second * time.Duration(redisConf.ConTimeout))
 	REDIS_MAXIDLE, _ := strconv.Atoi(os.Getenv("REDIS_MAXIDLE"))
 	REDIS_MAXACTIVE, _ := strconv.Atoi(os.Getenv("REDIS_MAXACTIVE"))
 	redisPool := &redis.Pool{

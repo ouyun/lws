@@ -88,7 +88,7 @@ var (
 		ReplyServiceReq(&client, 0, &s, &user, pubKey)
 	}
 
-	syncReqReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
+	syncReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
 		// TODO ：
 		s := SyncPayload{}
 		err := DecodePayload(msg.Payload(), &s)
@@ -202,7 +202,7 @@ func (p *Program) Start() error {
 	}
 	if p.isLws {
 		p.Subscribe("LWS/lws/ServiceReq", 0, serviceReqHandler)
-		p.Subscribe("LWS/lws/SyncReq", 1, syncReqReqHandler)
+		p.Subscribe("LWS/lws/SyncReq", 1, syncReqHandler)
 		p.Subscribe("LWS/lws/UTXOAbort", 1, uTXOAbortReqHandler)
 		p.Subscribe("LWS/lws/SendTxReq", 1, sendTxReqReqHandler)
 	}
