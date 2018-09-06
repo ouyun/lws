@@ -100,6 +100,7 @@ func (c *Consumer) Consume(ctx context.Context, ch *amqp.Channel) error {
 			if !ok {
 				return amqp.ErrClosed
 			}
+			// TODO 判断中断恢复的开关
 
 			fmt.Println("New message:", msg.Body)
 			shouldAck := handleConsumer(msg.Body)
@@ -125,7 +126,8 @@ func (c *Consumer) Consume(ctx context.Context, ch *amqp.Channel) error {
 func handleConsumer(msg interface{}) bool {
 	log.Println("handleConsumer: ", msg)
 
-	time.Sleep(5 * time.Second)
+	// handleSyncBlock(block)
+
 	return true
 }
 

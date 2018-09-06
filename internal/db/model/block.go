@@ -9,13 +9,13 @@ type Block struct {
 	gorm.Model
 
 	// block ID <- hash
-	Hash string `gorm:"size:32;primary_key;"`
+	Hash []byte `gorm:"primary_key;"`
 	// 区块版本
 	Version uint16
 	// 区块类型
 	Type uint16
 	// 前一区块的 hash
-	Prev string `gorm:"size:32;"`
+	Prev []byte
 	// 区块时间戳
 	Timestamp time.Time
 	// 两两校验
