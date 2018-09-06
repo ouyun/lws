@@ -64,6 +64,7 @@ func onConnectNegotiation(remoteAddr string, rwc io.ReadWriteCloser) (io.ReadWri
 
 	select {
 	case <-successChan:
+		fmt.Println("coreclient: negotiate successChan")
 		err = nil
 	case <-failChan:
 		err = fmt.Errorf("coreclient: negotiate failed")

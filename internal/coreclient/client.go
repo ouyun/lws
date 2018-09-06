@@ -130,7 +130,8 @@ func (c *Client) Start() {
 		c.LogError = errorLogger
 	}
 	if c.LogDebug == nil {
-		c.LogDebug = NilErrorLogger
+		// c.LogDebug = NilErrorLogger
+		c.LogDebug = errorLogger
 	}
 	if c.clientStopChan != nil {
 		panic("gorpc.Client: the given client is already started. Call Client.Stop() before calling Client.Start() again!")
@@ -171,6 +172,7 @@ func (c *Client) Start() {
 
 // Stop stops rpc client. Stopped client can be started again.
 func (c *Client) Stop() {
+	c.LogDebug("client Stop called")
 	if c.clientStopChan == nil {
 		panic("gorpc.Client: the client must be started before stopping it")
 	}
@@ -633,6 +635,9 @@ func clientWriter(c *Client, w io.Writer, pendingRequests map[string]*AsyncResul
 
 		if m.done == nil {
 			wr.ID = ""
+		} else if pong, ok := m.request.(*dbp.Pong); ok {
+			// pong doesn't care about response
+			wr.ID = pong.Id
 		} else {
 			msgID++
 			if msgID == 0 {
@@ -714,6 +719,15 @@ func clientReader(c *Client, r io.Reader, pendingRequests map[string]*AsyncResul
 		case dbp.Msg_ADDED, dbp.Msg_CHANGED, dbp.Msg_REMOVED:
 			c.LogDebug("sub-notification ID: [%s] received", wr.ID)
 			c.handleNotification(wr.ID, wr.Response)
+			wr.ID = ""
+			wr.Response = nil
+			continue
+		case dbp.Msg_PING:
+			ping, ok := wr.Response.(*dbp.Ping)
+			if ok {
+				c.LogDebug("coreclient: ping id [%s] received, send pong back", wr.ID)
+				c.callAsync(&dbp.Pong{Id: ping.Id}, true, true)
+			}
 			wr.ID = ""
 			wr.Response = nil
 			continue

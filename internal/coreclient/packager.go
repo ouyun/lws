@@ -86,18 +86,18 @@ func PackMsg(msg proto.Message, id string) ([]byte, error) {
 // | msg-length(4 bytes) | msg |
 func Pack(msg []byte) ([]byte, error) {
 	buflen := len(msg) + 4
-	fmt.Printf("buflen = %+v\n", buflen)
+	// fmt.Printf("buflen = %+v\n", buflen)
 
 	msglen := len(msg)
-	fmt.Printf("msglen = %+v\n", msglen)
+	// fmt.Printf("msglen = %+v\n", msglen)
 
 	buf := make([]byte, buflen)
-	binary.LittleEndian.PutUint32(buf, uint32(msglen))
+	binary.BigEndian.PutUint32(buf, uint32(msglen))
 
 	// fmt.Printf("before content buf = %+v\n", buf)
 	copy(buf[4:], msg)
 
-	fmt.Printf("buf = %+v\n", buf)
+	// fmt.Printf("buf = %+v\n", buf)
 	return buf, nil
 }
 
