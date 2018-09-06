@@ -23,15 +23,14 @@ func TestBlockNotification(t *testing.T) {
 	closeChan := make(chan struct{})
 	notificationChan := make(chan *coreclient.Notification)
 
-	go func() {
-		handleNotification(closeChan, notificationChan)
-	}()
+	ctx, cancel := context.WithCancel(context.Background())
+	go handleNotification(ctx, closeChan, notificationChan)
 
 	notificationChan <- noti
 
 	<-time.After(time.Second)
 	close(closeChan)
-
+	cancel()
 }
 
 func TestBlockPublish(t *testing.T) {

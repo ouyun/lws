@@ -7,6 +7,11 @@ import (
 	"os"
 	"time"
 
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
+	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/dbp"
+	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/lws"
+
 	"github.com/furdarius/rabbitroutine"
 	"github.com/streadway/amqp"
 )
@@ -123,12 +128,24 @@ func (c *Consumer) Consume(ctx context.Context, ch *amqp.Channel) error {
 	}
 }
 
-func handleConsumer(msg interface{}) bool {
-	log.Println("handleConsumer: ", msg)
+func handleConsumer(body []byte) bool {
+	var err error
+	log.Println("handleConsumer: ", body)
 
-	// handleSyncBlock(block)
+	added := &dbp.Added{}
+	if err = proto.Unmarshal(body, added); err != nil {
+		log.Println("unkonwn message received", body, err)
+	}
 
-	return true
+	block := &lws.Block{}
+	err = ptypes.UnmarshalAny(added.Object, block)
+	if err != nil {
+		log.Println("unpack Object failed", err)
+	}
+
+	err, skip := handleSyncBlock(block)
+
+	return !skip
 }
 
 // This example demonstrates consuming messages from RabbitMQ queue.

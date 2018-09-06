@@ -18,7 +18,7 @@ import (
 	"github.com/streadway/amqp"
 )
 
-func subscribe(c *coreclient.Client) {
+func subscribe(ctx context.Context, c *coreclient.Client) {
 	sub := &dbp.Sub{
 		Name: "all-block",
 	}
@@ -39,11 +39,10 @@ func subscribe(c *coreclient.Client) {
 		log.Fatalf("ERROR: unexpected response type [%s]", msg)
 	}
 
-	handleNotification(subscription.CloseChan, subscription.NotificationChan)
+	go handleNotification(ctx, subscription.CloseChan, subscription.NotificationChan)
 }
 
-func handleNotification(closeChan chan struct{}, notificationChan chan *coreclient.Notification) {
-	ctx := context.Background()
+func handleNotification(ctx context.Context, closeChan chan struct{}, notificationChan chan *coreclient.Notification) {
 	pub := newPublisher(ctx)
 
 	for {

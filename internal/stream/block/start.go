@@ -1,11 +1,13 @@
 package block
 
-// import (
-// 	coreclient "github.com/lomocoin/lws/internal/coreclient"
-// 	"sync"
-// )
+import (
+	"context"
+	coreclient "github.com/lomocoin/lws/internal/coreclient"
+)
 
-// func start(c *coreclient.Client) {
+func Start(ctx context.Context, cclient *coreclient.Client) {
+	go subscribe(ctx, cclient)
+	go listenConsumer(ctx)
 
-// 	var recoverPool sync.Pool
-// }
+	<-ctx.Done()
+}

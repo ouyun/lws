@@ -9,6 +9,7 @@ import (
 
 	"github.com/lomocoin/lws/internal/coreclient"
 	dbmodule "github.com/lomocoin/lws/internal/db"
+	"github.com/lomocoin/lws/internal/stream/block"
 )
 
 type Server struct {
@@ -18,7 +19,7 @@ type Server struct {
 func (s *Server) Start() {
 	fmt.Println("sync server started")
 	var msgChan = make(chan os.Signal, 1)
-	_, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
 
 	// start db connection
 	db := dbmodule.GetGormDb()
@@ -30,6 +31,9 @@ func (s *Server) Start() {
 
 	// start rabbitMQ connection
 	// start redis connection
+
+	// start sync-consumer
+	go block.Start(ctx, cclient)
 
 	signal.Notify(msgChan, os.Interrupt, os.Kill)
 	<-msgChan
