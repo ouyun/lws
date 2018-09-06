@@ -54,7 +54,6 @@ func TestStart(t *testing.T) {
 	if err := p.Start(); err != nil {
 		t.Errorf("init client fail %v", err)
 	}
-	time.Sleep(10 * time.Second)
 	// <-ready1
 	p.Stop()
 }
@@ -67,12 +66,12 @@ func ClientStart(service Service) error {
 
 func TestPublish(t *testing.T) {
 	var err error
-	lws := &Program{
-		Id:    "lws",
-		isLws: true,
-	}
-	lws.Init()
-	lws.Start()
+	// lws := &Program{
+	// 	Id:    "lws",
+	// 	isLws: true,
+	// }
+	// lws.Init()
+	// lws.Start()
 	cli := &Program{
 		Id:    "cli",
 		isLws: false,
@@ -103,7 +102,6 @@ func TestPublish(t *testing.T) {
 		t.Errorf("client publish fail")
 	}
 	err = cli.Publish("LWS/lws/ServiceReq", 0, false, servicMsg)
-	time.Sleep(1 * time.Second)
 	cli.Stop()
 }
 
@@ -195,24 +193,22 @@ func Test(t *testing.T) {
 	p.Stop()
 }
 
-func runClient() {
-	lws := &Program{
-		Id:    "lws",
-		isLws: true,
-	}
-	lws.Init()
-	// ready1 := make(chan string)
-	if err := lws.Start(); err != nil {
-		log.Printf("init client fail %v", err)
-	}
-	time.Sleep(10 * time.Second)
-	lws.Stop()
-}
-
 func TestMain(m *testing.M) {
-	// go runClient()
 	flag.Parse()
+	c := make(chan int)
+	go func() {
+		lws := &Program{
+			Id:    "lws",
+			isLws: true,
+		}
+		lws.Init()
+		if err := lws.Start(); err != nil {
+			log.Printf("init client fail %v", err)
+		}
+		c <- 1
+		lws.Stop()
+	}()
 	code := m.Run()
-	log.Printf("here")
+	<-c
 	os.Exit(code)
 }
