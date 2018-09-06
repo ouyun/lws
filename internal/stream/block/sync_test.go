@@ -52,7 +52,7 @@ func TestGetTail(t *testing.T) {
 	}
 
 	hash := []byte("0000000000000000000000000000000000000000000000000000000000000003")
-	height := uint(2)
+	height := uint32(2)
 
 	if bytes.Compare(hash, tail.Hash) != 0 || height != tail.Height {
 		t.Errorf("expect hash[%s](%d), but [%s](%d)", hash, height, tail.Hash, tail.Height)
@@ -66,7 +66,7 @@ func TestHandleSyncBlockGenesis(t *testing.T) {
 		NVersion:   0x00000001,
 		NType:      uint32(constant.BLOCK_TYPE_GENESIS),
 		NTimeStamp: uint32(time.Now().Unix()),
-		Height:     0,
+		NHeight:    0,
 		Hash:       []byte("0000000000000000000000000000000000000000000000000000000000000001"),
 	}
 
@@ -81,7 +81,7 @@ func TestHandleSyncBlockOriginSuccess(t *testing.T) {
 		NVersion:   0x00000001,
 		NType:      uint32(constant.BLOCK_TYPE_ORIGIN),
 		NTimeStamp: uint32(time.Now().Unix()),
-		Height:     1,
+		NHeight:    1,
 		Hash:       []byte("0000000000000000000000000000000000000000000000000000000000000002"),
 		HashPrev:   []byte("0000000000000000000000000000000000000000000000000000000000000001"),
 	}
@@ -97,7 +97,7 @@ func TestHandleSyncBlockExtendSuccess(t *testing.T) {
 		NVersion:   0x00000001,
 		NType:      uint32(constant.BLOCK_TYPE_EXTENDED),
 		NTimeStamp: uint32(time.Now().Unix()),
-		Height:     2,
+		NHeight:    2,
 		Hash:       []byte("0000000000000000000000000000000000000000000000000000000000000003"),
 		HashPrev:   []byte("0000000000000000000000000000000000000000000000000000000000000002"),
 	}
@@ -115,7 +115,7 @@ func TestHandleSyncBlockExtendWrongHeightRecovery(t *testing.T) {
 		NVersion:   0x00000001,
 		NType:      uint32(constant.BLOCK_TYPE_EXTENDED),
 		NTimeStamp: uint32(time.Now().Unix()),
-		Height:     3,
+		NHeight:    3,
 		Hash:       []byte("0000000000000000000000000000000000000000000000000000000000000006"),
 		HashPrev:   []byte("0000000000000000000000000000000000000000000000000000000000000004"),
 	}

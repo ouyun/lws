@@ -29,12 +29,12 @@ CREATE TABLE `block` (
   `deleted_at` timestamp NULL DEFAULT NULL,
   `hash` varbinary(255) NOT NULL,
   `version` int(10) unsigned DEFAULT NULL,
-  `type` int(10) unsigned DEFAULT NULL,
+  `block_type` int(10) unsigned DEFAULT NULL,
   `prev` varbinary(255) DEFAULT NULL,
-  `timestamp` timestamp NULL DEFAULT NULL,
+  `tstamp` int(10) unsigned DEFAULT NULL,
   `merkle` varchar(32) DEFAULT NULL,
   `height` int(10) unsigned DEFAULT NULL,
-  `mint_tx_id` varchar(32) DEFAULT NULL,
+  `mint_tx_id` varbinary(255) DEFAULT NULL,
   `sig` varbinary(255) DEFAULT NULL,
   PRIMARY KEY (`id`,`hash`),
   KEY `idx_block_deleted_at` (`deleted_at`)
@@ -122,10 +122,12 @@ CREATE TABLE `utxo` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL,
+  `tx_hash` varbinary(255) NOT NULL,
   `destination` varbinary(33) DEFAULT NULL,
   `amount` bigint(20) DEFAULT NULL,
-  `tx_id` int(11) DEFAULT NULL,
-  PRIMARY KEY (`id`),
+  `block_height` int(10) unsigned DEFAULT NULL,
+  `out` tinyint(3) unsigned DEFAULT NULL,
+  PRIMARY KEY (`id`,`tx_hash`),
   KEY `idx_utxo_deleted_at` (`deleted_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -152,4 +154,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2018-09-06 12:45:37
+-- Dump completed on 2018-09-06 19:16:54

@@ -3,7 +3,6 @@ package migration
 import (
 	"github.com/jinzhu/gorm"
 	"gopkg.in/gormigrate.v1"
-	"time"
 )
 
 func M20180824113600() *gormigrate.Migration {
@@ -18,17 +17,17 @@ func M20180824113600() *gormigrate.Migration {
 				// 区块版本
 				Version uint16
 				// 区块类型
-				Type uint16
+				BlockType uint16
 				// 前一区块的 hash
 				Prev []byte
 				// 区块时间戳
-				Timestamp time.Time
+				Tstamp uint32
 				// 两两校验
 				Merkle string `gorm:"size:32;"`
 				// 区块高度
-				Height uint
+				Height uint32
 				// 矿工打包费的 tx id
-				MintTXID string `gorm:"size:32;"`
+				MintTXID []byte
 				// 区块签名
 				Sig []byte
 			}
@@ -61,11 +60,11 @@ func M20180824113600() *gormigrate.Migration {
 			type Utxo struct {
 				gorm.Model
 
+				TxHash      []byte `gorm:"primary_key;"`
 				Destination []byte `gorm:"size:33;"`
-
-				Amount int64
-
-				TxID int
+				Amount      int64
+				BlockHeight uint32
+				Out         uint8
 			}
 
 			return tx.AutoMigrate(&Block{}, &Tx{}, &Utxo{}).Error

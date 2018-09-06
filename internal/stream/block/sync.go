@@ -3,9 +3,7 @@ package block
 import (
 	"bytes"
 	"fmt"
-	// "github.com/huandu/go-sqlbuilder"
 	"log"
-	"time"
 
 	"github.com/lomocoin/lws/internal/constant"
 	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/lws"
@@ -39,13 +37,13 @@ func handleSyncBlock(block *lws.Block) (error, bool) {
 // error, skip
 func validateSubBlock(block *lws.Block) (error, bool) {
 	// 1. 判断子块是否在链上
-	if ok := isBlockExisted(uint(block.Height), block.Hash, true); ok {
+	if ok := isBlockExisted(block.NHeight, block.Hash, true); ok {
 		log.Printf("Block hash [%s] is already existed", block.Hash)
 		return nil, true
 	}
 	// 2. 判断所连的主块是否在链上
-	if ok := isBlockExisted(uint(block.Height), block.HashPrev, false); !ok {
-		log.Printf("subBlock HashPrev [%s](#%d) is not existed, skip the sub block [%s]", block.HashPrev, block.Height, block)
+	if ok := isBlockExisted(block.NHeight, block.HashPrev, false); !ok {
+		log.Printf("subBlock HashPrev [%s](#%d) is not existed, skip the sub block [%s]", block.HashPrev, block.NHeight, block)
 		return nil, true
 	}
 	return nil, false
@@ -54,8 +52,8 @@ func validateSubBlock(block *lws.Block) (error, bool) {
 // error, skip
 func validateBlock(block *lws.Block) (error, bool) {
 	// 1. 根据高度快速查找该区块是否已经在链上, 在链上则跳过本次操作
-	if ok := isBlockExisted(uint(block.Height), block.Hash, false); ok {
-		log.Printf("Block hash [%s](#%d) is already existed", block.Hash, block.Height)
+	if ok := isBlockExisted(block.NHeight, block.Hash, false); ok {
+		log.Printf("Block hash [%s](#%d) is already existed", block.Hash, block.NHeight)
 		return nil, true
 	}
 
@@ -81,7 +79,7 @@ func isTailOrOrigin(block *lws.Block) bool {
 	tail := GetTailBlock()
 	if tail != nil {
 		// log.Printf("tail [%s](%d), block [%s](%d) prev[%s]", tail.Hash, tail.Height, block.Hash, block.Height, block.HashPrev)
-		if bytes.Compare(tail.Hash, block.HashPrev) == 0 && block.Height == uint32(tail.Height)+1 {
+		if bytes.Compare(tail.Hash, block.HashPrev) == 0 && block.NHeight == tail.Height+1 {
 			return true
 		}
 	}
@@ -106,11 +104,11 @@ func convertBlockFromDbpToOrm(block *lws.Block) *model.Block {
 	ormBlock := &model.Block{
 		Hash:      block.Hash,
 		Version:   uint16(block.NVersion),
-		Type:      uint16(block.NType),
+		BlockType: uint16(block.NType),
 		Prev:      block.HashPrev,
-		Height:    uint(block.Height),
+		Height:    block.NHeight,
 		Sig:       block.VchSig,
-		Timestamp: time.Unix(int64(block.NTimeStamp), 0),
+		Tstamp:    block.NTimeStamp,
 	}
 	return ormBlock
 }
@@ -119,26 +117,26 @@ func GetTailBlock() *model.Block {
 	block := &model.Block{}
 	gormdb := dbmodule.GetGormDb()
 	res := gormdb.
-		Where("type != ?", constant.BLOCK_TYPE_SUBSIDIARY).
+		Where("block_type != ?", constant.BLOCK_TYPE_SUBSIDIARY).
 		Order("height desc").
 		Take(block)
 	if res.Error != nil {
 		log.Println("GetTailBlock failed", res.Error)
 		return nil
 	}
-	log.Printf("Tail: [%s](%d) type[%d]", block.Hash, block.Height, block.Type)
+	log.Printf("Tail: [%s](%d) type[%d]", block.Hash, block.Height, block.BlockType)
 	return block
 }
 
-func isBlockExisted(height uint, hash []byte, isSubBlock bool) bool {
+func isBlockExisted(height uint32, hash []byte, isSubBlock bool) bool {
 	gormdb := dbmodule.GetGormDb()
 	var count int
 
 	tx := gormdb.Model(&model.Block{}).Where("height = ? AND hash = ?", height, hash)
 	if isSubBlock {
-		tx = tx.Where("type = ?", constant.BLOCK_TYPE_SUBSIDIARY)
+		tx = tx.Where("block_type = ?", constant.BLOCK_TYPE_SUBSIDIARY)
 	} else {
-		tx = tx.Where("type != ?", constant.BLOCK_TYPE_SUBSIDIARY)
+		tx = tx.Where("block_type != ?", constant.BLOCK_TYPE_SUBSIDIARY)
 	}
 
 	res := tx.Count(&count)
