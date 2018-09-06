@@ -25,10 +25,10 @@ func sub(c *Client, name string, t *testing.T) {
 		for {
 			select {
 			case <-*closeChan:
-				log.Printf("[%s]: client handle close chan\n", name)
+				log.Printf("[%s]: client handle close chan", name)
 				return
 			case noti := <-*notificationChan:
-				log.Printf("[%s]: recevied notification [%s]\n", name, noti)
+				log.Printf("[%s]: recevied notification [%s]", name, noti)
 			}
 		}
 	})(&subscription.CloseChan, &subscription.NotificationChan)

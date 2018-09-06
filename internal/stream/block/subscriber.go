@@ -50,7 +50,7 @@ func handleNotification(closeChan chan struct{}, notificationChan chan *coreclie
 		select {
 		case <-closeChan:
 			log.Printf("[all-block]: client handle close chan")
-			break
+			return
 		case noti := <-notificationChan:
 			log.Printf("[all-block]: recevied notification [%s]", noti)
 

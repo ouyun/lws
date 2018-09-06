@@ -9,22 +9,13 @@ import (
 	"github.com/lomocoin/lws/testhelper"
 
 	"bytes"
-	"log"
 	"os"
 	"testing"
 	"time"
 )
 
 func TestMain(m *testing.M) {
-	log.Println("TestMain")
 	db := dbmodule.GetGormDb()
-	log.Println("testing.M")
-	log.Println("DATABASE_URL: ", os.Getenv("DATABASE_URL"))
-
-	exedir, _ := os.Executable()
-	log.Printf("exedir = %+v\n", exedir)
-	cwd, _ := os.Getwd()
-	log.Printf("cwd = %+v\n", cwd)
 
 	exitCode := m.Run()
 
