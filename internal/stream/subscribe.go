@@ -1,4 +1,4 @@
-package block
+package stream
 
 import (
 	"context"
@@ -15,17 +15,30 @@ import (
 	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/dbp"
 	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/lws"
 
-	// "github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/lws"
-	// "github.com/lomocoin/lws/internal/stream"
 	"github.com/furdarius/rabbitroutine"
 	"github.com/streadway/amqp"
 )
 
-func subscribe(ctx context.Context, c *coreclient.Client) {
-	sub := &dbp.Sub{
-		Name: "all-block",
+type Subscribe struct {
+	ctx          context.Context
+	cclient      *coreclient.Client
+	TopicName    string
+	QueueName    string
+	ExchangeName string
+}
+
+type SubAddedLogger interface {
+	SubAddedLog(*dbp.Added)
+}
+
+func (sub *Subscribe) subscribe() {
+	if s.TopicName == "" {
+		log.Fatalf("Subscribe: Please configure TopicName")
 	}
-	subscription, msg, err := c.Subscribe(sub)
+	sub := &dbp.Sub{
+		Name: s.TopicName,
+	}
+	subscription, msg, err := cclient.Subscribe(sub)
 
 	if err != nil {
 		// TODO retry here
@@ -43,11 +56,11 @@ func subscribe(ctx context.Context, c *coreclient.Client) {
 		log.Fatalf("ERROR: unexpected response type [%s]", msg)
 	}
 
-	go handleNotification(ctx, subscription.CloseChan, subscription.NotificationChan)
+	go s.handleNotification(subscription.CloseChan, subscription.NotificationChan)
 }
 
-func handleNotification(ctx context.Context, closeChan chan struct{}, notificationChan chan *coreclient.Notification) {
-	pub := newPublisher(ctx)
+func (s *Subscribe) handleNotification(closeChan chan struct{}, notificationChan chan *coreclient.Notification) {
+	pub := newPublisher(s.ctx)
 
 	for {
 		select {
@@ -64,15 +77,15 @@ func handleNotification(ctx context.Context, closeChan chan struct{}, notificati
 			}
 
 			log.Printf("added = %+v\n", added)
-			//DEBUG
 
-			block := &lws.Block{}
-			err := ptypes.UnmarshalAny(added.Object, block)
-			if err != nil {
-				log.Println("unpack Object failed", err)
-			} else {
-				log.Printf("added block type[%d](#%d) hash [%+v][%s]", block.NType, block.NHeight, block.Hash, hex.Dump(block.Hash))
-			}
+			//DEBUG
+			// block := &lws.Block{}
+			// err := ptypes.UnmarshalAny(added.Object, block)
+			// if err != nil {
+			// 	log.Println("unpack Object failed", err)
+			// } else {
+			// 	log.Printf("added block type[%d](#%d) hash [%+v][%s]", block.NType, block.NHeight, block.Hash, hex.Dump(block.Hash))
+			// }
 
 			//DEBUG END
 
@@ -82,7 +95,7 @@ func handleNotification(ctx context.Context, closeChan chan struct{}, notificati
 				continue
 			}
 
-			err = publishBlock(ctx, pub, serializedAdded)
+			err = s.publishData(pub, serializedAdded)
 
 			if err != nil {
 				log.Printf("Client publish error: %v", err)
@@ -93,9 +106,9 @@ func handleNotification(ctx context.Context, closeChan chan struct{}, notificati
 	}
 }
 
-func publishBlock(ctx context.Context, pub rabbitroutine.Publisher, data []byte) error {
+func (s *Subscribe) publishData(pub rabbitroutine.Publisher, data []byte) error {
 	log.Println("publish block")
-	return pub.Publish(ctx, EXCHANGE_NAME, QUEUE_NAME, amqp.Publishing{
+	return pub.Publish(s.ctx, s.ExchangeName, s.QueueName, amqp.Publishing{
 		Body:         data,
 		DeliveryMode: amqp.Persistent,
 	})
