@@ -9,6 +9,13 @@ jobs:
           MYSQL_ALLOW_EMPTY_PASSWORD: true
           MYSQL_DATABASE: test
       - image: eclipse-mosquitto:1.4.12
+      - image: "rabbitmq:3-management"
+        hostname: "rabbit"
+        environment:
+          RABBITMQ_ERLANG_COOKIE: "SWQOKODSQALRPCLNMEQG"
+          RABBITMQ_DEFAULT_USER: "rabbitmq"
+          RABBITMQ_DEFAULT_PASS: "rabbitmq"
+          RABBITMQ_DEFAULT_VHOST: "/"
       - image: circleci/redis:4.0.11
         environment:
           REDIS_URL: 127.0.0.1:6379

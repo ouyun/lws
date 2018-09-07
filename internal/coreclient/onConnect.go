@@ -3,6 +3,7 @@ package coreclient
 import (
 	"fmt"
 	"io"
+	"log"
 	"time"
 
 	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/dbp"
@@ -31,6 +32,9 @@ func onConnectNegotiation(remoteAddr string, rwc io.ReadWriteCloser) (io.ReadWri
 
 		if wres.MsgType == dbp.Msg_CONNECTED {
 			fmt.Println("received CONNECTED message", wres.Response)
+			if connected, ok := wres.Response.(*dbp.Connected); ok {
+				log.Printf("received connected session: [%s]", connected.Session)
+			}
 			successChan <- true
 			return
 		} else if wres.MsgType == dbp.Msg_FAILED {
@@ -64,6 +68,7 @@ func onConnectNegotiation(remoteAddr string, rwc io.ReadWriteCloser) (io.ReadWri
 
 	select {
 	case <-successChan:
+		fmt.Println("coreclient: negotiate successChan")
 		err = nil
 	case <-failChan:
 		err = fmt.Errorf("coreclient: negotiate failed")

@@ -32,6 +32,7 @@ func newSubscription() *Subscription {
 func (c *Client) Subscribe(subMsg *dbp.Sub) (*Subscription, interface{}, error) {
 	// 1. generate unique id, considering the re-dial logic
 	subMsg.Id = generateUuidString()
+	// subMsg.Id = "3494"
 
 	// 2. make Subscription and add it to map
 	subscription := newSubscription()
@@ -60,6 +61,11 @@ func (c *Client) Subscribe(subMsg *dbp.Sub) (*Subscription, interface{}, error) 
 	// 3. send sub request to core wallet
 	response, err := c.Call(subMsg)
 	if err != nil {
+		c.deleteSubscription(subMsg.Id)
+	}
+
+	_, ok := response.(*dbp.Nosub)
+	if ok {
 		c.deleteSubscription(subMsg.Id)
 	}
 	return subscription, response, err

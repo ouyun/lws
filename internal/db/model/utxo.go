@@ -7,7 +7,9 @@ import (
 type Utxo struct {
 	gorm.Model
 
+	TxHash      []byte `gorm:"primary_key;"`
 	Destination []byte `gorm:"size:33;"`
 	Amount      int64
-	TxID        int
+	BlockHeight uint32
+	Out         uint8
 }
