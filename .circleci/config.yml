@@ -9,6 +9,9 @@ jobs:
           MYSQL_ALLOW_EMPTY_PASSWORD: true
           MYSQL_DATABASE: test
       - image: eclipse-mosquitto:1.4.12
+      - image: circleci/redis:4.0.11
+        environment:
+          REDIS_URL: 127.0.0.1:6379
     steps:
       - checkout
 
@@ -18,4 +21,8 @@ jobs:
           name: Wait for DB
           # preinstalled in circleci/* docker image
           command: dockerize -wait tcp://127.0.0.1:3306 -timeout 120s
+      - run:
+          name: Wait for redis
+          # preinstalled in circleci/* docker image
+          command: dockerize -wait tcp://127.0.0.1:6379 -timeout 1m
       - run: go test -v -cover ./...

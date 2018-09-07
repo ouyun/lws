@@ -13,9 +13,9 @@ func TestApiKey(t *testing.T) {
 
 		cliPubK, cliPriK, _ := GenerateKeyPair(nil)
 
-		lwsApiKey := GenerateKeyApiKey(&lwsPriK, &cliPubK)
+		lwsApiKey := GenerateApiKey(&lwsPriK, &cliPubK)
 
-		cliApiKey := GenerateKeyApiKey(&cliPriK, &lwsPubK)
+		cliApiKey := GenerateApiKey(&cliPriK, &lwsPubK)
 
 		if bytes.Compare(lwsApiKey[:], cliApiKey[:]) != 0 {
 			t.Error("generate ApiKey fail")

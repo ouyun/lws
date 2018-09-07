@@ -66,7 +66,7 @@ func GenerateKeyPair(rand io.Reader) (PublicKey, PrivateKey, PrivateSignKey) {
 	return publicKeyBytes, privKeyBytes, privateSignKey
 }
 
-func GenerateKeyApiKey(privKey *PrivateKey, pubKey *PublicKey) ApiKey {
+func GenerateApiKey(privKey *PrivateKey, pubKey *PublicKey) ApiKey {
 	var apiKeyGroup edwards25519.ProjectiveGroupElement
 	var pubKeyGroup edwards25519.ExtendedGroupElement
 	var base [32]byte
