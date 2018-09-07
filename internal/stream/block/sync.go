@@ -14,7 +14,8 @@ import (
 // return error and bool skiped
 func handleSyncBlock(block *lws.Block) (error, bool) {
 	var err error
-	log.Printf("Receive Block hash [%s]", block.Hash)
+	// log.Printf("Receive Block hash [%s]", block.Hash)
+	log.Printf("Receive Block hash v [%+v] type[%d] (#%d)", block.Hash, block.NType, block.NHeight)
 
 	// 1. 判断是否为子块
 	isSubBlock := uint16(block.NType) == constant.BLOCK_TYPE_SUBSIDIARY

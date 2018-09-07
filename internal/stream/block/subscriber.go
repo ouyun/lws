@@ -7,10 +7,13 @@ import (
 	"time"
 
 	// "sync"
+	"encoding/hex"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/lomocoin/lws/internal/coreclient"
 	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/dbp"
+	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/lws"
 
 	// "github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/lws"
 	// "github.com/lomocoin/lws/internal/stream"
@@ -32,6 +35,7 @@ func subscribe(ctx context.Context, c *coreclient.Client) {
 	switch msg.(type) {
 	case *dbp.Ready:
 		// ready := msg.(*dbp.Ready)
+		log.Println("msg Ready received")
 	case *dbp.Nosub:
 		nosub := msg.(*dbp.Nosub)
 		log.Fatalf("nosub received [%s]", nosub)
@@ -60,6 +64,17 @@ func handleNotification(ctx context.Context, closeChan chan struct{}, notificati
 			}
 
 			log.Printf("added = %+v\n", added)
+			//DEBUG
+
+			block := &lws.Block{}
+			err := ptypes.UnmarshalAny(added.Object, block)
+			if err != nil {
+				log.Println("unpack Object failed", err)
+			} else {
+				log.Printf("added block type[%d](#%d) hash [%+v][%s]", block.NType, block.NHeight, block.Hash, hex.Dump(block.Hash))
+			}
+
+			//DEBUG END
 
 			serializedAdded, err := proto.Marshal(added)
 			if err != nil {
