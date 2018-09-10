@@ -1,4 +1,4 @@
-package stream
+package pubsub
 
 import (
 	"context"
@@ -7,19 +7,15 @@ import (
 	"os"
 	"time"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
-	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/dbp"
-	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/lws"
-
 	"github.com/furdarius/rabbitroutine"
 	"github.com/streadway/amqp"
 )
 
 // Consumer implement rabbitroutine.Consumer interface.
 type Consumer struct {
-	ExchangeName string
-	QueueName    string
+	ExchangeName   string
+	QueueName      string
+	HandleConsumer func([]byte) bool
 }
 
 // Declare implement rabbitroutine.Consumer.(Declare) interface method.
@@ -108,7 +104,7 @@ func (c *Consumer) Consume(ctx context.Context, ch *amqp.Channel) error {
 			// TODO 判断中断恢复的开关
 
 			fmt.Println("New message:", msg.Body)
-			shouldAck := handleConsumer(msg.Body)
+			shouldAck := c.HandleConsumer(msg.Body)
 
 			if shouldAck {
 				err := msg.Ack(false)
@@ -128,28 +124,8 @@ func (c *Consumer) Consume(ctx context.Context, ch *amqp.Channel) error {
 	}
 }
 
-func handleConsumer(body []byte) bool {
-	var err error
-	log.Println("handleConsumer: ", body)
-
-	added := &dbp.Added{}
-	if err = proto.Unmarshal(body, added); err != nil {
-		log.Println("unkonwn message received", body, err)
-	}
-
-	block := &lws.Block{}
-	err = ptypes.UnmarshalAny(added.Object, block)
-	if err != nil {
-		log.Println("unpack Object failed", err)
-	}
-
-	err, skip := handleSyncBlock(block)
-
-	return !skip
-}
-
 // This example demonstrates consuming messages from RabbitMQ queue.
-func listenConsumer(ctx context.Context) {
+func ListenConsumer(ctx context.Context, consumer *Consumer) {
 
 	amqpUrl := os.Getenv("AMQP_URL")
 
@@ -172,11 +148,6 @@ func listenConsumer(ctx context.Context) {
 	conn.AddAMQPNotifiedListener(func(n rabbitroutine.AMQPNotified) {
 		log.Printf("RabbitMQ error received: %v", n.Error)
 	})
-
-	consumer := &Consumer{
-		ExchangeName: EXCHANGE_NAME,
-		QueueName:    QUEUE_NAME,
-	}
 
 	go func() {
 		err := conn.Dial(ctx, amqpUrl)

@@ -9,7 +9,8 @@ import (
 
 	"github.com/lomocoin/lws/internal/coreclient"
 	dbmodule "github.com/lomocoin/lws/internal/db"
-	"github.com/lomocoin/lws/internal/stream/block"
+	// "github.com/lomocoin/lws/internal/stream/block"
+	"github.com/lomocoin/lws/internal/stream/tx"
 )
 
 type Server struct {
@@ -33,7 +34,8 @@ func (s *Server) Start() {
 	// start redis connection
 
 	// start sync-consumer
-	go block.Start(ctx, cclient)
+	// go block.Start(ctx, cclient)
+	go tx.Start(ctx, cclient)
 
 	signal.Notify(msgChan, os.Interrupt, os.Kill)
 	<-msgChan

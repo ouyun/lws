@@ -1,4 +1,4 @@
-package stream
+package pubsub
 
 import (
 	"context"
@@ -7,13 +7,10 @@ import (
 	"time"
 
 	// "sync"
-	"encoding/hex"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/lomocoin/lws/internal/coreclient"
 	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/dbp"
-	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/lws"
 
 	"github.com/furdarius/rabbitroutine"
 	"github.com/streadway/amqp"
@@ -25,20 +22,22 @@ type Subscribe struct {
 	TopicName    string
 	QueueName    string
 	ExchangeName string
+	AddedLog     func(*dbp.Added)
 }
 
-type SubAddedLogger interface {
-	SubAddedLog(*dbp.Added)
+func (s *Subscribe) SetCtxAndCClient(ctx context.Context, cclient *coreclient.Client) {
+	s.ctx = ctx
+	s.cclient = cclient
 }
 
-func (sub *Subscribe) subscribe() {
+func (s *Subscribe) Subscribe() {
 	if s.TopicName == "" {
 		log.Fatalf("Subscribe: Please configure TopicName")
 	}
 	sub := &dbp.Sub{
 		Name: s.TopicName,
 	}
-	subscription, msg, err := cclient.Subscribe(sub)
+	subscription, msg, err := s.cclient.Subscribe(sub)
 
 	if err != nil {
 		// TODO retry here
@@ -78,16 +77,9 @@ func (s *Subscribe) handleNotification(closeChan chan struct{}, notificationChan
 
 			log.Printf("added = %+v\n", added)
 
-			//DEBUG
-			// block := &lws.Block{}
-			// err := ptypes.UnmarshalAny(added.Object, block)
-			// if err != nil {
-			// 	log.Println("unpack Object failed", err)
-			// } else {
-			// 	log.Printf("added block type[%d](#%d) hash [%+v][%s]", block.NType, block.NHeight, block.Hash, hex.Dump(block.Hash))
-			// }
-
-			//DEBUG END
+			if s.AddedLog != nil {
+				s.AddedLog(added)
+			}
 
 			serializedAdded, err := proto.Marshal(added)
 			if err != nil {
