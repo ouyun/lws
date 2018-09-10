@@ -85,7 +85,7 @@ CREATE TABLE `tx` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL,
-  `hash` varchar(32) DEFAULT NULL,
+  `hash` varbinary(32) DEFAULT NULL,
   `version` int(10) unsigned DEFAULT NULL,
   `type` int(10) unsigned DEFAULT NULL,
   `block_id` varchar(32) DEFAULT NULL,

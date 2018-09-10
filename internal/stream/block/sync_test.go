@@ -16,6 +16,7 @@ import (
 
 func TestMain(m *testing.M) {
 	db := dbmodule.GetGormDb()
+	db.LogMode(true)
 
 	exitCode := m.Run()
 
@@ -100,6 +101,36 @@ func TestHandleSyncBlockExtendSuccess(t *testing.T) {
 		NHeight:    2,
 		Hash:       []byte("0000000000000000000000000000000000000000000000000000000000000003"),
 		HashPrev:   []byte("0000000000000000000000000000000000000000000000000000000000000002"),
+	}
+
+	if err, skip := handleSyncBlock(block); err != nil || skip {
+		t.Errorf("the block should be written to chain")
+	}
+}
+
+func TestHandleSyncBlockExtendSuccessWithTx(t *testing.T) {
+	TestHandleSyncBlockOriginSuccess(t)
+	block := &lws.Block{
+		NVersion:   0x00000001,
+		NType:      uint32(constant.BLOCK_TYPE_EXTENDED),
+		NTimeStamp: uint32(time.Now().Unix()),
+		NHeight:    2,
+		Hash:       []byte("0000000000000000000000000000000000000000000000000000000000000003"),
+		HashPrev:   []byte("0000000000000000000000000000000000000000000000000000000000000002"),
+		Vtx: []*lws.Transaction{
+			&lws.Transaction{
+				NVersion: uint32(1),
+				Hash:     []byte("12345678901234567890123456789012"),
+				NAmount:  100,
+				NTxFee:   11,
+			},
+			&lws.Transaction{
+				NVersion: uint32(1),
+				Hash:     []byte("12345678901234567890123456789013"),
+				NAmount:  200,
+				NTxFee:   10,
+			},
+		},
 	}
 
 	if err, skip := handleSyncBlock(block); err != nil || skip {

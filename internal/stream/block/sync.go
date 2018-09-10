@@ -9,6 +9,7 @@ import (
 	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/lws"
 	dbmodule "github.com/lomocoin/lws/internal/db"
 	model "github.com/lomocoin/lws/internal/db/model"
+	"github.com/lomocoin/lws/internal/stream/tx"
 )
 
 // return error and bool skiped
@@ -32,7 +33,7 @@ func handleSyncBlock(block *lws.Block) (error, bool) {
 	}
 
 	err = writeBlock(block)
-	return err, skip
+	return err, false
 }
 
 // error, skip
@@ -91,13 +92,26 @@ func isTailOrOrigin(block *lws.Block) bool {
 func writeBlock(block *lws.Block) error {
 	ormBlock := convertBlockFromDbpToOrm(block)
 	gormdb := dbmodule.GetGormDb()
-	res := gormdb.Create(ormBlock)
+	dbtx := gormdb.Begin()
+	// dbtx := gormdb
+
+	res := dbtx.Create(ormBlock)
 	log.Printf("res = %+v\n", res)
 	if res.Error != nil {
+		dbtx.Rollback()
 		return res.Error
 	}
 
-	// TODO txs
+	// txs
+	log.Printf("writeBlock len Vtx [%d]", len(block.Vtx))
+	err := tx.StartBlockTxHandler(dbtx, block.Vtx, ormBlock)
+	if err != nil {
+		dbtx.Rollback()
+		return err
+	}
+	log.Println("block - tx done")
+
+	dbtx.Commit()
 	return nil
 }
 

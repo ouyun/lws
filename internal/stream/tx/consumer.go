@@ -3,6 +3,10 @@ package tx
 import (
 	"log"
 
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
+	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/dbp"
+	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/lws"
 	"github.com/lomocoin/lws/internal/stream/pubsub"
 )
 
@@ -13,6 +17,20 @@ const (
 
 func handleConsumer(body []byte) bool {
 	log.Println("consume tx body: ", body)
+
+	added := &dbp.Added{}
+	if err := proto.Unmarshal(body, added); err != nil {
+		log.Println("unkonwn message received", body, err)
+	}
+
+	tx := &lws.Transaction{}
+	err := ptypes.UnmarshalAny(added.Object, tx)
+	if err != nil {
+		log.Println("unpack Object failed", err)
+	}
+
+	StartPoolTxHandler(tx)
+
 	return true
 }
 

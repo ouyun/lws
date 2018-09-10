@@ -36,7 +36,7 @@ func M20180824113600() *gormigrate.Migration {
 				gorm.Model
 
 				// tx hash
-				Hash string `gorm:"size:32;unique;"`
+				Hash []byte `gorm:"size:32;unique;"`
 				// tx 版本
 				Version uint16
 				// tx 类型
