@@ -43,6 +43,8 @@ func M20180824113600() *gormigrate.Migration {
 				Type uint16
 				// block ID <- hash
 				BlockID string `gorm:"size:32;"`
+				// block height
+				BlockHash []byte `gorm:"size:32;"`
 				// 冻结高度
 				LockUntil int
 				// 输出金额
