@@ -20,13 +20,24 @@ dep ensure -add github.com/user/xxx-repo # something like `go get` but fetch pac
 
 ### Environment Variables
 
-We are using [godotenv](https://github.com/joho/godotenv) to manange variables in `.env` file. Notice that to use it correctly, you should specify relative path in load function:
+We are using [godotenv](https://github.com/joho/godotenv) to manange variables in `.env` file (no required). To install the command-line tool:
 
-~~~go
-godotenv.Overload("../../.env")
+~~~shell
+go get github.com/joho/godotenv/cmd/godotenv
 ~~~
 
-Otherwise it will fail when your entry file is not under package root directory.
+Then in local development:
+
+~~~shell
+# run
+godotenv go run path/to/main.go
+# test
+godotenv go test ./...
+~~~
+
+In CI test, the environment variables should be configured in the CI panel.
+
+In production, the environment variables should be used as normal env way or configured in CD panel.
 
 ### Database
 
@@ -34,12 +45,12 @@ Otherwise it will fail when your entry file is not under package root directory.
 
 Up:
 
-~~~
+~~~shell
 go run cmd/db/migrate.go
 ~~~
 
 Down:
 
-~~~
+~~~shell
 go run cmd/db/migrate.go -1
 ~~~

@@ -40,7 +40,7 @@ var (
 		pool := NewRedisPool()
 		redisConn := pool.Get()
 		defer redisConn.Close()
-		connection, err := db.Connect()
+		connection, err := db.GetConnection()
 		defer connection.Close()
 		if err != nil {
 			log.Printf("err: %+v\n", err)

@@ -5,7 +5,7 @@ import (
 	// "github.com/joho/godotenv"
 	"github.com/lomocoin/lws/internal/constant"
 	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/lws"
-	dbmodule "github.com/lomocoin/lws/internal/db"
+	"github.com/lomocoin/lws/internal/db"
 	"github.com/lomocoin/lws/testhelper"
 
 	"bytes"
@@ -15,11 +15,11 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	db := dbmodule.GetGormDb()
+	connection := db.GetConnection()
 
 	exitCode := m.Run()
 
-	db.Close()
+	connection.Close()
 	os.Exit(exitCode)
 }
 

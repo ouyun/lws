@@ -3,36 +3,36 @@ package db
 import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
-	"github.com/joho/godotenv"
-	"log"
 	"os"
 )
 
-var gormdb *gorm.DB
+var connection *gorm.DB
 
-func Connect() (*gorm.DB, error) {
-	if err := godotenv.Overload("../../.env"); err != nil {
-		log.Println("no .env file found, will try to use native environment variables")
-	}
-
-	db, err := gorm.Open("mysql", os.Getenv("DATABASE_URL"))
+func connect() (db *gorm.DB, err error) {
+	db, err = gorm.Open("mysql", os.Getenv("DATABASE_URL"))
 	if err != nil {
-		return nil, err
+		return
 	}
 
 	db.SingularTable(true)
 
-	return db, nil
+	return
 }
 
-func GetGormDb() *gorm.DB {
-	if gormdb == nil {
-		var err error
-		gormdb, err = Connect()
-		if err != nil {
-			log.Fatal("connect sql failed ", err)
-		}
-		// gormdb.LogMode(true)
+func GetConnection() (db *gorm.DB, err error) {
+	if connection != nil {
+		return connection, nil
 	}
-	return gormdb
+
+	db, err = gorm.Open("mysql", os.Getenv("DATABASE_URL"))
+	if err != nil {
+		return
+	}
+
+	db.SingularTable(true)
+	// db.LogMode(true)
+
+	connection = db
+
+	return
 }

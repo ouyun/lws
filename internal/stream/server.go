@@ -8,7 +8,7 @@ import (
 	"os/signal"
 
 	"github.com/lomocoin/lws/internal/coreclient"
-	dbmodule "github.com/lomocoin/lws/internal/db"
+	"github.com/lomocoin/lws/internal/db"
 	"github.com/lomocoin/lws/internal/stream/block"
 )
 
@@ -22,8 +22,8 @@ func (s *Server) Start() {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// start db connection
-	db := dbmodule.GetGormDb()
-	defer db.Close()
+	connection := db.GetConnection()
+	defer connection.Close()
 
 	// start coreClient
 	cclient := s.StartCoreClient()

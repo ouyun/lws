@@ -16,7 +16,7 @@ func ResetDb() {
 }
 
 func LoadTestSeed(filename string) {
-	gormdb := db.GetGormDb()
+	connection := db.GetConnection()
 
 	_, curFile, _, _ := runtime.Caller(0)
 
@@ -27,7 +27,7 @@ func LoadTestSeed(filename string) {
 		log.Fatal("load schema.sql failed", err)
 	}
 
-	_, err = gormdb.DB().Exec(string(schema))
+	_, err = connection.DB().Exec(string(schema))
 	if err != nil {
 		log.Fatal("run schema.sql failed", err)
 	}
