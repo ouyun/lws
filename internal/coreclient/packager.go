@@ -144,7 +144,7 @@ func Unpack(bytes []byte) (dbp.Msg, proto.Message) {
 		object = &dbp.Error{}
 	}
 
-	log.Println("received baseMsg: ", baseMsg)
+	log.Println("received baseMsg: ", baseMsg.Msg)
 
 	err = ptypes.UnmarshalAny(baseMsg.Object, object)
 	if err != nil {

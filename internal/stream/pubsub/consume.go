@@ -13,9 +13,10 @@ import (
 
 // Consumer implement rabbitroutine.Consumer interface.
 type Consumer struct {
-	ExchangeName   string
-	QueueName      string
-	HandleConsumer func([]byte) bool
+	ExchangeName       string
+	QueueName          string
+	HandleConsumer     func([]byte, chan bool) bool
+	IsBlockingChecking bool
 }
 
 // Declare implement rabbitroutine.Consumer.(Declare) interface method.
@@ -95,16 +96,23 @@ func (c *Consumer) Consume(ctx context.Context, ch *amqp.Channel) error {
 		return err
 	}
 
+	blockingChan := make(chan bool)
+
 	for {
 		select {
 		case msg, ok := <-msgs:
 			if !ok {
 				return amqp.ErrClosed
 			}
-			// TODO 判断中断恢复的开关
+
+			if c.IsBlockingChecking {
+				log.Println("check blocking chan start")
+				c.checkAndWaitBlocking(blockingChan)
+				log.Println("check blocking chan done")
+			}
 
 			fmt.Println("New message:", msg.Body)
-			shouldAck := c.HandleConsumer(msg.Body)
+			shouldAck := c.HandleConsumer(msg.Body, blockingChan)
 
 			if shouldAck {
 				err := msg.Ack(false)
@@ -121,6 +129,24 @@ func (c *Consumer) Consume(ctx context.Context, ch *amqp.Channel) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		}
+	}
+}
+
+func (c *Consumer) checkAndWaitBlocking(blockingChan chan bool) {
+	select {
+	case blocking := <-blockingChan:
+		// if blocked, wait for recovery done
+		if blocking {
+			select {
+			case newBlocking := <-blockingChan:
+				// check until blocking false
+				if newBlocking {
+					break
+				}
+			}
+
+		}
+	default:
 	}
 }
 

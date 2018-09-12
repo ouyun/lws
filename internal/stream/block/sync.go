@@ -2,6 +2,7 @@ package block
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"log"
 
@@ -13,63 +14,76 @@ import (
 )
 
 // return error and bool skiped
-func handleSyncBlock(block *lws.Block) (error, bool) {
+func handleSyncBlock(block *lws.Block, blockingChan chan bool) (error, bool) {
 	var err error
 	// log.Printf("Receive Block hash [%s]", block.Hash)
-	log.Printf("Receive Block hash v [%+v] type[%d] (#%d)", block.Hash, block.NType, block.NHeight)
+	log.Printf("Receive Block hash v [%s] type[%d] (#%d)", hex.EncodeToString(block.Hash), block.NType, block.NHeight)
 
 	// 1. 判断是否为子块
 	isSubBlock := uint16(block.NType) == constant.BLOCK_TYPE_SUBSIDIARY
 	var skip bool
+	var write bool
 	if isSubBlock {
-		err, skip = validateSubBlock(block)
+		err, skip, write = validateSubBlock(block)
 	} else {
-		err, skip = validateBlock(block)
+		err, skip, write = validateBlock(block, blockingChan)
 	}
 
-	// recovery or skip
-	if err != nil || skip {
+	// recovery
+	if err != nil {
 		return err, skip
 	}
 
-	err = writeBlock(block)
-	return err, false
+	if write {
+		err = writeBlock(block)
+	}
+
+	return err, skip
 }
 
 // error, skip
-func validateSubBlock(block *lws.Block) (error, bool) {
+func validateSubBlock(block *lws.Block) (error, bool, bool) {
 	// 1. 判断子块是否在链上
 	if ok := isBlockExisted(block.NHeight, block.Hash, true); ok {
-		log.Printf("Block hash [%s] is already existed", block.Hash)
-		return nil, true
+		log.Printf("Block hash [%s] is already existed", hex.EncodeToString(block.Hash))
+		return nil, true, false
 	}
 	// 2. 判断所连的主块是否在链上
 	if ok := isBlockExisted(block.NHeight, block.HashPrev, false); !ok {
 		log.Printf("subBlock HashPrev [%s](#%d) is not existed, skip the sub block [%s]", block.HashPrev, block.NHeight, block)
-		return nil, true
+		return nil, true, false
 	}
-	return nil, false
+	return nil, false, true
 }
 
 // error, skip
-func validateBlock(block *lws.Block) (error, bool) {
+func validateBlock(block *lws.Block, blockingChan chan bool) (error, bool, bool) {
 	// 1. 根据高度快速查找该区块是否已经在链上, 在链上则跳过本次操作
 	if ok := isBlockExisted(block.NHeight, block.Hash, false); ok {
-		log.Printf("Block hash [%s](#%d) is already existed", block.Hash, block.NHeight)
-		return nil, true
+		log.Printf("Block hash [%s](#%d) is already existed", hex.EncodeToString(block.Hash), block.NHeight)
+		return nil, true, false
 	}
 
 	// 2. 判断hashPrev是否与链尾区块hash一致 或是 初始块
 	if ok := isTailOrOrigin(block); !ok {
 		// 3A. 不一致则启动错误恢复流程
-		log.Printf("Block hash [%s] trigger recovery", block.Hash)
-		// TODO start recovery
+		hashStr := hex.EncodeToString(block.Hash)
+		log.Printf("Block hash [%s] trigger recovery", hashStr)
+		// start recovery
+		if blockingChan != nil {
+			log.Println("write true to blockingChan")
+			// blockingChan <- true
+			log.Println("write true to blockingChan done")
+			FetchBlocks(block)
+			log.Printf("Block hash [%s] recovery done", hashStr)
+			// blockingChan <- false
+		}
 		err := fmt.Errorf("trigger recovery")
-		return err, false
+		return err, false, false
 	}
 
 	// 3B. 一致则为校验通过
-	return nil, false
+	return nil, true, true
 }
 
 // 判断hashPrev是否与链尾区块hash一致 或是 初始块
@@ -139,7 +153,8 @@ func GetTailBlock() *model.Block {
 		log.Println("GetTailBlock failed", res.Error)
 		return nil
 	}
-	log.Printf("Tail: [%s](%d) type[%d]", block.Hash, block.Height, block.BlockType)
+	hashStr := hex.EncodeToString(block.Hash)
+	log.Printf("Tail: [%s](%d) type[%d]", hashStr, block.Height, block.BlockType)
 	return block
 }
 

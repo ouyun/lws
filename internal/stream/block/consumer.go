@@ -10,7 +10,8 @@ import (
 	"github.com/lomocoin/lws/internal/stream/pubsub"
 )
 
-func handleConsumer(body []byte) bool {
+// blockingChan recovery blocking signal chan
+func handleConsumer(body []byte, blockingChan chan bool) bool {
 	var err error
 	log.Println("handleConsumer: ", body)
 
@@ -25,15 +26,16 @@ func handleConsumer(body []byte) bool {
 		log.Println("unpack Object failed", err)
 	}
 
-	err, skip := handleSyncBlock(block)
+	err, skip := handleSyncBlock(block, blockingChan)
 
-	return !skip
+	return skip
 }
 
 func NewBlockConsumer() *pubsub.Consumer {
 	return &pubsub.Consumer{
-		ExchangeName:   EXCHANGE_NAME,
-		QueueName:      QUEUE_NAME,
-		HandleConsumer: handleConsumer,
+		ExchangeName:       EXCHANGE_NAME,
+		QueueName:          QUEUE_NAME,
+		HandleConsumer:     handleConsumer,
+		IsBlockingChecking: true,
 	}
 }

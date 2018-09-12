@@ -3,14 +3,14 @@ package stream
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 
-	"github.com/lomocoin/lws/internal/coreclient"
 	dbmodule "github.com/lomocoin/lws/internal/db"
 	"github.com/lomocoin/lws/internal/stream/block"
+
 	// "github.com/lomocoin/lws/internal/stream/tx"
+	cclientModule "github.com/lomocoin/lws/internal/stream/cclient"
 )
 
 type Server struct {
@@ -27,7 +27,7 @@ func (s *Server) Start() {
 	defer db.Close()
 
 	// start coreClient
-	cclient := s.StartCoreClient()
+	cclient := cclientModule.StartCoreClient()
 	defer cclient.Stop()
 
 	// start rabbitMQ connection
@@ -40,15 +40,4 @@ func (s *Server) Start() {
 	signal.Notify(msgChan, os.Interrupt, os.Kill)
 	<-msgChan
 	cancel()
-}
-
-func (s *Server) StartCoreClient() *coreclient.Client {
-	addr := os.Getenv("CORECLIENT_URL")
-
-	log.Printf("Connect to core client [%s]", addr)
-	client := coreclient.NewTCPClient(addr)
-
-	client.Start()
-
-	return client
 }
