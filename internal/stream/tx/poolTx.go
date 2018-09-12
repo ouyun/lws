@@ -58,14 +58,18 @@ func insertTx(dbtx *gorm.DB, tx *lws.Transaction) error {
 }
 
 func convertTxFromDbpToOrm(tx *lws.Transaction) *model.Tx {
+	inputs := calculateOrmTxInputs(tx.VInput)
+	sendTo := calculateOrmTxSendTo(tx.CDestination)
 	return &model.Tx{
 		Hash:      tx.Hash,
 		Version:   uint16(tx.NVersion),
-		Type:      uint16(tx.NType),
-		LockUntil: int(tx.NLockUntil),
+		TxType:    uint16(tx.NType),
+		LockUntil: tx.NLockUntil,
 		Amount:    tx.NAmount,
 		Fee:       tx.NTxFee,
 		Data:      tx.VchData,
 		Sig:       tx.VchSig,
+		Inputs:    inputs,
+		SendTo:    sendTo,
 	}
 }

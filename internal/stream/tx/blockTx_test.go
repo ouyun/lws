@@ -7,6 +7,7 @@ import (
 
 	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/lws"
 	dbmodule "github.com/lomocoin/lws/internal/db"
+	"github.com/lomocoin/lws/internal/db/model"
 	"github.com/lomocoin/lws/testhelper"
 )
 
@@ -29,12 +30,30 @@ func TestInsertTxs(t *testing.T) {
 			Hash:     []byte("12345678901234567890123456789012"),
 			NAmount:  100,
 			NTxFee:   11,
+			CDestination: &lws.Transaction_CDestination{
+				Prefix: uint32(1),
+				Data:   []byte("ffffff78901234567890123456789013"),
+			},
+			VInput: []*lws.Transaction_CTxIn{
+				&lws.Transaction_CTxIn{
+					Hash: []byte("fffffffffffffffffffffffffffffff3"),
+					N:    0,
+				},
+				&lws.Transaction_CTxIn{
+					Hash: []byte("fffffffffffffffffffffffffffffff5"),
+					N:    1,
+				},
+			},
 		},
 		&lws.Transaction{
 			NVersion: uint32(1),
 			Hash:     []byte("12345678901234567890123456789013"),
 			NAmount:  200,
 			NTxFee:   10,
+			CDestination: &lws.Transaction_CDestination{
+				Prefix: uint32(0),
+				Data:   []byte("ffffff78901234567890123456789015"),
+			},
 		},
 	}
 
@@ -43,7 +62,13 @@ func TestInsertTxs(t *testing.T) {
 		dbtx: gormdb,
 	}
 
-	err := handler.insertTxs(txs[:], 1)
+	ormBlock := &model.Block{
+		Hash:   []byte("33333333333333333333333333333333"),
+		Height: uint32(2),
+	}
+	ormBlock.ID = 1
+
+	err := handler.insertTxs(txs[:], ormBlock)
 	if err != nil {
 		t.Errorf("insert txs err: [%s]", err)
 	}

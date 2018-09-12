@@ -87,9 +87,12 @@ CREATE TABLE `tx` (
   `deleted_at` timestamp NULL DEFAULT NULL,
   `hash` varbinary(32) DEFAULT NULL,
   `version` int(10) unsigned DEFAULT NULL,
-  `type` int(10) unsigned DEFAULT NULL,
-  `block_id` varchar(32) DEFAULT NULL,
-  `lock_until` int(11) DEFAULT NULL,
+  `tx_type` int(10) unsigned DEFAULT NULL,
+  `block_id` int(11) DEFAULT NULL,
+  `block_hash` varbinary(32) DEFAULT NULL,
+  `block_height` int(10) unsigned DEFAULT NULL,
+  `lock_until` int(10) unsigned DEFAULT NULL,
+  `inputs` blob,
   `amount` bigint(20) DEFAULT NULL,
   `fee` bigint(20) DEFAULT NULL,
   `send_to` varbinary(33) DEFAULT NULL,
@@ -154,4 +157,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2018-09-06 19:16:54
+-- Dump completed on 2018-09-12 11:16:26

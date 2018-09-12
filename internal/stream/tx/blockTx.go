@@ -48,13 +48,13 @@ func (h *BlockTxHandler) handleTxs() error {
 		return err
 	}
 
-	err = h.insertTxs(oldTxs, h.ormBlock.ID)
+	err = h.insertTxs(oldTxs, h.ormBlock)
 	if err != nil {
 		log.Printf("insert old hashex failed for [%s]", err)
 		return err
 	}
 
-	err = h.insertTxs(newTxs, h.ormBlock.ID)
+	err = h.insertTxs(newTxs, h.ormBlock)
 	if err != nil {
 		log.Printf("insert new hashex failed for [%s]", err)
 		return err
@@ -122,18 +122,20 @@ func (h *BlockTxHandler) deleteTxs(hashes [][]byte) error {
 	return nil
 }
 
-func (h *BlockTxHandler) insertTxs(txs []*lws.Transaction, blockId uint) error {
+func (h *BlockTxHandler) insertTxs(txs []*lws.Transaction, block *model.Block) error {
 	if len(txs) == 0 {
 		return nil
 	}
 	ib := sqlbuilder.NewInsertBuilder()
 	ib.InsertInto("tx")
-	// missing id, send_to
-	ib.Cols("created_at", "updated_at", "hash", "version", "type", "block_id", "lock_until", "amount", "fee", "data", "sig")
-	// ib.Cols("version")
+	// missing id
+	ib.Cols("created_at", "updated_at", "hash", "version", "tx_type",
+		"block_id", "block_hash", "block_height",
+		"inputs", "send_to",
+		"lock_until", "amount", "fee", "data", "sig")
 
 	for _, tx := range txs {
-		insertBuilderTxValue(ib, tx, blockId)
+		insertBuilderTxValue(ib, tx, block)
 	}
 
 	sql, args := ib.Build()
@@ -155,8 +157,26 @@ func (h *BlockTxHandler) insertTxs(txs []*lws.Transaction, blockId uint) error {
 	return nil
 }
 
-func insertBuilderTxValue(ib *sqlbuilder.InsertBuilder, tx *lws.Transaction, blockId uint) {
-	ib.Values(sqlbuilder.Raw("now()"), sqlbuilder.Raw("now()"), tx.Hash, uint16(tx.NVersion), uint16(tx.NType), blockId, int(tx.NLockUntil), tx.NAmount, tx.NTxFee, tx.VchData, tx.VchSig)
+func insertBuilderTxValue(ib *sqlbuilder.InsertBuilder, tx *lws.Transaction, block *model.Block) {
+	inputs := calculateOrmTxInputs(tx.VInput)
+	sendTo := calculateOrmTxSendTo(tx.CDestination)
+
+	ib.Values(
+		sqlbuilder.Raw("now()"), //created_at
+		sqlbuilder.Raw("now()"), //updated_at
+		tx.Hash,
+		uint16(tx.NVersion),
+		uint16(tx.NType),
+		block.ID,
+		block.Hash,
+		block.Height,
+		inputs,
+		sendTo,
+		tx.NLockUntil,
+		tx.NAmount,
+		tx.NTxFee,
+		tx.VchData,
+		tx.VchSig)
 }
 
 func includeHash(hash []byte, hashList [][]byte) bool {
@@ -166,4 +186,23 @@ func includeHash(hash []byte, hashList [][]byte) bool {
 		}
 	}
 	return false
+}
+
+func calculateOrmTxSendTo(dest *lws.Transaction_CDestination) []byte {
+	sendToBuf := bytes.NewBuffer(make([]byte, 0))
+	sendToBuf.Grow(33)
+	sendToBuf.WriteByte(byte(uint8(dest.Prefix)))
+	sendToBuf.Write(dest.Data)
+	return sendToBuf.Bytes()
+}
+
+func calculateOrmTxInputs(vInput []*lws.Transaction_CTxIn) []byte {
+	inputNum := len(vInput)
+	inputBuf := bytes.NewBuffer(make([]byte, 0))
+	inputBuf.Grow(33 * inputNum)
+	for _, input := range vInput {
+		inputBuf.Write(input.Hash)
+		inputBuf.WriteByte(byte(uint8(input.N)))
+	}
+	return inputBuf.Bytes()
 }

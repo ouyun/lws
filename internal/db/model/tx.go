@@ -16,7 +16,7 @@ type Tx struct {
 	// block ID
 	BlockID int
 	// block hash
-	BlockHash string `gorm:"size:32;"`
+	BlockHash []byte `gorm:"size:32;"`
 	// block height
 	BlockHeight uint32
 	// 冻结高度
