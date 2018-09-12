@@ -123,7 +123,7 @@ func (b *BlockFetcher) fetch(hash []byte) ([]*lws.Block, error) {
 
 func (b *BlockFetcher) handle(blocks []*lws.Block) error {
 	for _, block := range blocks {
-		err, _ := handleSyncBlock(block, nil)
+		err, _ := handleSyncBlock(block, false)
 		if err != nil {
 			log.Printf("handle sync block error [%s]", err)
 		}

@@ -14,7 +14,7 @@ import (
 )
 
 // return error and bool skiped
-func handleSyncBlock(block *lws.Block, blockingChan chan bool) (error, bool) {
+func handleSyncBlock(block *lws.Block, shouldRecover bool) (error, bool) {
 	var err error
 	// log.Printf("Receive Block hash [%s]", block.Hash)
 	log.Printf("Receive Block hash v [%s] type[%d] (#%d)", hex.EncodeToString(block.Hash), block.NType, block.NHeight)
@@ -26,7 +26,7 @@ func handleSyncBlock(block *lws.Block, blockingChan chan bool) (error, bool) {
 	if isSubBlock {
 		err, skip, write = validateSubBlock(block)
 	} else {
-		err, skip, write = validateBlock(block, blockingChan)
+		err, skip, write = validateBlock(block, shouldRecover)
 	}
 
 	// recovery
@@ -57,7 +57,7 @@ func validateSubBlock(block *lws.Block) (error, bool, bool) {
 }
 
 // error, skip
-func validateBlock(block *lws.Block, blockingChan chan bool) (error, bool, bool) {
+func validateBlock(block *lws.Block, shouldRecover bool) (error, bool, bool) {
 	// 1. 根据高度快速查找该区块是否已经在链上, 在链上则跳过本次操作
 	if ok := isBlockExisted(block.NHeight, block.Hash, false); ok {
 		log.Printf("Block hash [%s](#%d) is already existed", hex.EncodeToString(block.Hash), block.NHeight)
@@ -70,14 +70,11 @@ func validateBlock(block *lws.Block, blockingChan chan bool) (error, bool, bool)
 		hashStr := hex.EncodeToString(block.Hash)
 		log.Printf("Block hash [%s] trigger recovery", hashStr)
 		// start recovery
-		if blockingChan != nil {
-			log.Println("write true to blockingChan")
-			// blockingChan <- true
-			log.Println("write true to blockingChan done")
+		if shouldRecover {
 			FetchBlocks(block)
 			log.Printf("Block hash [%s] recovery done", hashStr)
-			// blockingChan <- false
 		}
+
 		err := fmt.Errorf("trigger recovery")
 		return err, false, false
 	}

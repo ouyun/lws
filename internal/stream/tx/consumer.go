@@ -15,7 +15,7 @@ const (
 	QUEUE_NAME    = "all-tx-q"
 )
 
-func handleConsumer(body []byte, _ chan bool) bool {
+func handleConsumer(body []byte) bool {
 	log.Println("consume tx body: ", body)
 
 	added := &dbp.Added{}

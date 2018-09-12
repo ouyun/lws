@@ -11,7 +11,7 @@ import (
 )
 
 // blockingChan recovery blocking signal chan
-func handleConsumer(body []byte, blockingChan chan bool) bool {
+func handleConsumer(body []byte) bool {
 	var err error
 	log.Println("handleConsumer: ", body)
 
@@ -26,7 +26,7 @@ func handleConsumer(body []byte, blockingChan chan bool) bool {
 		log.Println("unpack Object failed", err)
 	}
 
-	err, skip := handleSyncBlock(block, blockingChan)
+	err, skip := handleSyncBlock(block, true)
 
 	return skip
 }

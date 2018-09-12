@@ -15,7 +15,7 @@ import (
 type Consumer struct {
 	ExchangeName       string
 	QueueName          string
-	HandleConsumer     func([]byte, chan bool) bool
+	HandleConsumer     func([]byte) bool
 	IsBlockingChecking bool
 }
 
@@ -96,7 +96,7 @@ func (c *Consumer) Consume(ctx context.Context, ch *amqp.Channel) error {
 		return err
 	}
 
-	blockingChan := make(chan bool)
+	// blockingChan := make(chan bool)
 
 	for {
 		select {
@@ -105,14 +105,14 @@ func (c *Consumer) Consume(ctx context.Context, ch *amqp.Channel) error {
 				return amqp.ErrClosed
 			}
 
-			if c.IsBlockingChecking {
-				log.Println("check blocking chan start")
-				c.checkAndWaitBlocking(blockingChan)
-				log.Println("check blocking chan done")
-			}
+			// if c.IsBlockingChecking {
+			// 	log.Println("check blocking chan start")
+			// 	c.checkAndWaitBlocking(blockingChan)
+			// 	log.Println("check blocking chan done")
+			// }
 
 			fmt.Println("New message:", msg.Body)
-			shouldAck := c.HandleConsumer(msg.Body, blockingChan)
+			shouldAck := c.HandleConsumer(msg.Body)
 
 			if shouldAck {
 				err := msg.Ack(false)
@@ -133,6 +133,7 @@ func (c *Consumer) Consume(ctx context.Context, ch *amqp.Channel) error {
 }
 
 func (c *Consumer) checkAndWaitBlocking(blockingChan chan bool) {
+	// need to re-code to make it work
 	select {
 	case blocking := <-blockingChan:
 		// if blocked, wait for recovery done
