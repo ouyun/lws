@@ -30,13 +30,41 @@
   name = "github.com/jinzhu/gorm"
 
 [[constraint]]
-  branch = "master"
-  name = "github.com/joho/godotenv"
-
-[[constraint]]
   name = "gopkg.in/gormigrate.v1"
   version = "1.2.0"
 
 [prune]
   go-tests = true
   unused-packages = true
+
+[[constraint]]
+  name = "github.com/satori/go.uuid"
+  version = "1.2.0"
+
+[[constraint]]
+  name = "github.com/go-sql-driver/mysql"
+  version = "1.3.0"
+
+[[constraint]]
+  name = "github.com/golang/protobuf"
+  version = "1.2.0"
+
+[[constraint]]
+  branch = "master"
+  name = "golang.org/x/crypto"
+
+[[constraint]]
+  name = "github.com/eclipse/paho.mqtt.golang"
+  version = "1.1.1"
+
+[[constraint]]
+  name = "github.com/gomodule/redigo"
+  version = "2.0.0"
+
+[[constraint]]
+  name = "github.com/furdarius/rabbitroutine"
+  version = "0.4.0"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/streadway/amqp"

@@ -5,10 +5,6 @@ import (
 )
 
 func generateUuidString() string {
-	id, err := uuid.NewV4()
-	if err != nil {
-		errorLogger("generate uuidv4 failed: [%s]", err)
-		panic("generate uuidv4 failed")
-	}
+	id := uuid.NewV4()
 	return id.String()
 }
