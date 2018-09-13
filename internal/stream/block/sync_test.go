@@ -6,7 +6,7 @@ import (
 	"github.com/lomocoin/lws/internal/constant"
 	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/lws"
 	dbmodule "github.com/lomocoin/lws/internal/db"
-	"github.com/lomocoin/lws/testhelper"
+	"github.com/lomocoin/lws/test/helper"
 
 	"bytes"
 	"os"
@@ -35,7 +35,7 @@ func TestIsBlockExistedTrue(t *testing.T) {
 }
 
 func TestIsBlockExistedFalse(t *testing.T) {
-	testhelper.ResetDb()
+	helper.ResetDb()
 	hash := []byte("0000000000000000000000000001")
 
 	isExisted := isBlockExisted(0, hash, false)
@@ -61,7 +61,7 @@ func TestGetTail(t *testing.T) {
 }
 
 func TestHandleSyncBlockGenesis(t *testing.T) {
-	testhelper.ResetDb()
+	helper.ResetDb()
 
 	block := &lws.Block{
 		NVersion:   0x0000001,
@@ -147,8 +147,8 @@ func TestHandleSyncBlockExtendSuccessWithTx(t *testing.T) {
 }
 
 func TestHandleSyncBlockExtendWrongHeightRecovery(t *testing.T) {
-	testhelper.ResetDb()
-	testhelper.LoadTestSeed("seedBasic.sql")
+	helper.ResetDb()
+	helper.LoadTestSeed("seedBasic.sql")
 
 	block := &lws.Block{
 		NVersion:   0x0000001,

@@ -1,0 +1,37 @@
+version: '3'
+services:
+  db:
+    image: mysql:5.7
+    container_name: lws-db
+    restart: always
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'true'
+      MYSQL_DATABASE: lws
+    volumes:
+      - './mysql/config:/etc/mysql/conf.d'
+      - './mysql/data:/var/lib/mysql'
+    ports:
+      - 13307:3306
+  mqtt:
+    image: eclipse-mosquitto:1.4.12
+    container_name: lws-mqtt-mock
+    restart: always
+    ports:
+      - 11883:1883
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: lws-rabbitmq
+    restart: always
+    environment:
+      RABBITMQ_ERLANG_COOKIE: "SWQOKODSQALRPCLNMEQG"
+      RABBITMQ_DEFAULT_USER: "rabbitmq"
+      RABBITMQ_DEFAULT_PASS: "rabbitmq"
+      RABBITMQ_DEFAULT_VHOST: "/"
+    ports:
+      - 15672:5672
+  redis:
+    image: redis:4.0.11
+    container_name: lws-redis
+    restart: always
+    ports:
+      - 16379:6379
