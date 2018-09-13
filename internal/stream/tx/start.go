@@ -1,4 +1,4 @@
-package block
+package tx
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 
 func Start(ctx context.Context, cclient *coreclient.Client) {
 	subscriber := NewSubscribe(ctx, cclient)
-	consumer := NewBlockConsumer()
+	consumer := NewTxConsumer()
 
 	go pubsub.ListenConsumer(ctx, consumer)
 	go subscriber.Subscribe()

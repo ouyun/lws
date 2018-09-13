@@ -30,6 +30,8 @@ func newSubscription() *Subscription {
 // subscribe topic
 // don't forget to call deleteSubscription if sub failed or unsubcribe
 func (c *Client) Subscribe(subMsg *dbp.Sub) (*Subscription, interface{}, error) {
+	var err error
+	var response interface{}
 	// 1. generate unique id, considering the re-dial logic
 	subMsg.Id = generateUuidString()
 	// subMsg.Id = "3494"
@@ -37,21 +39,10 @@ func (c *Client) Subscribe(subMsg *dbp.Sub) (*Subscription, interface{}, error) 
 	// 2. make Subscription and add it to map
 	subscription := newSubscription()
 
-	// wait until c.subscriptions map is available
-	// for {
-	// 	if c.subscriptions != nil {
-	// 		break
-	// 	}
-	// 	select {
-	// 	case <-time.After(time.Second):
-	// 		continue
-	// 	}
-	// }
-
 	c.subLock.Lock()
 	if _, ok := c.subscriptions[subMsg.Id]; ok {
 		// TODO should we delete old one and re-sub it? Consider the stacked Notification in old chan
-		err := fmt.Errorf("Sub Id [%s] is already existed", subMsg.Id)
+		err = fmt.Errorf("Sub Id [%s] is already existed", subMsg.Id)
 		return nil, nil, err
 	}
 
@@ -59,7 +50,11 @@ func (c *Client) Subscribe(subMsg *dbp.Sub) (*Subscription, interface{}, error) 
 	c.subLock.Unlock()
 
 	// 3. send sub request to core wallet
-	response, err := c.Call(subMsg)
+	response, err = c.Call(subMsg)
+	for ; IsClientTimeoutError(err); response, err = c.Call(subMsg) {
+		c.LogError("subscribe [%s] timeout, retry", subMsg.Name)
+	}
+
 	if err != nil {
 		c.deleteSubscription(subMsg.Id)
 	}

@@ -1,43 +1,43 @@
 package block
 
-import (
-	"github.com/lomocoin/lws/internal/coreclient"
-	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/dbp"
-	// "github.com/lomocoin/lws/internal/stream"
-	// "log"
-	"context"
-	"testing"
-	"time"
-)
+// import (
+// 	"github.com/lomocoin/lws/internal/coreclient"
+// 	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/dbp"
+// 	// "github.com/lomocoin/lws/internal/stream"
+// 	// "log"
+// 	"context"
+// 	"testing"
+// 	"time"
+// )
 
-func TestBlockNotification(t *testing.T) {
-	added := &dbp.Added{
-		Name: "all-block",
-	}
-	// msg, _ := coreclient.PackMsg(added, "ididid")
+// func TestBlockNotification(t *testing.T) {
+// 	added := &dbp.Added{
+// 		Name: "all-block",
+// 	}
+// 	// msg, _ := coreclient.PackMsg(added, "ididid")
 
-	noti := &coreclient.Notification{
-		Msg: added,
-	}
+// 	noti := &coreclient.Notification{
+// 		Msg: added,
+// 	}
 
-	closeChan := make(chan struct{})
-	notificationChan := make(chan *coreclient.Notification)
+// 	closeChan := make(chan struct{})
+// 	notificationChan := make(chan *coreclient.Notification)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	go handleNotification(ctx, closeChan, notificationChan)
+// 	ctx, cancel := context.WithCancel(context.Background())
+// 	go handleNotification(ctx, closeChan, notificationChan)
 
-	notificationChan <- noti
+// 	notificationChan <- noti
 
-	<-time.After(time.Second)
-	close(closeChan)
-	cancel()
-}
+// 	<-time.After(time.Second)
+// 	close(closeChan)
+// 	cancel()
+// }
 
-func TestBlockPublish(t *testing.T) {
-	ctx, _ := context.WithTimeout(context.Background(), time.Second*3)
+// func TestBlockPublish(t *testing.T) {
+// 	ctx, _ := context.WithTimeout(context.Background(), time.Second*3)
 
-	pub := newPublisher(ctx)
-	publishBlock(ctx, pub, []byte{1, 2, 3})
+// 	pub := newPublisher(ctx)
+// 	publishBlock(ctx, pub, []byte{1, 2, 3})
 
-	<-ctx.Done()
-}
+// 	<-ctx.Done()
+// }

@@ -6,7 +6,7 @@ import (
 	"github.com/lomocoin/lws/internal/constant"
 	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/lws"
 	"github.com/lomocoin/lws/internal/db"
-	"github.com/lomocoin/lws/testhelper"
+	"github.com/lomocoin/lws/test/helper"
 
 	"bytes"
 	"os"
@@ -16,6 +16,7 @@ import (
 
 func TestMain(m *testing.M) {
 	connection := db.GetConnection()
+	connection.LogMode(true)
 
 	exitCode := m.Run()
 
@@ -25,7 +26,7 @@ func TestMain(m *testing.M) {
 
 func TestIsBlockExistedTrue(t *testing.T) {
 	TestHandleSyncBlockGenesis(t)
-	hash := []byte("0000000000000000000000000000000000000000000000000000000000000001")
+	hash := []byte("0000000000000000000000000001")
 
 	isExisted := isBlockExisted(0, hash, false)
 	if !isExisted {
@@ -34,8 +35,8 @@ func TestIsBlockExistedTrue(t *testing.T) {
 }
 
 func TestIsBlockExistedFalse(t *testing.T) {
-	testhelper.ResetDb()
-	hash := []byte("0000000000000000000000000000000000000000000000000000000000000001")
+	helper.ResetDb()
+	hash := []byte("0000000000000000000000000001")
 
 	isExisted := isBlockExisted(0, hash, false)
 	if isExisted {
@@ -51,7 +52,7 @@ func TestGetTail(t *testing.T) {
 		return
 	}
 
-	hash := []byte("0000000000000000000000000000000000000000000000000000000000000003")
+	hash := []byte("0000000000000000000000000003")
 	height := uint32(2)
 
 	if bytes.Compare(hash, tail.Hash) != 0 || height != tail.Height {
@@ -60,17 +61,17 @@ func TestGetTail(t *testing.T) {
 }
 
 func TestHandleSyncBlockGenesis(t *testing.T) {
-	testhelper.ResetDb()
+	helper.ResetDb()
 
 	block := &lws.Block{
-		NVersion:   0x00000001,
+		NVersion:   0x0000001,
 		NType:      uint32(constant.BLOCK_TYPE_GENESIS),
 		NTimeStamp: uint32(time.Now().Unix()),
 		NHeight:    0,
-		Hash:       []byte("0000000000000000000000000000000000000000000000000000000000000001"),
+		Hash:       []byte("0000000000000000000000000001"),
 	}
 
-	if err, skip := handleSyncBlock(block); err != nil || skip {
+	if err, skip := handleSyncBlock(block, false); err != nil || !skip {
 		t.Errorf("the block should be written to chain")
 	}
 }
@@ -78,15 +79,15 @@ func TestHandleSyncBlockGenesis(t *testing.T) {
 func TestHandleSyncBlockOriginSuccess(t *testing.T) {
 	TestHandleSyncBlockGenesis(t)
 	block := &lws.Block{
-		NVersion:   0x00000001,
+		NVersion:   0x0000001,
 		NType:      uint32(constant.BLOCK_TYPE_ORIGIN),
 		NTimeStamp: uint32(time.Now().Unix()),
 		NHeight:    1,
-		Hash:       []byte("0000000000000000000000000000000000000000000000000000000000000002"),
-		HashPrev:   []byte("0000000000000000000000000000000000000000000000000000000000000001"),
+		Hash:       []byte("0000000000000000000000000002"),
+		HashPrev:   []byte("0000000000000000000000000001"),
 	}
 
-	if err, skip := handleSyncBlock(block); err != nil || skip {
+	if err, skip := handleSyncBlock(block, false); err != nil || !skip {
 		t.Errorf("the block should be written to chain")
 	}
 }
@@ -94,33 +95,71 @@ func TestHandleSyncBlockOriginSuccess(t *testing.T) {
 func TestHandleSyncBlockExtendSuccess(t *testing.T) {
 	TestHandleSyncBlockOriginSuccess(t)
 	block := &lws.Block{
-		NVersion:   0x00000001,
+		NVersion:   0x0000001,
 		NType:      uint32(constant.BLOCK_TYPE_EXTENDED),
 		NTimeStamp: uint32(time.Now().Unix()),
 		NHeight:    2,
-		Hash:       []byte("0000000000000000000000000000000000000000000000000000000000000003"),
-		HashPrev:   []byte("0000000000000000000000000000000000000000000000000000000000000002"),
+		Hash:       []byte("0000000000000000000000000003"),
+		HashPrev:   []byte("0000000000000000000000000002"),
 	}
 
-	if err, skip := handleSyncBlock(block); err != nil || skip {
+	if err, skip := handleSyncBlock(block, false); err != nil || !skip {
+		t.Errorf("the block should be written to chain")
+	}
+}
+
+func TestHandleSyncBlockExtendSuccessWithTx(t *testing.T) {
+	TestHandleSyncBlockOriginSuccess(t)
+	block := &lws.Block{
+		NVersion:   0x0000001,
+		NType:      uint32(constant.BLOCK_TYPE_EXTENDED),
+		NTimeStamp: uint32(time.Now().Unix()),
+		NHeight:    2,
+		Hash:       []byte("0000000000000000000000000003"),
+		HashPrev:   []byte("0000000000000000000000000002"),
+		Vtx: []*lws.Transaction{
+			&lws.Transaction{
+				NVersion: uint32(1),
+				Hash:     []byte("12345678901234567890123456789012"),
+				NAmount:  100,
+				NTxFee:   11,
+				CDestination: &lws.Transaction_CDestination{
+					Prefix: uint32(1),
+					Data:   []byte("ffffff78901234567890123456789013"),
+				},
+			},
+			&lws.Transaction{
+				NVersion: uint32(1),
+				Hash:     []byte("12345678901234567890123456789013"),
+				NAmount:  200,
+				NTxFee:   10,
+				CDestination: &lws.Transaction_CDestination{
+					Prefix: uint32(1),
+					Data:   []byte("ffffff78901234567890123456789013"),
+				},
+			},
+		},
+	}
+
+	if err, skip := handleSyncBlock(block, false); err != nil || !skip {
 		t.Errorf("the block should be written to chain")
 	}
 }
 
 func TestHandleSyncBlockExtendWrongHeightRecovery(t *testing.T) {
-	testhelper.ResetDb()
-	testhelper.LoadTestSeed("seedBasic.sql")
+	helper.ResetDb()
+	helper.LoadTestSeed("seedBasic.sql")
 
 	block := &lws.Block{
-		NVersion:   0x00000001,
+		NVersion:   0x0000001,
 		NType:      uint32(constant.BLOCK_TYPE_EXTENDED),
 		NTimeStamp: uint32(time.Now().Unix()),
 		NHeight:    3,
-		Hash:       []byte("0000000000000000000000000000000000000000000000000000000000000006"),
-		HashPrev:   []byte("0000000000000000000000000000000000000000000000000000000000000004"),
+		Hash:       []byte("0000000000000000000000000006"),
+		HashPrev:   []byte("0000000000000000000000000004"),
 	}
 
-	err, skip := handleSyncBlock(block)
+	err, skip := handleSyncBlock(block, false)
 	if err == nil {
 		t.Errorf("should got recovery error but nil")
 	}

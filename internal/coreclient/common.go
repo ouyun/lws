@@ -116,3 +116,20 @@ func getFlushChan(t *time.Timer, flushDelay time.Duration) <-chan time.Time {
 	t.Reset(flushDelay)
 	return t.C
 }
+
+func IsClientTimeoutError(err error) bool {
+	if err == nil {
+		return false
+	}
+	cliErr, ok := err.(*ClientError)
+
+	if !ok {
+		return false
+	}
+
+	if !cliErr.Timeout {
+		return false
+	}
+
+	return true
+}

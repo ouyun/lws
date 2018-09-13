@@ -213,7 +213,7 @@ func (p *Program) Start() error {
 func (p *Program) Init() error {
 	// mqtt.DEBUG = log.New(os.Stdout, "", 0)
 	// mqtt.ERROR = log.New(os.Stdout, "", 0)
-	opts := mqtt.NewClientOptions().AddBroker("tcp://127.0.0.1:1883").SetClientID("lws")
+	opts := mqtt.NewClientOptions().AddBroker(os.Getenv("MQTT_URL")).SetClientID("lws")
 	opts.SetKeepAlive(2 * time.Second)
 	if p.isLws {
 		opts.SetDefaultPublishHandler(serviceReqHandler)

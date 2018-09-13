@@ -8,17 +8,21 @@ type Tx struct {
 	gorm.Model
 
 	// tx hash
-	Hash string `gorm:"size:32;unique;"`
+	Hash []byte `gorm:"size:32;unique;"`
 	// tx 版本
 	Version uint16
 	// tx 类型
-	Type uint16
+	TxType uint16
 	// block ID
 	BlockID int
 	// block hash
-	BlockHash string `gorm:"size:32;"`
+	BlockHash []byte `gorm:"size:32;"`
+	// block height
+	BlockHeight uint32
 	// 冻结高度
-	LockUntil int
+	LockUntil uint32
+	// input
+	Inputs []byte `gorm:"type:blob;"`
 	// 输出金额
 	Amount int64
 	// 网络交易费

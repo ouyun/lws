@@ -1,4 +1,4 @@
-package testhelper
+package helper
 
 import (
 	"log"
@@ -10,17 +10,12 @@ import (
 	"github.com/lomocoin/lws/internal/db"
 )
 
-func ResetDb() {
-	LoadTestSeed("schema.sql")
-	log.Println("database schema reseted")
-}
-
 func LoadTestSeed(filename string) {
 	connection := db.GetConnection()
 
 	_, curFile, _, _ := runtime.Caller(0)
 
-	schemaSqlPath := filepath.Join(filepath.Dir(curFile), "testdata", filename)
+	schemaSqlPath := filepath.Join(filepath.Dir(curFile), "..", "data", filename)
 
 	schema, err := ioutil.ReadFile(schemaSqlPath)
 	if err != nil {

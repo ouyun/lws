@@ -18,6 +18,19 @@ dep ensure # sync and install all dependencies into `vender/`
 dep ensure -add github.com/user/xxx-repo # something like `go get` but fetch package into `vendor/` and update Gopkg.toml/Gopkg.lock file
 ~~~
 
+### Related 3rd-party Services
+
+LWS requires MySQL, mqtt(mock server), RabbitMQ and redis as related services. In local development, we use Docker to manage them:
+
+~~~shell
+# where docker-compose.yml located
+cd test/mock
+# start services
+docker-compose up -d
+# stop services
+docker-compose down
+~~~
+
 ### Environment Variables
 
 We are using [godotenv](https://github.com/joho/godotenv) to manange variables in `.env` file (no required). To install the command-line tool:
