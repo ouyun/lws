@@ -1,4 +1,4 @@
-package block
+package tx
 
 import (
 	"log"
@@ -10,32 +10,34 @@ import (
 	"github.com/lomocoin/lws/internal/stream/pubsub"
 )
 
-// blockingChan recovery blocking signal chan
+const (
+	EXCHANGE_NAME = "all-tx"
+	QUEUE_NAME    = "all-tx-q"
+)
+
 func handleConsumer(body []byte) bool {
-	var err error
-	log.Println("handleConsumer: ", body)
+	log.Println("consume tx body: ", body)
 
 	added := &dbp.Added{}
-	if err = proto.Unmarshal(body, added); err != nil {
+	if err := proto.Unmarshal(body, added); err != nil {
 		log.Println("unkonwn message received", body, err)
 	}
 
-	block := &lws.Block{}
-	err = ptypes.UnmarshalAny(added.Object, block)
+	tx := &lws.Transaction{}
+	err := ptypes.UnmarshalAny(added.Object, tx)
 	if err != nil {
 		log.Println("unpack Object failed", err)
 	}
 
-	err, skip := handleSyncBlock(block, true)
+	StartPoolTxHandler(tx)
 
-	return skip
+	return true
 }
 
-func NewBlockConsumer() *pubsub.Consumer {
+func NewTxConsumer() *pubsub.Consumer {
 	return &pubsub.Consumer{
-		ExchangeName:       EXCHANGE_NAME,
-		QueueName:          QUEUE_NAME,
-		HandleConsumer:     handleConsumer,
-		IsBlockingChecking: true,
+		ExchangeName:   EXCHANGE_NAME,
+		QueueName:      QUEUE_NAME,
+		HandleConsumer: handleConsumer,
 	}
 }

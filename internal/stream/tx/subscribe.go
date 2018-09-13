@@ -1,4 +1,4 @@
-package block
+package tx
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 
 func NewSubscribe(ctx context.Context, cclient *coreclient.Client) *pubsub.Subscribe {
 	s := &pubsub.Subscribe{
-		TopicName:    "all-block",
+		TopicName:    "all-tx",
 		QueueName:    QUEUE_NAME,
 		ExchangeName: EXCHANGE_NAME,
 		// AddedLog: addedLog,
