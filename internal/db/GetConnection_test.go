@@ -4,9 +4,9 @@ import (
 	"testing"
 )
 
-func TestConnect(t *testing.T) {
-	connection, err := GetConnection()
-	if err != nil {
+func TestGetConnection(t *testing.T) {
+	connection := GetConnection()
+	if connection == nil {
 		t.Errorf("could not connect to database: %v", err)
 	}
 	defer connection.Close()
