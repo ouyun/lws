@@ -10,6 +10,8 @@ import (
 )
 
 func main() {
+	var err error
+
 	connection := db.GetConnection()
 
 	defer connection.Close()

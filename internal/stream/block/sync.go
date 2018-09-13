@@ -103,8 +103,8 @@ func isTailOrOrigin(block *lws.Block) bool {
 func writeBlock(block *lws.Block) error {
 	ormBlock := convertBlockFromDbpToOrm(block)
 	connection := db.GetConnection()
-	dbtx := gormdb.Begin()
-	// dbtx := gormdb
+	dbtx := connection.Begin()
+	// dbtx := connection
 
 	res := dbtx.Create(ormBlock)
 	log.Printf("res = %+v\n", res)

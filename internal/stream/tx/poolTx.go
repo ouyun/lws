@@ -6,7 +6,7 @@ import (
 
 	"github.com/jinzhu/gorm"
 	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/lws"
-	dbmodule "github.com/lomocoin/lws/internal/db"
+	"github.com/lomocoin/lws/internal/db"
 	"github.com/lomocoin/lws/internal/db/model"
 )
 
@@ -16,9 +16,9 @@ type PoolTxHandler struct {
 }
 
 func StartPoolTxHandler(tx *lws.Transaction) error {
-	gormdb := dbmodule.GetGormDb()
+	connection := db.GetConnection()
 
-	dbtx := gormdb.Begin()
+	dbtx := connection.Begin()
 
 	// check exsitance
 	var count int
