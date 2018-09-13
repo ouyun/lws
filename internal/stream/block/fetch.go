@@ -20,7 +20,7 @@ import (
 // }
 
 const (
-	FETCH_NUMBER = 1000
+	FETCH_NUMBER = 100
 )
 
 type BlockFetcher struct {
@@ -71,9 +71,11 @@ func (b *BlockFetcher) fetch(hash []byte) ([]*lws.Block, error) {
 	hashStr := hex.EncodeToString(hash)
 
 	params := &lws.GetBlocksArg{
-		Hash:   hashStr,
+		Hash:   hash,
 		Number: FETCH_NUMBER,
 	}
+
+	log.Printf("fetch [%d] blocks start hash [%s]", params.Number, hashStr)
 
 	serializedParams, err := ptypes.MarshalAny(params)
 	if err != nil {
@@ -87,7 +89,6 @@ func (b *BlockFetcher) fetch(hash []byte) ([]*lws.Block, error) {
 
 	for response, err = cclient.Call(method); isClientTimeoutError(err); {
 		log.Printf("fetch block [%s] timeout, retry", hashStr)
-		return nil, err
 	}
 
 	if err != nil {

@@ -8,9 +8,8 @@ import (
 
 	dbmodule "github.com/lomocoin/lws/internal/db"
 	"github.com/lomocoin/lws/internal/stream/block"
-
-	// "github.com/lomocoin/lws/internal/stream/tx"
 	cclientModule "github.com/lomocoin/lws/internal/stream/cclient"
+	"github.com/lomocoin/lws/internal/stream/tx"
 )
 
 type Server struct {
@@ -35,7 +34,7 @@ func (s *Server) Start() {
 
 	// start sync-consumer
 	go block.Start(ctx, cclient)
-	// go tx.Start(ctx, cclient)
+	go tx.Start(ctx, cclient)
 
 	signal.Notify(msgChan, os.Interrupt, os.Kill)
 	<-msgChan

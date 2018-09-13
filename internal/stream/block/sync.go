@@ -68,7 +68,7 @@ func validateBlock(block *lws.Block, shouldRecover bool) (error, bool, bool) {
 	if ok := isTailOrOrigin(block); !ok {
 		// 3A. 不一致则启动错误恢复流程
 		hashStr := hex.EncodeToString(block.Hash)
-		log.Printf("Block hash [%s] trigger recovery", hashStr)
+		log.Printf("Block hash [%s], prev[%s] trigger recovery", hashStr, hex.EncodeToString(block.HashPrev))
 		// start recovery
 		if shouldRecover {
 			FetchBlocks(block)

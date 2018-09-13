@@ -77,7 +77,8 @@ func PackMsg(msg proto.Message, id string) ([]byte, error) {
 		log.Fatal("could not serialize msg")
 	}
 
-	fmt.Printf("serializedBaseMsg = %+v\n", serializedBaseMsg)
+	log.Printf("pack baseMsg.Msg = %+v\n", baseMsg.Msg)
+	// fmt.Printf("serializedBaseMsg = %+v\n", serializedBaseMsg)
 
 	return serializedBaseMsg, nil
 }

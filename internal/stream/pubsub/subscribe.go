@@ -67,15 +67,15 @@ func (s *Subscribe) handleNotification(closeChan chan struct{}, notificationChan
 			log.Printf("[all-block]: client handle close chan")
 			return
 		case noti := <-notificationChan:
-			log.Printf("[all-block]: recevied notification [%s]", noti)
-
+			log.Printf("[all-block]: recevied notification ")
+			// log.Printf("[all-block]: recevied notification [%s]", noti)
 			added, ok := noti.Msg.(*dbp.Added)
 			if !ok {
 				log.Printf("ERROR: unexpected sub-notification type [%s]", noti)
 				continue
 			}
 
-			log.Printf("added = %+v\n", added)
+			// log.Printf("added = %+v\n", added)
 
 			if s.AddedLog != nil {
 				s.AddedLog(added)
