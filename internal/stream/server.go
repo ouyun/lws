@@ -2,7 +2,7 @@ package stream
 
 import (
 	"context"
-	"fmt"
+	"log"
 	"os"
 	"os/signal"
 
@@ -17,7 +17,7 @@ type Server struct {
 }
 
 func (s *Server) Start() {
-	fmt.Println("sync server started")
+	log.Print("sync server started")
 	var msgChan = make(chan os.Signal, 1)
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -39,4 +39,5 @@ func (s *Server) Start() {
 	signal.Notify(msgChan, os.Interrupt, os.Kill)
 	<-msgChan
 	cancel()
+	log.Print("sync server exit")
 }

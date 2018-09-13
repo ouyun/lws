@@ -142,9 +142,8 @@ func unixDial(addr string) (conn io.ReadWriteCloser, err error) {
 // The corresponding server must be created with NewTCPServer().
 func NewTCPClient(addr string) *Client {
 	return &Client{
-		Addr:      addr,
-		Dial:      defaultDial,
-		OnConnect: onConnectNegotiation,
+		Addr: addr,
+		Dial: defaultDial,
 	}
 }
 

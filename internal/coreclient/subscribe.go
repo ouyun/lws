@@ -16,14 +16,17 @@ type Notification struct {
 type Subscription struct {
 	CloseChan        chan struct{}
 	NotificationChan chan *Notification
+	SubMsg           *dbp.Sub
+	Subed            bool
 }
 
-func newSubscription() *Subscription {
+func newSubscription(subMsg *dbp.Sub) *Subscription {
 	closeChan := make(chan struct{})
 	notificationChan := make(chan *Notification)
 	return &Subscription{
 		CloseChan:        closeChan,
 		NotificationChan: notificationChan,
+		SubMsg:           subMsg,
 	}
 }
 
@@ -37,7 +40,7 @@ func (c *Client) Subscribe(subMsg *dbp.Sub) (*Subscription, interface{}, error) 
 	// subMsg.Id = "3494"
 
 	// 2. make Subscription and add it to map
-	subscription := newSubscription()
+	subscription := newSubscription(subMsg)
 
 	c.subLock.Lock()
 	if _, ok := c.subscriptions[subMsg.Id]; ok {
@@ -62,8 +65,51 @@ func (c *Client) Subscribe(subMsg *dbp.Sub) (*Subscription, interface{}, error) 
 	_, ok := response.(*dbp.Nosub)
 	if ok {
 		c.deleteSubscription(subMsg.Id)
+	} else if err == nil {
+		// success
+		c.LogError("sub [%s][%s] done", subMsg.Name, subMsg.Id)
+		c.markSubDone(subMsg.Id)
 	}
 	return subscription, response, err
+}
+
+func (c *Client) Resubscribe() {
+	var response interface{}
+	var err error
+	c.subLock.Lock()
+	for _, sub := range c.subscriptions {
+		// only resub subscribed msgs, ignore the hanging ones
+		if sub.Subed {
+			subMsg := sub.SubMsg
+			c.LogError("Resubscribe Name[%s] Id[%s]", subMsg.Name, subMsg.Id)
+
+			// do not retry
+			response, err = c.Call(subMsg)
+
+			if err != nil {
+				c.LogError("re-subscribe [%s] [%s] timeout, retry", subMsg.Name, subMsg.Id)
+				c.deleteSubscription(subMsg.Id)
+			}
+
+			_, ok := response.(*dbp.Nosub)
+			if ok {
+				c.deleteSubscription(subMsg.Id)
+			}
+		}
+	}
+	c.subLock.Unlock()
+}
+
+func (c *Client) markSubDone(subId string) error {
+	c.subLock.Lock()
+	subscription, ok := c.subscriptions[subId]
+	if !ok {
+		return nil
+	}
+	subscription.Subed = true
+
+	c.subLock.Unlock()
+	return nil
 }
 
 func (c *Client) deleteSubscription(subId string) error {
