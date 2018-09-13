@@ -8,7 +8,7 @@ import (
 	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/lws"
 	dbmodule "github.com/lomocoin/lws/internal/db"
 	"github.com/lomocoin/lws/internal/db/model"
-	"github.com/lomocoin/lws/testhelper"
+	"github.com/lomocoin/lws/test/helper"
 )
 
 func TestMain(m *testing.M) {
@@ -22,7 +22,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestInsertTxs(t *testing.T) {
-	testhelper.ResetDb()
+	helper.ResetDb()
 
 	txs := []*lws.Transaction{
 		&lws.Transaction{
@@ -75,7 +75,7 @@ func TestInsertTxs(t *testing.T) {
 }
 
 func TestQueryExistanceTx(t *testing.T) {
-	testhelper.ResetDb()
+	helper.ResetDb()
 
 	gormdb := dbmodule.GetGormDb()
 	handler := &BlockTxHandler{
