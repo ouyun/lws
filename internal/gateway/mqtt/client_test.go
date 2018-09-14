@@ -40,13 +40,6 @@ func TestClient(t *testing.T) {
 	}
 }
 
-func TestInit(t *testing.T) {
-	p := &Program{Id: "LWS/lws/ServiceReq", isLws: false}
-	if err := p.Init(); err != nil {
-		t.Errorf("init client fail %v", err)
-	}
-}
-
 func TestStart(t *testing.T) {
 	p := &Program{Id: "LWS/lws/ServiceReq", isLws: false}
 	p.Init()
