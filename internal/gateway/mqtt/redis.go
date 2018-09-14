@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/gomodule/redigo/redis"
-	"github.com/joho/godotenv"
 )
 
 type CliMap struct {
@@ -22,10 +21,6 @@ type CliMap struct {
 }
 
 func NewRedisPool() *redis.Pool {
-	if err := godotenv.Load(os.ExpandEnv("$GOPATH/src/github.com/lomocoin/lws/.env")); err != nil {
-		log.Println("no .env file found, will try to use native environment variables")
-	}
-
 	address := os.Getenv("REDIS_URL")
 	log.Printf("address: %+s", address)
 	dbOption := redis.DialDatabase(0)

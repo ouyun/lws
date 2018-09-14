@@ -6,18 +6,18 @@ import (
 	"testing"
 
 	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/lws"
-	dbmodule "github.com/lomocoin/lws/internal/db"
+	"github.com/lomocoin/lws/internal/db"
 	"github.com/lomocoin/lws/internal/db/model"
 	"github.com/lomocoin/lws/test/helper"
 )
 
 func TestMain(m *testing.M) {
-	db := dbmodule.GetGormDb()
-	db.LogMode(true)
+	connection := db.GetConnection()
+	connection.LogMode(true)
 
 	exitCode := m.Run()
 
-	db.Close()
+	connection.Close()
 	os.Exit(exitCode)
 }
 
@@ -57,9 +57,9 @@ func TestInsertTxs(t *testing.T) {
 		},
 	}
 
-	gormdb := dbmodule.GetGormDb()
+	connection := db.GetConnection()
 	handler := &BlockTxHandler{
-		dbtx: gormdb,
+		dbtx: connection,
 	}
 
 	ormBlock := &model.Block{
@@ -77,9 +77,9 @@ func TestInsertTxs(t *testing.T) {
 func TestQueryExistanceTx(t *testing.T) {
 	helper.ResetDb()
 
-	gormdb := dbmodule.GetGormDb()
+	connection := db.GetConnection()
 	handler := &BlockTxHandler{
-		dbtx: gormdb,
+		dbtx: connection,
 	}
 	hashes := [][]byte{
 		[]byte("12345678901234567890123456789012"),

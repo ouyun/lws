@@ -40,7 +40,7 @@ var (
 		pool := NewRedisPool()
 		redisConn := pool.Get()
 		defer redisConn.Close()
-		connection, err := db.Connect()
+		connection := db.GetConnection()
 		defer connection.Close()
 		if err != nil {
 			log.Printf("err: %+v\n", err)
@@ -155,7 +155,7 @@ var (
 )
 
 type Service interface {
-	Init() error
+	Init()
 	Start() error
 	Stop() error
 	Publish(string, byte, bool, []byte) error
@@ -172,9 +172,7 @@ type message struct {
 var msgChan = make(chan os.Signal, 1)
 
 func Run(service Service) error {
-	if err := service.Init(); err != nil {
-		return err
-	}
+	service.Init()
 	if err := service.Start(); err != nil {
 		return err
 	}
@@ -198,7 +196,9 @@ type Program struct {
 func (p *Program) Start() error {
 	fmt.Printf("client %+v start\n", p.Id)
 	if token := p.Client.Connect(); token.Wait() && token.Error() != nil {
-		panic(token.Error())
+		log.Printf("conn mqtt broker fail : %+v", token.Error())
+		err := errors.New("conn mqtt broker fail")
+		return err
 	}
 	if p.isLws {
 		p.Subscribe("LWS/lws/ServiceReq", 0, serviceReqHandler)
@@ -210,7 +210,7 @@ func (p *Program) Start() error {
 }
 
 // init client
-func (p *Program) Init() error {
+func (p *Program) Init() {
 	// mqtt.DEBUG = log.New(os.Stdout, "", 0)
 	// mqtt.ERROR = log.New(os.Stdout, "", 0)
 	opts := mqtt.NewClientOptions().AddBroker(os.Getenv("MQTT_URL")).SetClientID("lws")
@@ -220,10 +220,9 @@ func (p *Program) Init() error {
 	} else {
 		opts.SetDefaultPublishHandler(clientHandler)
 	}
-
+	opts.SetConnectTimeout(10 * time.Second)
 	opts.SetPingTimeout(1 * time.Second)
 	p.Client = mqtt.NewClient(opts)
-	return nil
 }
 
 // Stop clients

@@ -10,10 +10,9 @@ import (
 )
 
 func main() {
-	connection, err := db.Connect()
-	if err != nil {
-		log.Fatalf("could not connect to database: %v", err)
-	}
+	var err error
+
+	connection := db.GetConnection()
 
 	defer connection.Close()
 

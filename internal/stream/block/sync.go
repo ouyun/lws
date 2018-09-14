@@ -8,8 +8,8 @@ import (
 
 	"github.com/lomocoin/lws/internal/constant"
 	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/lws"
-	dbmodule "github.com/lomocoin/lws/internal/db"
-	model "github.com/lomocoin/lws/internal/db/model"
+	"github.com/lomocoin/lws/internal/db"
+	"github.com/lomocoin/lws/internal/db/model"
 	"github.com/lomocoin/lws/internal/stream/tx"
 )
 
@@ -102,9 +102,9 @@ func isTailOrOrigin(block *lws.Block) bool {
 
 func writeBlock(block *lws.Block) error {
 	ormBlock := convertBlockFromDbpToOrm(block)
-	gormdb := dbmodule.GetGormDb()
-	dbtx := gormdb.Begin()
-	// dbtx := gormdb
+	connection := db.GetConnection()
+	dbtx := connection.Begin()
+	// dbtx := connection
 
 	res := dbtx.Create(ormBlock)
 	log.Printf("res = %+v\n", res)
@@ -141,8 +141,8 @@ func convertBlockFromDbpToOrm(block *lws.Block) *model.Block {
 
 func GetTailBlock() *model.Block {
 	block := &model.Block{}
-	gormdb := dbmodule.GetGormDb()
-	res := gormdb.
+	connection := db.GetConnection()
+	res := connection.
 		Where("block_type != ?", constant.BLOCK_TYPE_SUBSIDIARY).
 		Order("height desc").
 		Take(block)
@@ -156,10 +156,10 @@ func GetTailBlock() *model.Block {
 }
 
 func isBlockExisted(height uint32, hash []byte, isSubBlock bool) bool {
-	gormdb := dbmodule.GetGormDb()
+	connection := db.GetConnection()
 	var count int
 
-	tx := gormdb.Model(&model.Block{}).Where("height = ? AND hash = ?", height, hash)
+	tx := connection.Model(&model.Block{}).Where("height = ? AND hash = ?", height, hash)
 	if isSubBlock {
 		tx = tx.Where("block_type = ?", constant.BLOCK_TYPE_SUBSIDIARY)
 	} else {
