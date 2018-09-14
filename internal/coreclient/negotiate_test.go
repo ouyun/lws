@@ -7,8 +7,15 @@ import (
 	"testing"
 )
 
-func TestOnConnectSuccess(t *testing.T) {
+func TestNegotiateSuccess(t *testing.T) {
 	serverConn, clientConn := net.Pipe()
+
+	c := &Client{
+		Addr: "whatever",
+		Dial: func(addr string) (conn io.ReadWriteCloser, err error) {
+			return clientConn, nil
+		},
+	}
 
 	go (func(conn io.ReadWriteCloser) {
 		var wr wireResponse
@@ -32,14 +39,21 @@ func TestOnConnectSuccess(t *testing.T) {
 		}
 	})(serverConn)
 
-	_, err := onConnectNegotiation("", clientConn)
+	err := c.negotiate(clientConn)
 	if err != nil {
 		t.Fatalf("negotiation failed: [%s]", err)
 	}
 }
 
-func TestOnConnectFailed(t *testing.T) {
+func TestNegotiateFailed(t *testing.T) {
 	serverConn, clientConn := net.Pipe()
+
+	c := &Client{
+		Addr: "whatever",
+		Dial: func(addr string) (conn io.ReadWriteCloser, err error) {
+			return clientConn, nil
+		},
+	}
 
 	go (func(conn io.ReadWriteCloser) {
 		var wr wireResponse
@@ -63,7 +77,7 @@ func TestOnConnectFailed(t *testing.T) {
 		}
 	})(serverConn)
 
-	_, err := onConnectNegotiation("", clientConn)
+	err := c.negotiate(clientConn)
 	if err != nil {
 		if err.Error() != "coreclient: negotiate failed" {
 			t.Fatalf("negotiation non-failed message : [%s]", err)

@@ -79,6 +79,8 @@ type Client struct {
 	// transport implementation.
 	OnConnect OnConnectFunc
 
+	DisableNegotiation bool
+
 	// The client calls this callback when it needs new connection
 	// to the server.
 	// The client passes Client.Addr into Dial().
@@ -117,6 +119,9 @@ type Client struct {
 
 	subLock       sync.Mutex
 	subscriptions map[string]*Subscription
+
+	// DBP session
+	session string
 }
 
 // Start starts rpc client. Establishes connection to the server on Client.Addr.
@@ -491,7 +496,6 @@ func clientHandler(c *Client) {
 	for {
 		dialChan := make(chan struct{})
 		go func() {
-			// TODO handle re-dial
 			if conn, err = c.Dial(c.Addr); err != nil {
 				if stopping.Load() == nil {
 					c.LogError("gorpc.Client: [%s]. Cannot establish rpc connection: [%s]", c.Addr, err)
@@ -530,6 +534,7 @@ func clientHandler(c *Client) {
 }
 
 func clientHandleConnection(c *Client, conn io.ReadWriteCloser) {
+	var err error
 	if c.OnConnect != nil {
 		newConn, err := c.OnConnect(c.Addr, conn)
 		if err != nil {
@@ -539,7 +544,15 @@ func clientHandleConnection(c *Client, conn io.ReadWriteCloser) {
 		}
 		conn = newConn
 	}
-	var err error
+
+	if !c.DisableNegotiation {
+		err = c.negotiate(conn)
+		if err != nil {
+			c.LogError("gorpc.Client: negotiation error: [%s]", err)
+			conn.Close()
+			return
+		}
+	}
 
 	stopChan := make(chan struct{})
 

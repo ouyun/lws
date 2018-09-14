@@ -46,6 +46,7 @@ func TestPing(t *testing.T) {
 		Dial: func(addr string) (conn io.ReadWriteCloser, err error) {
 			return clientConn, nil
 		},
+		DisableNegotiation: true,
 		// OnConnect: onConnectNegotiation,
 	}
 
@@ -124,7 +125,7 @@ func TestConnectAndPing(t *testing.T) {
 		Dial: func(addr string) (conn io.ReadWriteCloser, err error) {
 			return clientConn, nil
 		},
-		OnConnect: onConnectNegotiation,
+		// OnConnect: onConnectNegotiation,
 	}
 
 	c.Start()

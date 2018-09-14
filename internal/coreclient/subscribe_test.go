@@ -118,7 +118,8 @@ func TestSubscribe(t *testing.T) {
 		Dial: func(addr string) (conn io.ReadWriteCloser, err error) {
 			return clientConn, nil
 		},
-		LogDebug: log.Printf,
+		LogDebug:           log.Printf,
+		DisableNegotiation: true,
 		// OnConnect: onConnectNegotiation,
 	}
 
@@ -226,6 +227,7 @@ func TestMultiSubscribe(t *testing.T) {
 		Dial: func(addr string) (conn io.ReadWriteCloser, err error) {
 			return clientConn, nil
 		},
+		DisableNegotiation: true,
 		// OnConnect: onConnectNegotiation,
 	}
 
