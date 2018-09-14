@@ -2,10 +2,10 @@ package mqtt
 
 import (
 	"encoding/hex"
-	"flag"
+	// "flag"
 	// "encoding/hex"
 	"log"
-	"os"
+	// "os"
 	"testing"
 	"time"
 
@@ -53,7 +53,9 @@ func TestStart(t *testing.T) {
 
 func ClientStart(service Service) error {
 	service.Init()
-	service.Start()
+	if err := service.Start(); err != nil {
+		return err
+	}
 	return service.Stop()
 }
 
@@ -70,7 +72,10 @@ func TestPublish(t *testing.T) {
 		isLws: false,
 	}
 	cli.Init()
-	cli.Start()
+	if err = cli.Start(); err != nil {
+		t.Errorf("client start failed")
+	}
+
 	cli.Subscribe("wqweqwasasqw/fnfn/ServiceReply", 0, servicReplyHandler)
 	// address, _, _ := crypto.GenerateKeyPair(nil)
 
@@ -104,7 +109,9 @@ func TestSyncReq(t *testing.T) {
 		isLws: false,
 	}
 	cli.Init()
-	cli.Start()
+	if err := cli.Start(); err != nil {
+		t.Errorf("client start failed")
+	}
 	cli.Subscribe("wqweqwasasqw/fnfn/SyncReply", 1, servicReplyHandler)
 	syncPayload := SyncPayload{ //Sync
 		Nonce:     uint16(1231),
@@ -130,7 +137,9 @@ func TestUTXOAbort(t *testing.T) {
 		isLws: false,
 	}
 	cli.Init()
-	cli.Start()
+	if err := cli.Start(); err != nil {
+		t.Errorf("client start failed")
+	}
 	abortPayload := AbortPayload{ //abort
 		Nonce:     uint16(1231),
 		AddressId: uint32(5363),
@@ -154,7 +163,9 @@ func TestSendTxReq(t *testing.T) {
 		isLws: false,
 	}
 	cli.Init()
-	cli.Start()
+	if err := cli.Start(); err != nil {
+		t.Errorf("client start failed")
+	}
 	cli.Subscribe("wqweqwasasqw/fnfn/SendTxReply", 1, servicReplyHandler)
 	sendTxPayload := SendTxPayload{ //send
 		Nonce:     uint16(1231),
@@ -186,22 +197,22 @@ func Test(t *testing.T) {
 	p.Stop()
 }
 
-func TestMain(m *testing.M) {
-	flag.Parse()
-	c := make(chan int)
-	go func() {
-		lws := &Program{
-			Id:    "lws",
-			isLws: true,
-		}
-		lws.Init()
-		if err := lws.Start(); err != nil {
-			log.Printf("init client fail %v", err)
-		}
-		c <- 1
-		lws.Stop()
-	}()
-	code := m.Run()
-	<-c
-	os.Exit(code)
-}
+// func TestMain(m *testing.M) {
+// 	flag.Parse()
+// 	c := make(chan int)
+// 	go func() {
+// 		lws := &Program{
+// 			Id:    "lws",
+// 			isLws: true,
+// 		}
+// 		lws.Init()
+// 		if err := lws.Start(); err != nil {
+// 			log.Printf("init client fail %v", err)
+// 		}
+// 		c <- 1
+// 		lws.Stop()
+// 	}()
+// 	code := m.Run()
+// 	<-c
+// 	os.Exit(code)
+// }
