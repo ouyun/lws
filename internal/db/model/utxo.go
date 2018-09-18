@@ -11,5 +11,5 @@ type Utxo struct {
 	Destination []byte `gorm:"size:33;"`
 	Amount      int64
 	BlockHeight uint32
-	Out         uint8
+	Out         uint8 // index 0 -> destination, 1 -> change
 }
