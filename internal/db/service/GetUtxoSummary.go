@@ -2,11 +2,10 @@ package service
 
 import (
 	"github.com/jinzhu/gorm"
-	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/lws"
 	"github.com/lomocoin/lws/internal/db/model"
 )
 
-func GetUtxoSummary(utxos []*lws.Transaction_CTxIn, db *gorm.DB) (int64, int, error) {
+func GetUtxoSummary(utxoList []*model.Utxo, db *gorm.DB) (int64, int, error) {
 	type sumResult struct {
 		Sum   int64
 		Count int
@@ -14,10 +13,10 @@ func GetUtxoSummary(utxos []*lws.Transaction_CTxIn, db *gorm.DB) (int64, int, er
 	var r sumResult
 	query := db.Model(&model.Utxo{}).Select("SUM(utxo.amount) as sum, COUNT(*) as count")
 
-	for _, utxo := range utxos {
+	for _, utxo := range utxoList {
 		query = query.Or(map[string]interface{}{
-			"tx_hash": utxo.Hash,
-			"out":     utxo.N,
+			"tx_hash": utxo.TxHash,
+			"out":     utxo.Out,
 		})
 	}
 

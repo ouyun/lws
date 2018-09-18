@@ -1,7 +1,6 @@
 package service
 
 import (
-	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/lws"
 	"github.com/lomocoin/lws/internal/db"
 	"github.com/lomocoin/lws/internal/db/model"
 	"github.com/lomocoin/lws/test/helper"
@@ -39,10 +38,10 @@ func TestGetSummary(t *testing.T) {
 		t.Errorf("create temp utxo record err: [%s]", result.Error)
 	}
 
-	sum, count, err := GetUtxoSummary([]*lws.Transaction_CTxIn{
-		&lws.Transaction_CTxIn{
-			Hash: []byte("fffffffffffffffffffffffffffffff3"),
-			N:    0,
+	sum, count, err := GetUtxoSummary([]*model.Utxo{
+		&model.Utxo{
+			TxHash: []byte("fffffffffffffffffffffffffffffff3"),
+			Out:    0,
 		},
 	}, connection)
 	if err != nil {
