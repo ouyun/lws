@@ -27,8 +27,9 @@ const (
 )
 
 type BlockFetcher struct {
-	FetchNumber  int
-	TriggerBlock *lws.Block
+	FetchNumber          int
+	TriggerBlock         *lws.Block
+	isTriggerBlockSynced bool
 }
 
 func FetchBlocks(triggerBlock *lws.Block) {
@@ -63,7 +64,7 @@ func (b *BlockFetcher) startFetchBlocks(triggerBlock *lws.Block) {
 	// 1. if the fork chain is detected, remove the bad-chain data
 	tail := b.checkForkedChain()
 
-	for ; tail == nil || bytes.Compare(tail.Hash, triggerBlock.Hash) != 0; tail = GetTailBlock() {
+	for ; tail == nil || !b.isTriggerBlockSynced; tail = GetTailBlock() {
 		var hash []byte
 		if tail != nil {
 			hash = tail.Hash
@@ -83,6 +84,7 @@ func (b *BlockFetcher) checkForkedChain() *model.Block {
 		return tail
 	}
 
+	log.Printf("forked block[%s](#%d) is detected", hex.EncodeToString(tail.Hash), tail.Height)
 	// forked block is detected
 	// find the initial forked block
 	forkedBlock := b.findForkedBlock()
@@ -196,6 +198,9 @@ func (b *BlockFetcher) handle(blocks []*lws.Block) error {
 		err, _ := handleSyncBlock(block, true)
 		if err != nil {
 			log.Printf("handle sync block error [%s]", err)
+		}
+		if bytes.Compare(block.Hash, b.TriggerBlock.Hash) == 0 {
+			b.isTriggerBlockSynced = true
 		}
 	}
 	return nil

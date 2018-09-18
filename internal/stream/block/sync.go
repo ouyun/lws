@@ -107,20 +107,18 @@ func writeBlock(block *lws.Block) error {
 	// dbtx := gormdb
 
 	res := dbtx.Create(ormBlock)
-	log.Printf("res = %+v\n", res)
+	log.Printf("write block (#%d) done", ormBlock.Height)
 	if res.Error != nil {
 		dbtx.Rollback()
 		return res.Error
 	}
 
 	// txs
-	log.Printf("writeBlock len Vtx [%d]", len(block.Vtx))
 	err := tx.StartBlockTxHandler(dbtx, block.Vtx, ormBlock)
 	if err != nil {
 		dbtx.Rollback()
 		return err
 	}
-	log.Println("block - tx done")
 
 	dbtx.Commit()
 	return nil
