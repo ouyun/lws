@@ -79,8 +79,14 @@ func (b *BlockFetcher) checkForkedChain() *model.Block {
 	if tail == nil {
 		return tail
 	}
-	if tail.Height < b.TriggerBlock.NHeight {
+	if tail.Height+1 < b.TriggerBlock.NHeight {
 		// no forked chain, return
+		// log.Printf("safe tail(#%d) trigger(#%d)", tail.Height, b.TriggerBlock.NHeight)
+		return tail
+	}
+
+	if tail.Height-1 == b.TriggerBlock.NHeight && bytes.Compare(tail.Hash, b.TriggerBlock.HashPrev) == 0 {
+		// log.Printf("safe tail(#%d) trigger(#%d), tail hash match trigger prevhash", tail.Height, b.TriggerBlock.NHeight)
 		return tail
 	}
 
