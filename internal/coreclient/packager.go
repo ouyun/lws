@@ -149,7 +149,7 @@ func Unpack(bytes []byte) (dbp.Msg, proto.Message) {
 
 	err = ptypes.UnmarshalAny(baseMsg.Object, object)
 	if err != nil {
-		log.Println("unpack Object failed", err)
+		log.Println("packager: unpack Object failed", err)
 	}
 	return baseMsg.Msg, object
 }
