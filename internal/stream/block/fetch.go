@@ -225,32 +225,32 @@ func isClientTimeoutError(err error) bool {
 
 func checkBlockExistanceByHash(hash []byte) bool {
 	count := 0
-	gormdb := dbmodule.GetGormDb()
+	connection := dbmodule.GetConnection()
 
-	gormdb.Model(&model.Block{}).Where("hash = ?", hash).Count(&count)
+	connection.Model(&model.Block{}).Where("hash = ?", hash).Count(&count)
 	// if err occurs, consider it as non-exist
 	return count == 1
 }
 
 func clearForkedChain(height uint32) error {
-	gormdb := dbmodule.GetGormDb()
+	connection := dbmodule.GetConnection()
 
 	// clear utxo
-	res := gormdb.Unscoped().Where("block_height >= ? and block_height != ?", height, TXPOOL_HEIGHT).Delete(&model.Utxo{})
+	res := connection.Unscoped().Where("block_height >= ? and block_height != ?", height, TXPOOL_HEIGHT).Delete(&model.Utxo{})
 	if res.Error != nil {
 		log.Printf("delete [%d] forked utxo", res.RowsAffected)
 		return res.Error
 	}
 
 	// clear tx
-	res = gormdb.Unscoped().Where("block_height >= ? and block_height != ?", height, TXPOOL_HEIGHT).Delete(&model.Tx{})
+	res = connection.Unscoped().Where("block_height >= ? and block_height != ?", height, TXPOOL_HEIGHT).Delete(&model.Tx{})
 	if res.Error != nil {
 		log.Printf("delete [%d] forked block", res.RowsAffected)
 		return res.Error
 	}
 
 	// clear block
-	res = gormdb.Unscoped().Where("height >= ?", height).Delete(&model.Block{})
+	res = connection.Unscoped().Where("height >= ?", height).Delete(&model.Block{})
 	if res.Error != nil {
 		log.Printf("delete [%d] forked block", res.RowsAffected)
 		return res.Error
