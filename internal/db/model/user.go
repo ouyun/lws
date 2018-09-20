@@ -1,18 +1,22 @@
 package model
 
 import (
-	"github.com/jinzhu/gorm"
+	// "github.com/jinzhu/gorm"
+	"time"
 )
 
 type User struct {
-	gorm.Model
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt *time.Time `sql:"index"`
 
-	AddressId   uint32 `gorm:"primary_key;AUTO_INCREMENT"`
-	Address     []byte `gorm:"size:32"`
-	ApiKey      []byte `gorm:"size:32"`
+	AddressId   uint32 `gorm:"AUTO_INCREMENT;primary_key;"`
+	Address     []byte
+	ApiKey      []byte `gorm:"size:32;"`
 	TopicPrefix string
 	ForkNum     uint8
-	ForkList    string
+	ForkList    []byte `gorm:"size:2048;type:blob;"`
 	ReplyUTXON  uint16
 	TimeStamp   uint32
+	Nonce       uint16
 }
