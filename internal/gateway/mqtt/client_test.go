@@ -3,7 +3,7 @@ package mqtt
 import (
 	// "encoding/hex"
 	"flag"
-	"log"
+	// "log"
 	"os"
 	"testing"
 
@@ -105,30 +105,25 @@ func TestSendTxReq(t *testing.T) {
 
 func TestMain(m *testing.M) {
 	helper.ResetDb()
-	// connection := db.GetConnection()
-	// if connection == nil {
-	// 	log.Println("conn db fail ")
-	// }
-	// connection.CreateTable(model.User{})
 	flag.Parse()
-	c := make(chan int)
-	go func() {
-		lws := &Program{
-			Id:    "lws",
-			isLws: true,
-		}
-		lws.Init()
-		if err := lws.Start(); err != nil {
-			log.Printf("init client fail %v", err)
-		}
-		c <- 1
-		err := lws.Stop()
-		if err != nil {
-			log.Printf("stop client fail %v", err)
-		}
-	}()
+	// c := make(chan int)
+	// go func() {
+	// 	lws := &Program{
+	// 		Id:    "lws",
+	// 		isLws: true,
+	// 	}
+	// 	lws.Init()
+	// 	if err := lws.Start(); err != nil {
+	// 		log.Printf("init client fail %v", err)
+	// 	}
+	// 	c <- 1
+	// 	err := lws.Stop()
+	// 	if err != nil {
+	// 		log.Printf("stop client fail %v", err)
+	// 	}
+	// }()
 	code := m.Run()
-	<-c
+	// <-c
 	// connection.Close()
 	os.Exit(code)
 }
