@@ -114,7 +114,10 @@ func writeBlock(block *lws.Block) error {
 	}
 
 	// txs
-	err := tx.StartBlockTxHandler(dbtx, block.Vtx, ormBlock)
+	txs := make([]*lws.Transaction, 0)
+	txs = append(txs, block.Vtx...)
+	txs = append(txs, block.TxMint)
+	err := tx.StartBlockTxHandler(dbtx, txs, ormBlock)
 	if err != nil {
 		dbtx.Rollback()
 		return err

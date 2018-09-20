@@ -69,6 +69,16 @@ func TestHandleSyncBlockGenesis(t *testing.T) {
 		NTimeStamp: uint32(time.Now().Unix()),
 		NHeight:    0,
 		Hash:       []byte("0000000000000000000000000001"),
+		TxMint: &lws.Transaction{
+			NVersion: uint32(1),
+			Hash:     []byte("00000000000000000000000000001"),
+			NAmount:  100,
+			NTxFee:   0,
+			CDestination: &lws.Transaction_CDestination{
+				Prefix: uint32(1),
+				Data:   []byte("ffffff78901234567890123456789013"),
+			},
+		},
 	}
 
 	if err, skip := handleSyncBlock(block, false); err != nil || !skip {
@@ -85,6 +95,16 @@ func TestHandleSyncBlockOriginSuccess(t *testing.T) {
 		NHeight:    1,
 		Hash:       []byte("0000000000000000000000000002"),
 		HashPrev:   []byte("0000000000000000000000000001"),
+		TxMint: &lws.Transaction{
+			NVersion: uint32(1),
+			Hash:     []byte("00000000000000000000000000002"),
+			NAmount:  100,
+			NTxFee:   0,
+			CDestination: &lws.Transaction_CDestination{
+				Prefix: uint32(1),
+				Data:   []byte("ffffff78901234567890123456789013"),
+			},
+		},
 	}
 
 	if err, skip := handleSyncBlock(block, false); err != nil || !skip {
@@ -101,6 +121,16 @@ func TestHandleSyncBlockExtendSuccess(t *testing.T) {
 		NHeight:    2,
 		Hash:       []byte("0000000000000000000000000003"),
 		HashPrev:   []byte("0000000000000000000000000002"),
+		TxMint: &lws.Transaction{
+			NVersion: uint32(1),
+			Hash:     []byte("00000000000000000000000000003"),
+			NAmount:  100,
+			NTxFee:   0,
+			CDestination: &lws.Transaction_CDestination{
+				Prefix: uint32(1),
+				Data:   []byte("ffffff78901234567890123456789013"),
+			},
+		},
 	}
 
 	if err, skip := handleSyncBlock(block, false); err != nil || !skip {
@@ -139,6 +169,16 @@ func TestHandleSyncBlockExtendSuccessWithTx(t *testing.T) {
 				},
 			},
 		},
+		TxMint: &lws.Transaction{
+			NVersion: uint32(1),
+			Hash:     []byte("00000000000000000000000000003"),
+			NAmount:  100,
+			NTxFee:   0,
+			CDestination: &lws.Transaction_CDestination{
+				Prefix: uint32(1),
+				Data:   []byte("ffffff78901234567890123456789013"),
+			},
+		},
 	}
 
 	if err, skip := handleSyncBlock(block, false); err != nil || !skip {
@@ -157,6 +197,16 @@ func TestHandleSyncBlockExtendWrongHeightRecovery(t *testing.T) {
 		NHeight:    3,
 		Hash:       []byte("0000000000000000000000000006"),
 		HashPrev:   []byte("0000000000000000000000000004"),
+		TxMint: &lws.Transaction{
+			NVersion: uint32(1),
+			Hash:     []byte("00000000000000000000000000006"),
+			NAmount:  100,
+			NTxFee:   0,
+			CDestination: &lws.Transaction_CDestination{
+				Prefix: uint32(1),
+				Data:   []byte("ffffff78901234567890123456789013"),
+			},
+		},
 	}
 
 	err, skip := handleSyncBlock(block, false)
