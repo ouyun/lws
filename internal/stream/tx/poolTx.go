@@ -8,6 +8,7 @@ import (
 	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/lws"
 	"github.com/lomocoin/lws/internal/db"
 	"github.com/lomocoin/lws/internal/db/model"
+	"github.com/lomocoin/lws/internal/stream/utxo"
 )
 
 type PoolTxHandler struct {
@@ -42,6 +43,13 @@ func StartPoolTxHandler(tx *lws.Transaction) error {
 		return err
 	}
 
+	err = utxo.HandleTx(dbtx, tx, nil)
+	if err != nil {
+		log.Printf("handle utxo error: %v", err)
+		dbtx.Rollback()
+		return err
+	}
+
 	dbtx.Commit()
 	return nil
 }
@@ -53,6 +61,10 @@ func insertTx(dbtx *gorm.DB, tx *lws.Transaction) error {
 	if res.Error != nil {
 		return res.Error
 	}
+
+	// if err := utxo.HandleTx(dbtx, tx); err != nil {
+	// 	return err
+	// }
 
 	return nil
 }

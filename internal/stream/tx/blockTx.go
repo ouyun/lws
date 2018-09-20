@@ -10,22 +10,23 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/lws"
 	"github.com/lomocoin/lws/internal/db/model"
+	"github.com/lomocoin/lws/internal/stream/utxo"
 )
 
 type BlockTxHandler struct {
-	txs      []*lws.Transaction
-	dbtx     *gorm.DB
-	ormBlock *model.Block
+	txs        []*lws.Transaction
+	dbtx       *gorm.DB
+	blockModel *model.Block
 	// newTxs   []*lws.Transaction
 	// oldTxs   []*lws.Transaction
 }
 
-func StartBlockTxHandler(db *gorm.DB, txs []*lws.Transaction, ormBlock *model.Block) error {
+func StartBlockTxHandler(db *gorm.DB, txs []*lws.Transaction, blockModel *model.Block) error {
 	log.Printf("StartBlockTxHandler len txs [%d]", len(txs))
 	h := &BlockTxHandler{
-		txs:      txs,
-		ormBlock: ormBlock,
-		dbtx:     db,
+		txs:        txs,
+		blockModel: blockModel,
+		dbtx:       db,
 	}
 
 	err := h.handleTxs()
@@ -48,13 +49,13 @@ func (h *BlockTxHandler) handleTxs() error {
 		return err
 	}
 
-	err = h.insertTxs(oldTxs, h.ormBlock)
+	err = h.insertTxs(oldTxs, h.blockModel)
 	if err != nil {
 		log.Printf("insert old hashex failed for [%s]", err)
 		return err
 	}
 
-	err = h.insertTxs(newTxs, h.ormBlock)
+	err = h.insertTxs(newTxs, h.blockModel)
 	if err != nil {
 		log.Printf("insert new hashex failed for [%s]", err)
 		return err
@@ -136,6 +137,9 @@ func (h *BlockTxHandler) insertTxs(txs []*lws.Transaction, block *model.Block) e
 
 	for _, tx := range txs {
 		insertBuilderTxValue(ib, tx, block)
+		if err := utxo.HandleTx(h.dbtx, tx, block); err != nil {
+			return err
+		}
 	}
 
 	sql, args := ib.Build()
