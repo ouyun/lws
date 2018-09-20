@@ -113,6 +113,37 @@ LOCK TABLES `tx` WRITE;
 /*!40000 ALTER TABLE `tx` ENABLE KEYS */;
 UNLOCK TABLES;
 
+-- ----------------------------
+-- Table structure for user
+-- ----------------------------
+
+DROP TABLE IF EXISTS `user`;
+CREATE TABLE `user` (
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `deleted_at` timestamp NULL DEFAULT NULL,
+  `address_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `address` varbinary(255) DEFAULT NULL,
+  `api_key` varbinary(32) DEFAULT NULL,
+  `topic_prefix` varchar(255) DEFAULT NULL,
+  `fork_num` tinyint(3) unsigned DEFAULT NULL,
+  `fork_list` blob,
+  `reply_utxon` int(10) unsigned DEFAULT NULL,
+  `time_stamp` int(10) unsigned DEFAULT NULL,
+  `nonce` int(10) unsigned DEFAULT NULL,
+  PRIMARY KEY (`address_id`),
+  KEY `idx_user_deleted_at` (`deleted_at`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8;
+
+--
+-- Dumping data for table `user`
+--
+
+LOCK TABLES `user` WRITE;
+/*!40000 ALTER TABLE `user` DISABLE KEYS */;
+/*!40000 ALTER TABLE `user` ENABLE KEYS */;
+UNLOCK TABLES;
+
 --
 -- Table structure for table `utxo`
 --
