@@ -2,14 +2,14 @@ package mqtt
 
 import (
 	"encoding/hex"
-	// "log"
+	"log"
 	"os"
 	"testing"
 	"time"
 
 	// "github.com/gomodule/redigo/redis"
-	// "github.com/lomocoin/lws/internal/db"
-	// "github.com/lomocoin/lws/internal/db/model"
+	"github.com/lomocoin/lws/internal/db"
+	"github.com/lomocoin/lws/internal/db/model"
 	"github.com/lomocoin/lws/internal/gateway/crypto"
 )
 
@@ -56,18 +56,18 @@ func TestServiceReq(t *testing.T) {
 	cli.Stop()
 }
 
-// func TestUser(t *testing.T) {
-// 	connection := db.GetConnection()
-// 	if connection == nil {
-// 		log.Println("conn db fail ")
-// 	}
-// 	user := model.User{}
-// 	pool := NewRedisPool()
-// 	redisConn := pool.Get()
-// 	defer connection.Close()
-// 	defer redisConn.Close()
-// 	connection.Where("address_id = ?", 2).First(&user).RecordNotFound()
-// 	log.Printf("user : %+v \n", user)
-// 	// cliMap := CliMap{}
-// 	// value, err := redis.Values(redisConn.Do("hgetall", 9))
-// }
+func TestUser(t *testing.T) {
+	connection := db.GetConnection()
+	if connection == nil {
+		log.Println("conn db fail ")
+	}
+	user := model.User{}
+	pool := NewRedisPool()
+	redisConn := pool.Get()
+	defer connection.Close()
+	defer redisConn.Close()
+	connection.Where("address_id = ?", 2).First(&user).RecordNotFound()
+	log.Printf("user : %+v \n", user)
+	// cliMap := CliMap{}
+	// value, err := redis.Values(redisConn.Do("hgetall", 9))
+}
