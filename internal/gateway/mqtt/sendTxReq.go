@@ -3,11 +3,13 @@ package mqtt
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"log"
 	"os"
 	"strconv"
 
 	"github.com/eclipse/paho.mqtt.golang"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/lomocoin/lws/internal/coreclient"
 	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/dbp"
 	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/lws"
@@ -130,15 +132,42 @@ func ReplySendTx(client *mqtt.Client, s *SendTxPayload, err int, errCode int, er
 }
 
 func SendTxToCore(client *coreclient.Client, s *SendTxPayload) (resultMessage *lws.SendTxRet, err error) {
-	response, err := client.Call(&lws.SendTxArg{
+	params := &lws.SendTxArg{
 		Data: s.TxData,
-	})
+	}
+	serializedParams, err := ptypes.MarshalAny(params)
+	if err != nil {
+		log.Fatal("could not serialize any field")
+		return nil, err
+	}
+
+	method := &dbp.Method{
+		Method: "sendtransaction",
+		Params: serializedParams,
+	}
 	if err != nil {
 		return resultMessage, err
 	}
-	result, _ := response.(*dbp.Result)
-	resultMessage = interface{}(result.GetResult()[0]).(*lws.SendTxRet)
-	return resultMessage, err
+	response, err := client.Call(method)
+	if err != nil {
+		log.Printf("sendTx failed, get err: %+v \n", err)
+		return nil, err
+	}
+	result, ok := response.(*dbp.Result)
+	if !ok {
+		log.Println("unsuport dbp type")
+		err = errors.New("response did not match dbp type")
+		return nil, err
+	}
+
+	sendTxResponse := &lws.SendTxRet{}
+	err = ptypes.UnmarshalAny(result.GetResult()[0], sendTxResponse)
+	if err != nil {
+		log.Printf("unmashall result error [%s] \n", err)
+		return nil, err
+	}
+
+	return sendTxResponse, err
 }
 
 func StartCoreClient() *coreclient.Client {

@@ -62,7 +62,7 @@ func TestUser(t *testing.T) {
 		log.Println("conn db fail ")
 	}
 	user := model.User{}
-	pool := NewRedisPool()
+	pool := GetRedisPool()
 	redisConn := pool.Get()
 	defer connection.Close()
 	defer redisConn.Close()
