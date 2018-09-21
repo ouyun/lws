@@ -27,7 +27,7 @@ var serviceReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Me
 	pubKey = PayloadToUser(&user, &s)
 
 	//TODO: 检查分支
-	forkId, err := hex.DecodeString(os.Getenv("Fork_Id"))
+	forkId, err := hex.DecodeString(os.Getenv("FORK_ID"))
 	if err != nil {
 		ReplyServiceReq(&client, forkBitmap, 16, &s, &user, pubKey)
 		return

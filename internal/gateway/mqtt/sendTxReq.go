@@ -57,7 +57,7 @@ var sendTxReqReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.
 	}
 
 	// 验证分支
-	forkId, err := hex.DecodeString(os.Getenv("Fork_Id"))
+	forkId, err := hex.DecodeString(os.Getenv("FORK_ID"))
 	if err != nil {
 		log.Printf("err: %+v", err)
 	}

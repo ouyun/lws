@@ -17,7 +17,7 @@ func SendUTXOUpdate(client *mqtt.Client, u *[]UTXOUpdate, address []byte) {
 	updatePayload := UpdatePayload{}
 	user := model.User{}
 	cliMap := CliMap{}
-	pool := NewRedisPool()
+	pool := GetRedisPool()
 	utxoUList := *u
 
 	// get user by address
@@ -29,7 +29,7 @@ func SendUTXOUpdate(client *mqtt.Client, u *[]UTXOUpdate, address []byte) {
 	tailBlock := block.GetTailBlock()
 	updatePayload.BlockHash = tailBlock.Hash
 	updatePayload.Height = tailBlock.Height
-	forkId, err := hex.DecodeString(os.Getenv("Fork_Id"))
+	forkId, err := hex.DecodeString(os.Getenv("FORK_ID"))
 	if err != nil {
 		log.Printf("err: %+v", err)
 		return

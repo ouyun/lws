@@ -22,7 +22,7 @@ func TestSyncReq(t *testing.T) {
 		t.Errorf("client start failed")
 	}
 	cli.Subscribe("wqweqwasasqw/fnfn/SyncReply", 1, servicReplyHandler)
-	forkId, _ := hex.DecodeString(os.Getenv("Fork_Id"))
+	forkId, _ := hex.DecodeString(os.Getenv("FORK_ID"))
 	syncPayload := SyncPayload{ //Sync
 		Nonce:     uint16(1231),
 		AddressId: uint32(9),

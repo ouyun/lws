@@ -17,6 +17,8 @@ type CliMap struct {
 	Nonce       uint16 `redis:"Nonce"`
 }
 
+var redisPool *redis.Pool
+
 func NewRedisPool() *redis.Pool {
 	address := os.Getenv("REDIS_URL")
 	dbOption := redis.DialDatabase(0)
@@ -36,5 +38,13 @@ func NewRedisPool() *redis.Pool {
 			return c, nil
 		},
 	}
+	return redisPool
+}
+
+func GetRedisPool() *redis.Pool {
+	if redisPool != nil {
+		return redisPool
+	}
+	redisPool = NewRedisPool()
 	return redisPool
 }

@@ -87,9 +87,8 @@ func (p *Program) Stop() error {
 	if p.Client.IsConnected() {
 		p.Client.Disconnect(250)
 		return nil
-	} else {
-		return errors.New("client did not conn broker")
 	}
+	return errors.New("client did not conn broker")
 }
 
 // publish topic

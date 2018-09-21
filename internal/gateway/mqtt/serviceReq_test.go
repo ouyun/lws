@@ -30,7 +30,7 @@ func TestServiceReq(t *testing.T) {
 	// hex.EncodeToString
 	// log.Printf("ServiceReply: %+v\n", hex.EncodeToString(address[:]))
 	topicPrefix := "wqweqwasasqw" + string(byte(0x00))
-	forkList, _ := hex.DecodeString(os.Getenv("Fork_Id"))
+	forkList, _ := hex.DecodeString(os.Getenv("FORK_ID"))
 	forkList = append(forkList, []byte(RandStringBytesRmndr(32*8))...)
 	servicePayload := ServicePayload{ //serviceRequ
 		Nonce:       uint16(1231),

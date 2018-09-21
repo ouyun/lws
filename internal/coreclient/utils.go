@@ -5,6 +5,6 @@ import (
 )
 
 func generateUuidString() string {
-	id := uuid.NewV4()
+	id, _ := uuid.NewV4()
 	return id.String()
 }

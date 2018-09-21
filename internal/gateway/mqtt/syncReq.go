@@ -48,7 +48,7 @@ var syncReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Messa
 		return
 	}
 	// 检查分支
-	forkId, err := hex.DecodeString(os.Getenv("Fork_Id"))
+	forkId, err := hex.DecodeString(os.Getenv("FORK_ID"))
 	if err != nil {
 		log.Printf("err: %+v", err)
 		ReplySyncReq(&client, &s, &UTXOs, &cliMap, 16, 0)
@@ -59,20 +59,20 @@ var syncReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Messa
 		return
 	}
 	//get utxo list
-	err = connection.Exec("SELECT" +
-		"utxo.tx_hash AS tx_id," +
-		"utxo.out," +
-		"utxo.block_height," +
-		"utxo.amount," +
-		"tx.data," +
-		"tx.lock_until," +
-		"tx.send_to," +
-		"tx.tx_type" +
-		"FROM utxo" +
-		"INNER JOIN tx" +
-		"ON utxo.tx_hash = tx.hash;" +
-		"ORDER BY tx_hash ASC, out ASC",
-	).Find(&UTXOs).Error
+	err = connection.Exec("SELECT"+
+		"utxo.tx_hash AS tx_id,"+
+		"utxo.out,"+
+		"utxo.block_height,"+
+		"utxo.amount,"+
+		"tx.data,"+
+		"tx.lock_until,"+
+		"tx.send_to,"+
+		"tx.tx_type"+
+		"FROM utxo"+
+		"INNER JOIN tx"+
+		"ON utxo.tx_hash = tx.hash"+
+		"AND utxo.SendTo = ? "+
+		"ORDER BY tx_hash ASC, out ASC", cliMap.Address).Find(&UTXOs).Error
 	if err != nil {
 		ReplySyncReq(&client, &s, &UTXOs, &cliMap, 16, 0)
 		return
