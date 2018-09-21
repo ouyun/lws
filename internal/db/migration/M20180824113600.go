@@ -15,9 +15,9 @@ func M20180824113600() *gormigrate.Migration {
 				// block ID <- hash
 				Hash []byte `gorm:"primary_key;"`
 				// 区块版本
-				Version uint16
+				Version uint16 `gorm:"default:1;"`
 				// 区块类型
-				BlockType uint16
+				BlockType uint16 `gorm:"default:1;"`
 				// 前一区块的 hash
 				Prev []byte
 				// 区块时间戳
@@ -66,11 +66,11 @@ func M20180824113600() *gormigrate.Migration {
 			type Utxo struct {
 				gorm.Model
 
-				TxHash      []byte `gorm:"primary_key;"`
+				TxHash      []byte `gorm:"size:32;index:idx_tx_hash_out"`
 				Destination []byte `gorm:"size:33;"`
 				Amount      int64
 				BlockHeight uint32
-				Out         uint8
+				Out         uint8 `gorm:"index:idx_tx_hash_out"` // index 0 -> destination, 1 -> change
 			}
 
 			return tx.AutoMigrate(&Block{}, &Tx{}, &Utxo{}).Error

@@ -1,7 +1,7 @@
 package utxo
 
 import (
-	"errors"
+	"fmt"
 	"log"
 
 	sqlbuilder "github.com/huandu/go-sqlbuilder"
@@ -39,7 +39,6 @@ func HandleTx(db *gorm.DB, tx *lws.Transaction, blockModel *model.Block) error {
 		})
 		return result.Error
 	}
-
 	log.Printf("start handling utxo in tx: %v (%v inputs)", tx.Hash, inputLength)
 
 	inputs := util.MapPBTxToUtxo(tx, blockHeight)
@@ -52,7 +51,7 @@ func HandleTx(db *gorm.DB, tx *lws.Transaction, blockModel *model.Block) error {
 	}
 
 	if len(inputList) != inputLength {
-		return errors.New("utxo inputs in this tx does not match to utxos in database")
+		return fmt.Errorf("utxo inputs (%d) in this tx does not match to utxos (%d) in database", inputLength, len(inputList))
 	}
 
 	var inputSum int64
@@ -108,7 +107,7 @@ func HandleTx(db *gorm.DB, tx *lws.Transaction, blockModel *model.Block) error {
 
 	ib := sqlbuilder.NewInsertBuilder()
 	ib.InsertInto("utxo")
-	ib.Cols("created_at", "updated_at", "tx_hash", "destination", "amount", "block_height", "out")
+	ib.Cols("created_at", "updated_at", "tx_hash", "destination", "amount", "block_height", "`out`")
 
 	for _, item := range outputs {
 		ib.Values(

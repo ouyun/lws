@@ -6,12 +6,12 @@ import (
 )
 
 func GetListByInputs(utxoList []*model.Utxo, db *gorm.DB) ([]*model.Utxo, error) {
-	query := db.Model(&model.Utxo{})
+	query := db.Model(&model.Utxo{}).Where(&model.Utxo{})
 
 	for _, utxo := range utxoList {
-		query = query.Or(map[string]interface{}{
-			"tx_hash": utxo.TxHash,
-			"out":     utxo.Out,
+		query = query.Or(&model.Utxo{
+			TxHash: utxo.TxHash,
+			Out:    utxo.Out,
 		})
 	}
 

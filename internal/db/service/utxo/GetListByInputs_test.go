@@ -14,8 +14,8 @@ func TestGetListByInputs(t *testing.T) {
 	connection := db.GetConnection()
 
 	testUtxo := model.Utxo{
-		TxHash:      []byte("fffffffffffffffffffffffffffffff3"),
-		Destination: []byte("1ffffff78901234567890123456789013"),
+		TxHash:      []byte{1, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+		Destination: []byte{2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2},
 		Amount:      10000,
 		BlockHeight: 0xFFFFFFFF,
 		Out:         0,
@@ -29,7 +29,7 @@ func TestGetListByInputs(t *testing.T) {
 
 	list, err := GetListByInputs([]*model.Utxo{
 		&model.Utxo{
-			TxHash: []byte("fffffffffffffffffffffffffffffff3"),
+			TxHash: []byte{1, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
 			Out:    0,
 		},
 	}, connection)

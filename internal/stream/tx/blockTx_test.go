@@ -23,52 +23,58 @@ func TestMain(m *testing.M) {
 
 func TestInsertTxs(t *testing.T) {
 	helper.ResetDb()
+	helper.LoadTestSeed("seedBasic.sql")
 
-	txs := []*lws.Transaction{
-		&lws.Transaction{
-			NVersion: uint32(1),
-			Hash:     []byte("12345678901234567890123456789012"),
-			NAmount:  100,
-			NTxFee:   11,
-			CDestination: &lws.Transaction_CDestination{
-				Prefix: uint32(1),
-				Data:   []byte("ffffff78901234567890123456789013"),
-			},
-			VInput: []*lws.Transaction_CTxIn{
-				&lws.Transaction_CTxIn{
-					Hash: []byte("fffffffffffffffffffffffffffffff3"),
-					N:    0,
-				},
-				&lws.Transaction_CTxIn{
-					Hash: []byte("fffffffffffffffffffffffffffffff5"),
-					N:    1,
-				},
-			},
-		},
-		&lws.Transaction{
-			NVersion: uint32(1),
-			Hash:     []byte("12345678901234567890123456789013"),
-			NAmount:  200,
-			NTxFee:   10,
-			CDestination: &lws.Transaction_CDestination{
-				Prefix: uint32(0),
-				Data:   []byte("ffffff78901234567890123456789015"),
-			},
-		},
+	blockModel := &model.Block{
+		Hash:     []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 4},
+		Prev:     []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3},
+		Tstamp:   uint32(1537502211),
+		Height:   uint32(3),
+		MintTXID: []byte{1, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
 	}
 
-	connection := db.GetConnection()
+	connection := db.GetConnection().Begin()
+	result := connection.Create(blockModel)
+	if result.Error != nil {
+		connection.Rollback()
+		t.Errorf("insert block err: %s", result.Error)
+	}
+
 	handler := &BlockTxHandler{
 		dbtx: connection,
 	}
 
-	ormBlock := &model.Block{
-		Hash:   []byte("33333333333333333333333333333333"),
-		Height: uint32(2),
+	txs := []*lws.Transaction{
+		&lws.Transaction{
+			NVersion: uint32(1),
+			Hash:     []byte{1, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+			NAmount:  15000100,
+			NTxFee:   0,
+			CDestination: &lws.Transaction_CDestination{
+				Prefix: uint32(2),
+				Data:   []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2},
+			},
+		},
+		&lws.Transaction{
+			NVersion: uint32(1),
+			Hash:     []byte{1, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2},
+			NAmount:  3000000,
+			NTxFee:   100,
+			CDestination: &lws.Transaction_CDestination{
+				Prefix: uint32(2),
+				Data:   []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2},
+			},
+			VInput: []*lws.Transaction_CTxIn{
+				&lws.Transaction_CTxIn{
+					Hash: []byte{0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2},
+					N:    1,
+				},
+			},
+		},
 	}
-	ormBlock.ID = 1
 
-	err := handler.insertTxs(txs[:], ormBlock)
+	err := handler.insertTxs(txs[:], blockModel)
+	connection.Commit()
 	if err != nil {
 		t.Errorf("insert txs err: [%s]", err)
 	}
@@ -76,14 +82,15 @@ func TestInsertTxs(t *testing.T) {
 
 func TestQueryExistanceTx(t *testing.T) {
 	helper.ResetDb()
+	helper.LoadTestSeed("seedBasic.sql")
 
 	connection := db.GetConnection()
 	handler := &BlockTxHandler{
 		dbtx: connection,
 	}
 	hashes := [][]byte{
-		[]byte("12345678901234567890123456789012"),
-		[]byte("00000000001234567890123456789012"),
+		[]byte{0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+		[]byte{0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
 	}
 
 	newHashes, err := handler.queryExistanceTxids(hashes)
