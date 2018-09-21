@@ -34,7 +34,7 @@ var sendTxReqReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.
 		return
 	}
 	// 连接 redis
-	pool := NewRedisPool()
+	pool := GetRedisPool()
 	redisConn := pool.Get()
 	connection := db.GetConnection()
 	defer redisConn.Close()
@@ -91,7 +91,7 @@ var sendTxReqReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.
 	}
 
 	// 验证打包费
-	txFee, err := strconv.ParseInt(os.Getenv("TxFee"), 10, 64)
+	txFee, err := strconv.ParseInt(os.Getenv("TX_FEE"), 10, 64)
 	if txData.NTxFee != txFee {
 		ReplySendTx(&client, &s, 1, 4, "")
 		return
