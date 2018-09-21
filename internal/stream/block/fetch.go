@@ -157,9 +157,9 @@ func (b *BlockFetcher) fetch(hash []byte, num int32) ([]*lws.Block, error) {
 		Method: "getblocks",
 		Params: serializedParams,
 	}
-
-	for response, err = cclient.Call(method); isClientTimeoutError(err); {
-		log.Printf("fetch block [%s] timeout, retry", hashStr)
+	response, err = cclient.Call(method)
+	for ; coreclient.IsClientTimeoutError(err); response, err = cclient.Call(method) {
+		log.Printf("fetch block [%s] timeout, retry.", hashStr)
 	}
 
 	if err != nil {
@@ -204,23 +204,6 @@ func (b *BlockFetcher) handle(blocks []*lws.Block) error {
 		}
 	}
 	return nil
-}
-
-func isClientTimeoutError(err error) bool {
-	if err == nil {
-		return false
-	}
-	cliErr, ok := err.(*coreclient.ClientError)
-
-	if !ok {
-		return false
-	}
-
-	if !cliErr.Timeout {
-		return false
-	}
-
-	return true
 }
 
 func checkBlockExistanceByHash(hash []byte) bool {
