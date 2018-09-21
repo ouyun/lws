@@ -1,7 +1,6 @@
 package mqtt
 
 import (
-	"log"
 	"os"
 	"strconv"
 	"time"
@@ -14,15 +13,14 @@ type CliMap struct {
 	AddressId   uint32 `redis:"AddressId"`
 	ApiKey      []byte `redis:"ApiKey"`
 	TopicPrefix string `redis:"TopicPrefix"`
-	ForkNum     uint8  `redis:"ForkNum"`
-	ForkList    string `redis:"ForkList"`
 	ReplyUTXON  uint16 `redis:"ReplyUTXON"`
 	Nonce       uint16 `redis:"Nonce"`
 }
 
+var redisPool *redis.Pool
+
 func NewRedisPool() *redis.Pool {
 	address := os.Getenv("REDIS_URL")
-	log.Printf("address: %+s", address)
 	dbOption := redis.DialDatabase(0)
 	// pwOption := redis.DialPassword()
 	REDIS_MAXIDLE, _ := strconv.Atoi(os.Getenv("REDIS_MAXIDLE"))
@@ -40,5 +38,13 @@ func NewRedisPool() *redis.Pool {
 			return c, nil
 		},
 	}
+	return redisPool
+}
+
+func GetRedisPool() *redis.Pool {
+	if redisPool != nil {
+		return redisPool
+	}
+	redisPool = NewRedisPool()
 	return redisPool
 }

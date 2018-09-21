@@ -43,3 +43,18 @@ func GetIndex(u *UTXO) []byte {
 	buf.Write(IntToBytes(u.Out))
 	return buf.Bytes()
 }
+
+// utxo list to bytes
+func UTXOListToByte(u *[]UTXO) (result []byte, err error) {
+	buf := bytes.NewBuffer([]byte{})
+	for index := 0; index < len(*u); index++ {
+		(*u)[index].DataSize = uint16(len((*u)[index].Data))
+		utxoByte, err := StructToBytes((*u)[index])
+		if err != nil {
+			return result, err
+		}
+		buf.Write(utxoByte)
+	}
+	result = buf.Bytes()
+	return result, err
+}
