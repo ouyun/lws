@@ -8,8 +8,7 @@ import (
 	"testing"
 
 	"github.com/eclipse/paho.mqtt.golang"
-	// "github.com/lomocoin/lws/internal/db"
-	// "github.com/lomocoin/lws/internal/db/model"
+	"github.com/lomocoin/lws/internal/db"
 	"github.com/lomocoin/lws/test/helper"
 )
 
@@ -105,6 +104,8 @@ func TestSendTxReq(t *testing.T) {
 
 func TestMain(m *testing.M) {
 	helper.ResetDb()
+	connection := db.GetConnection()
+	// connection.LogMode(true)
 	flag.Parse()
 	c := make(chan int, 1)
 	go func() {
@@ -126,5 +127,6 @@ func TestMain(m *testing.M) {
 	}()
 	code := m.Run()
 	<-c
+	connection.Close()
 	os.Exit(code)
 }
