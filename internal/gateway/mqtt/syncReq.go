@@ -19,7 +19,7 @@ var syncReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Messa
 	var UTXOs []UTXO
 	s := SyncPayload{}
 	cliMap := CliMap{}
-	pool := NewRedisPool()
+	pool := GetRedisPool()
 	user := model.User{}
 
 	redisConn := pool.Get()

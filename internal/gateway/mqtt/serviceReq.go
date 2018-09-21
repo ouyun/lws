@@ -47,7 +47,7 @@ var serviceReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Me
 	}
 
 	// 连接 redis && db
-	pool := NewRedisPool()
+	pool := GetRedisPool()
 	redisConn := pool.Get()
 	defer redisConn.Close()
 	connection := db.GetConnection()

@@ -21,7 +21,7 @@ var uTXOAbortReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.
 		log.Printf("err: %+v\n", err)
 	}
 	// 连接 redis
-	pool := NewRedisPool()
+	pool := GetRedisPool()
 	redisConn := pool.Get()
 	connection := db.GetConnection()
 	defer redisConn.Close()
