@@ -13,7 +13,7 @@ import (
 	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/lws"
 	"github.com/lomocoin/lws/internal/db"
 	"github.com/lomocoin/lws/internal/db/model"
-	"github.com/lomocoin/lws/internal/db/service"
+	"github.com/lomocoin/lws/internal/db/service/utxo"
 	"github.com/lomocoin/lws/internal/gateway/crypto"
 )
 
@@ -76,7 +76,7 @@ var sendTxReqReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.
 	}
 
 	// get amount
-	amount, _, err := service.GetUtxoSummary(getUtxoIndex(&txData.UtxoIndex), connection)
+	amount, _, err := utxo.GetSummary(getUtxoIndex(&txData.UtxoIndex), connection)
 	if err != nil {
 		ReplySendTx(&client, &s, 16, 0, "")
 		return
@@ -152,10 +152,10 @@ func StartCoreClient() *coreclient.Client {
 }
 
 func getUtxoIndex(index *[]byte) []*model.Utxo {
-	var utxo []*model.Utxo
+	var utxos []*model.Utxo
 	for i := 0; i < (len(*index) / 33); i++ {
-		utxo[i].TxHash = (*index)[(i * 33):(((i + 1) * 33) - 1)]
-		utxo[i].Out = uint8((*index)[((i+1)*33)-1])
+		utxos[i].TxHash = (*index)[(i * 33):(((i + 1) * 33) - 1)]
+		utxos[i].Out = uint8((*index)[((i+1)*33)-1])
 	}
-	return utxo
+	return utxos
 }
