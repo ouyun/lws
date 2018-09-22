@@ -15,16 +15,16 @@ import (
 )
 
 type ServicePayload struct {
-	Nonce       uint16 `len:"2"`
-	Address0    uint8  `len:"1"`
-	Address     []byte `len:"32"`
-	Version     uint32 `len:"4"`
-	TimeStamp   uint32 `len:"4"`
-	ForkNum     uint8  `len:"1"`
-	ForkList    []byte `len:"0"`
-	ReplyUTXON  uint16 `len:"2"`
-	TopicPrefix string `len:"0"`
-	Signature   string `len:"64"`
+	Nonce         uint16 `len:"2"`
+	Address       []byte `len:"33"`
+	Version       uint32 `len:"4"`
+	TimeStamp     uint32 `len:"4"`
+	ForkNum       uint8  `len:"1"`
+	ForkList      []byte `len:"0"`
+	ReplyUTXON    uint16 `len:"2"`
+	TopicPrefix   string `len:"0"`
+	SignBytes     uint16 `len:"2"`
+	ServSignature string `len:"64"`
 }
 
 type ServiceReply struct {
@@ -197,7 +197,7 @@ func StructToBytes(s interface{}) (result []byte, err error) {
 		}
 	}
 	result = buf.Bytes()
-	// log.Printf("generate 结构体payload: %+v\n", s)
+	log.Printf("generate 结构体payload: %+v\n", s)
 	return result, err
 }
 
@@ -297,7 +297,11 @@ func DecodePayload(payload []byte, result interface{}) (err error) {
 				}
 			case reflect.Slice:
 				if leng > 0 {
-					resultValue.Field(i).SetBytes(payload[leftIndex:(leftIndex + leng)])
+					if resultType.Field(i).Name == "ServSignature" {
+						resultValue.Field(i).SetBytes(payload[leftIndex:])
+					} else {
+						resultValue.Field(i).SetBytes(payload[leftIndex:(leftIndex + leng)])
+					}
 				} else if resultType.Field(i).Name == "TxData" {
 					allLength := len(payload)
 					length, err := getAllLength(result)
@@ -341,7 +345,7 @@ func DecodePayload(payload []byte, result interface{}) (err error) {
 		}
 		leftIndex = (leftIndex + leng)
 	}
-	// log.Printf("result : %+v\n", result)
+	log.Printf("result : %+v\n", result)
 	return err
 }
 
@@ -362,4 +366,13 @@ func getAllLength(result interface{}) (length int, err error) {
 func Sign(key ed25519.PrivateKey, message []byte) []byte {
 	sign := ed25519.Sign(key, message)
 	return sign
+}
+
+// reverse Bytes
+func reverseBytes(src []byte) []byte {
+	for i := len(src)/2 - 1; i >= 0; i-- {
+		opp := len(src) - 1 - i
+		src[i], src[opp] = src[opp], src[i]
+	}
+	return src
 }
