@@ -24,8 +24,10 @@ func TestServiceReq(t *testing.T) {
 	}
 
 	cli.Subscribe("wqweqwasasqw/fnfn/ServiceReply", 0, servicReplyHandler)
-	address, _, _ := crypto.GenerateKeyPair(nil)
-
+	addr, _, _ := crypto.GenerateKeyPair(nil)
+	address := make([]byte, 1)
+	address[0] = uint8(1)
+	address = append(address, addr[:]...)
 	// address, _ := hex.DecodeString("6f937c2f5944f5da2a118cebb067cd2c9c92c75955ce05aa05158a1af28e1607")
 	// hex.EncodeToString
 	// log.Printf("ServiceReply: %+v\n", hex.EncodeToString(address[:]))
@@ -33,16 +35,16 @@ func TestServiceReq(t *testing.T) {
 	forkList, _ := hex.DecodeString(os.Getenv("FORK_ID"))
 	forkList = append(forkList, []byte(RandStringBytesRmndr(32*8))...)
 	servicePayload := ServicePayload{ //serviceRequ
-		Nonce:       uint16(1231),
-		Address0:    uint8(1),
-		Address:     address[:],
-		Version:     uint32(5363),
-		TimeStamp:   uint32(time.Now().Unix()),
-		ForkNum:     uint8(9),
-		ForkList:    forkList,
-		ReplyUTXON:  uint16(10),
-		TopicPrefix: topicPrefix,
-		Signature:   RandStringBytesRmndr(64),
+		Nonce:         uint16(1231),
+		Address:       address[:],
+		Version:       uint32(5363),
+		TimeStamp:     uint32(time.Now().Unix()),
+		ForkNum:       uint8(9),
+		ForkList:      forkList,
+		ReplyUTXON:    uint16(10),
+		TopicPrefix:   topicPrefix,
+		SignBytes:     uint16(64),
+		ServSignature: RandStringBytesRmndr(64),
 	}
 	servicMsg, err := StructToBytes(servicePayload)
 	if err != nil {
