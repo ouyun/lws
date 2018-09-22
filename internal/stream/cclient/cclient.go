@@ -23,3 +23,8 @@ func StartCoreClient() *coreclient.Client {
 func GetPrimaryClient() *coreclient.Client {
 	return primaryClient
 }
+
+// make test easy
+func SetPrimaryClient(cli *coreclient.Client) {
+	primaryClient = cli
+}
