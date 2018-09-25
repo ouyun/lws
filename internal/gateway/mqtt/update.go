@@ -63,6 +63,7 @@ func SendUTXOUpdate(client *mqtt.Client, u *[]UTXOUpdate, address []byte) {
 		//发送一次
 		SendUpdateMessage(client, &updatePayload, utxoUList, &cliMap, 0, c)
 	}
+	<-c
 }
 
 // send update message
