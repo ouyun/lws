@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"log"
 	"os"
+	"strconv"
 
 	"github.com/eclipse/paho.mqtt.golang"
 	"github.com/gomodule/redigo/redis"
@@ -118,13 +119,15 @@ func ReplyServiceReq(client *mqtt.Client, forkBitmap uint64, err int, s *Service
 // save to redis
 func SaveToRedis(conn *redis.Conn, cliMap *CliMap) (err error) {
 	// save struct
-	_, err = (*conn).Do("HMSET", redis.Args{}.Add(
-		cliMap.AddressId).AddFlat(cliMap)...)
+	// log.Printf("cliMap: %+v", cliMap)
+	_, err = (*conn).Do("HMSET", redis.Args{}.Add(strconv.FormatUint(uint64(cliMap.AddressId), 10)).AddFlat(cliMap)...)
+	log.Printf("err: %+v", err)
 	if err != nil {
 		return err
 	}
 	// save set
 	_, err = (*conn).Do("SET", hex.EncodeToString(cliMap.Address), cliMap.AddressId)
+	log.Printf("err: %+v", err)
 	return err
 }
 
