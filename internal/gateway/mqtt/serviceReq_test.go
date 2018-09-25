@@ -69,7 +69,7 @@ func TestUser(t *testing.T) {
 	defer connection.Close()
 	defer redisConn.Close()
 	connection.Where("address_id = ?", 2).First(&user).RecordNotFound()
-	log.Printf("user : %+v \n", user)
+	// log.Printf("user : %+v \n", user)
 	// cliMap := CliMap{}
 	// value, err := redis.Values(redisConn.Do("hgetall", 9))
 }

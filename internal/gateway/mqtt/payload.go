@@ -197,7 +197,7 @@ func StructToBytes(s interface{}) (result []byte, err error) {
 		}
 	}
 	result = buf.Bytes()
-	log.Printf("generate 结构体payload: %+v\n", s)
+	// log.Printf("generate 结构体payload: %+v\n", s)
 	return result, err
 }
 
@@ -345,7 +345,7 @@ func DecodePayload(payload []byte, result interface{}) (err error) {
 		}
 		leftIndex = (leftIndex + leng)
 	}
-	log.Printf("result : %+v\n", result)
+	// log.Printf("result : %+v\n", result)
 	return err
 }
 
