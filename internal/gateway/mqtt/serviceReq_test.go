@@ -44,7 +44,7 @@ func TestServiceReq(t *testing.T) {
 		ReplyUTXON:    uint16(10),
 		TopicPrefix:   topicPrefix,
 		SignBytes:     uint16(64),
-		ServSignature: RandStringBytesRmndr(64),
+		ServSignature: []byte(RandStringBytesRmndr(64)),
 	}
 	servicMsg, err := StructToBytes(servicePayload)
 	if err != nil {
