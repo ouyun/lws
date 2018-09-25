@@ -125,7 +125,7 @@ func SaveUser(conn *gorm.DB, user *model.User) (err error) {
 // update redis
 func updateRedis(conn *redis.Conn, cliMap *CliMap, field string, value interface{}) (err error) {
 	// save struct
-	_, err = (*conn).Do("HSET", strconv.FormatUint(uint64(addressId), 10), field, value)
+	_, err = (*conn).Do("HSET", strconv.FormatUint(uint64(cliMap.addressId), 10), field, value)
 	return err
 }
 
