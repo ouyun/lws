@@ -123,7 +123,7 @@ CREATE TABLE `user` (
   `updated_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL,
   `address_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `address` varbinary(255) DEFAULT NULL,
+  `address` varbinary(33) DEFAULT NULL,
   `api_key` varbinary(32) DEFAULT NULL,
   `topic_prefix` varchar(255) DEFAULT NULL,
   `fork_num` tinyint(3) unsigned DEFAULT NULL,
