@@ -24,7 +24,7 @@ type ServicePayload struct {
 	ReplyUTXON    uint16 `len:"2"`
 	TopicPrefix   string `len:"0"`
 	SignBytes     uint16 `len:"2"`
-	ServSignature string `len:"64"`
+	ServSignature []byte `len:"64"`
 }
 
 type ServiceReply struct {

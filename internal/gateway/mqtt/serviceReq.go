@@ -11,6 +11,8 @@ import (
 	"github.com/gomodule/redigo/redis"
 	"github.com/lomocoin/lws/internal/db"
 	"github.com/lomocoin/lws/internal/db/model"
+	"golang.org/x/crypto/blake2b"
+	edwards25519 "golang.org/x/crypto/ed25519"
 )
 
 var serviceReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
@@ -22,10 +24,17 @@ var serviceReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Me
 	err := DecodePayload(msg.Payload(), &s)
 	if err != nil {
 		log.Printf("err: %+v\n", err)
-		ReplyServiceReq(&client, forkBitmap, 16, &s, &user, pubKey)
+		//丢弃请求
+		// ReplyServiceReq(&client, forkBitmap, 16, &s, &user, pubKey)
 		return
 	}
 	pubKey = PayloadToUser(&user, &s)
+
+	// 验证签名
+	if !VerifyAddress(&s, msg.Payload()) {
+		//丢弃请求
+		return
+	}
 
 	//TODO: 检查分支
 	forkId, err := hex.DecodeString(os.Getenv("FORK_ID"))
@@ -93,6 +102,7 @@ var serviceReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Me
 		ReplyServiceReq(&client, forkBitmap, 16, &s, &user, pubKey)
 		return
 	}
+	transaction.Commit()
 	ReplyServiceReq(&client, forkBitmap, 0, &s, &user, pubKey)
 }
 
@@ -142,4 +152,22 @@ func RemoveRedis(conn *redis.Conn, cliMap *CliMap) (err error) {
 		log.Printf("del key failed")
 	}
 	return err
+}
+
+func VerifyAddress(s *ServicePayload, payload []byte) bool {
+	messageLen := uint16(len(payload)) - (s.SignBytes + 2)
+	if uint8(s.Address[0]) == 1 {
+		// 验证签名
+		return edwards25519.Verify(s.Address[1:], payload[:messageLen], s.ServSignature)
+	}
+	// 验证 模版地址
+	templateDataLen := s.SignBytes - 96
+	templateData := s.ServSignature[:templateDataLen]
+	pubKey := s.ServSignature[templateDataLen:(templateDataLen + 32)]
+	signature := s.ServSignature[(templateDataLen + 32):]
+	hash := blake2b.Sum512(templateData)
+	if bytes.Compare(hash[:30], s.Address[3:]) != 0 {
+		return false
+	}
+	return edwards25519.Verify(pubKey, payload[:messageLen], signature)
 }
