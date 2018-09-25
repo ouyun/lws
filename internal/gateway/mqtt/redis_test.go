@@ -58,6 +58,15 @@ func TestRedis(t *testing.T) {
 	if err != nil {
 		t.Error("get address string failed")
 	}
+
+	_, err = red.Do("DEL", strconv.FormatUint(uint64(cliMap.AddressId), 10))
+	if err != nil {
+		t.Error("delete address id failed")
+	}
+	_, err = red.Do("DEL", hex.EncodeToString(cliMap.Address))
+	if err != nil {
+		t.Error("delete address failed")
+	}
 	// log.Printf("value %+v! \n", values)
 }
 

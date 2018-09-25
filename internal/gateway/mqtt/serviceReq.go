@@ -121,23 +121,23 @@ func SaveToRedis(conn *redis.Conn, cliMap *CliMap) (err error) {
 	// save struct
 	// log.Printf("cliMap: %+v", cliMap)
 	_, err = (*conn).Do("HMSET", redis.Args{}.Add(strconv.FormatUint(uint64(cliMap.AddressId), 10)).AddFlat(cliMap)...)
-	log.Printf("err: %+v", err)
+	// log.Printf("err: %+v", err)
 	if err != nil {
 		return err
 	}
 	// save set
 	_, err = (*conn).Do("SET", hex.EncodeToString(cliMap.Address), cliMap.AddressId)
-	log.Printf("err: %+v", err)
+	// log.Printf("err: %+v", err)
 	return err
 }
 
 func RemoveRedis(conn *redis.Conn, cliMap *CliMap) (err error) {
-	_, err = (*conn).Do("DEL", cliMap.AddressId)
+	_, err = (*conn).Do("DEL", strconv.FormatUint(uint64(cliMap.AddressId), 10))
 	if err != nil {
 		log.Printf("del key failed")
 	}
 	// delete key
-	_, err = (*conn).Do("DEL", cliMap.Address)
+	_, err = (*conn).Do("DEL", hex.EncodeToString(cliMap.Address))
 	if err != nil {
 		log.Printf("del key failed")
 	}
