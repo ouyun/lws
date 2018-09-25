@@ -9,7 +9,7 @@ import (
 
 	"github.com/eclipse/paho.mqtt.golang"
 	"github.com/lomocoin/lws/internal/db"
-	// "github.com/lomocoin/lws/test/helper"
+	"github.com/lomocoin/lws/test/helper"
 )
 
 var servicReplyHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
@@ -103,11 +103,11 @@ func TestSendTxReq(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
-	// helper.ResetDb()
+	helper.ResetDb()
 	connection := db.GetConnection()
 	connection.LogMode(true)
 	flag.Parse()
-	c := make(chan int)
+	c := make(chan int, 1)
 	go func() {
 		lws := &Program{
 			Id:    "lws",
