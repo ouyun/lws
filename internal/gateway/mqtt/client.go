@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strconv"
 	"time"
 
 	"github.com/eclipse/paho.mqtt.golang"
@@ -129,12 +130,13 @@ func updateRedis(conn *redis.Conn, cliMap *CliMap, field string, value interface
 
 // check is addressId exist
 func CheckAddressId(addressId uint32, conn *gorm.DB, redisConn *redis.Conn, user *model.User, cliMap *CliMap) (inRedis bool, inDB bool, err error) {
-	exists, err := redis.Bool((*redisConn).Do("EXISTS", addressId))
+	addressIdStr := strconv.FormatUint(uint64(addressId), 10)
+	exists, err := redis.Bool((*redisConn).Do("EXISTS", addressIdStr))
 	if err != nil {
 		return false, false, err
 	}
 	if exists {
-		value, err := redis.Values((*redisConn).Do("hgetall", addressId))
+		value, err := redis.Values((*redisConn).Do("hgetall", addressIdStr))
 		redis.ScanStruct(value, cliMap)
 		return true, false, err
 	} else {
