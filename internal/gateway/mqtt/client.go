@@ -1,6 +1,7 @@
 package mqtt
 
 import (
+	"encoding/hex"
 	"errors"
 	"log"
 	"os"
@@ -151,16 +152,18 @@ func CheckAddressId(addressId uint32, conn *gorm.DB, redisConn *redis.Conn, user
 }
 
 func GetUserByAddress(address []byte, conn *gorm.DB, redisConn *redis.Conn, user *model.User, cliMap *CliMap) error {
-	exists, err := redis.Bool((*redisConn).Do("EXISTS", address))
+	addressStr := hex.EncodeToString(address)
+	exists, err := redis.Bool((*redisConn).Do("EXISTS", addressStr))
 	if err != nil {
 		return err
 	}
 	if exists {
-		addrId, err := redis.Uint64((*redisConn).Do("GET", address))
+		addrId, err := redis.Uint64((*redisConn).Do("GET", addressStr))
 		if err != nil {
 			return err
 		}
-		value, err := redis.Values((*redisConn).Do("hgetall", addrId))
+		addressIdStr := strconv.FormatUint(uint64(addrId), 10)
+		value, err := redis.Values((*redisConn).Do("hgetall", addressIdStr))
 		if err != nil {
 			return err
 		}
