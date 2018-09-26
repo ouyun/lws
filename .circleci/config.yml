@@ -44,7 +44,7 @@ jobs:
       - store_artifacts:
           path: bin
       - persist_to_workspace:
-          root: .
+          root: /go/src/github.com/FissionAndFusion/lws
           paths:
             - bin
 
