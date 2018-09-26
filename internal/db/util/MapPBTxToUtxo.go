@@ -1,8 +1,8 @@
 package util
 
 import (
-	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/lws"
-	"github.com/lomocoin/lws/internal/db/model"
+	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/lws"
+	"github.com/FissionAndFusion/lws/internal/db/model"
 )
 
 func MapPBTxToUtxo(tx *lws.Transaction, blockHeight uint32) []*model.Utxo {

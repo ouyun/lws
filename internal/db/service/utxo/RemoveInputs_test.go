@@ -1,9 +1,9 @@
 package utxo
 
 import (
-	"github.com/lomocoin/lws/internal/db"
-	"github.com/lomocoin/lws/internal/db/model"
-	"github.com/lomocoin/lws/test/helper"
+	"github.com/FissionAndFusion/lws/internal/db"
+	"github.com/FissionAndFusion/lws/internal/db/model"
+	"github.com/FissionAndFusion/lws/test/helper"
 	"testing"
 )
 

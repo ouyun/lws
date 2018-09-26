@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/FissionAndFusion/lws/internal/constant"
+	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/lws"
+	"github.com/FissionAndFusion/lws/internal/db/model"
+	"github.com/FissionAndFusion/lws/internal/db/service/utxo"
+	"github.com/FissionAndFusion/lws/internal/db/util"
 	sqlbuilder "github.com/huandu/go-sqlbuilder"
 	"github.com/jinzhu/gorm"
-	"github.com/lomocoin/lws/internal/constant"
-	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/lws"
-	"github.com/lomocoin/lws/internal/db/model"
-	"github.com/lomocoin/lws/internal/db/service/utxo"
-	"github.com/lomocoin/lws/internal/db/util"
 )
 
 // entry for handling utxos in a single tx

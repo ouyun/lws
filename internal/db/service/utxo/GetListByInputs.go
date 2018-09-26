@@ -1,8 +1,8 @@
 package utxo
 
 import (
+	"github.com/FissionAndFusion/lws/internal/db/model"
 	"github.com/jinzhu/gorm"
-	"github.com/lomocoin/lws/internal/db/model"
 )
 
 func GetListByInputs(utxoList []*model.Utxo, db *gorm.DB) ([]*model.Utxo, error) {

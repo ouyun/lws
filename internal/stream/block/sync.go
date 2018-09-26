@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/lomocoin/lws/internal/constant"
-	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/lws"
-	"github.com/lomocoin/lws/internal/db"
-	"github.com/lomocoin/lws/internal/db/model"
-	"github.com/lomocoin/lws/internal/stream/tx"
+	"github.com/FissionAndFusion/lws/internal/constant"
+	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/lws"
+	"github.com/FissionAndFusion/lws/internal/db"
+	"github.com/FissionAndFusion/lws/internal/db/model"
+	"github.com/FissionAndFusion/lws/internal/stream/tx"
 )
 
 // return error and bool skiped

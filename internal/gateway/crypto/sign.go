@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	cryptorand "crypto/rand"
-	"github.com/lomocoin/lws/internal/gateway/crypto/edwards25519"
+	"github.com/FissionAndFusion/lws/internal/gateway/crypto/edwards25519"
 	"golang.org/x/crypto/ripemd160"
 )
 

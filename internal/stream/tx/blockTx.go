@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/lws"
+	"github.com/FissionAndFusion/lws/internal/db/model"
+	"github.com/FissionAndFusion/lws/internal/stream/utxo"
 	sqlbuilder "github.com/huandu/go-sqlbuilder"
 	"github.com/jinzhu/gorm"
-	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/lws"
-	"github.com/lomocoin/lws/internal/db/model"
-	"github.com/lomocoin/lws/internal/stream/utxo"
 )
 
 type BlockTxHandler struct {

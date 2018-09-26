@@ -2,7 +2,7 @@ package coreclient
 
 import (
 	"fmt"
-	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/dbp"
+	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/dbp"
 	"io"
 	"runtime"
 	"strconv"

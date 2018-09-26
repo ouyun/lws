@@ -7,11 +7,11 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/FissionAndFusion/lws/internal/db/model"
+	"github.com/FissionAndFusion/lws/internal/gateway/crypto"
 	"github.com/eclipse/paho.mqtt.golang"
 	"github.com/gomodule/redigo/redis"
 	"github.com/jinzhu/gorm"
-	"github.com/lomocoin/lws/internal/db/model"
-	"github.com/lomocoin/lws/internal/gateway/crypto"
 )
 
 var clientHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {

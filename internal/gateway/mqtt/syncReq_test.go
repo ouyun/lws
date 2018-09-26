@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 	// "github.com/gomodule/redigo/redis"
-	// "github.com/lomocoin/lws/internal/db"
-	// "github.com/lomocoin/lws/internal/db/model"
-	// "github.com/lomocoin/lws/internal/gateway/crypto"
+	// "github.com/FissionAndFusion/lws/internal/db"
+	// "github.com/FissionAndFusion/lws/internal/db/model"
+	// "github.com/FissionAndFusion/lws/internal/gateway/crypto"
 )
 
 func TestSyncReq(t *testing.T) {

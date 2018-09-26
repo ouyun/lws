@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/lomocoin/lws/internal/coreclient"
+	"github.com/FissionAndFusion/lws/internal/coreclient"
 )
 
 var primaryClient *coreclient.Client

@@ -3,11 +3,11 @@ package tx
 import (
 	"log"
 
+	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/dbp"
+	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/lws"
+	"github.com/FissionAndFusion/lws/internal/stream/pubsub"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
-	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/dbp"
-	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/lws"
-	"github.com/lomocoin/lws/internal/stream/pubsub"
 )
 
 const (

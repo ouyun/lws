@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/lomocoin/lws/internal/gateway"
+	"github.com/FissionAndFusion/lws/internal/gateway"
 )
 
 func main() {

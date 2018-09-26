@@ -6,10 +6,10 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/lomocoin/lws/internal/db"
-	"github.com/lomocoin/lws/internal/stream/block"
-	cclientModule "github.com/lomocoin/lws/internal/stream/cclient"
-	"github.com/lomocoin/lws/internal/stream/tx"
+	"github.com/FissionAndFusion/lws/internal/db"
+	"github.com/FissionAndFusion/lws/internal/stream/block"
+	cclientModule "github.com/FissionAndFusion/lws/internal/stream/cclient"
+	"github.com/FissionAndFusion/lws/internal/stream/tx"
 )
 
 type Server struct {

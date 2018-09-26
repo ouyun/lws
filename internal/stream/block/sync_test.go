@@ -3,10 +3,10 @@ package block
 import (
 	// "github.com/btcsuite/btcutil/base58"
 	// "github.com/joho/godotenv"
-	"github.com/lomocoin/lws/internal/constant"
-	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/lws"
-	"github.com/lomocoin/lws/internal/db"
-	"github.com/lomocoin/lws/test/helper"
+	"github.com/FissionAndFusion/lws/internal/constant"
+	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/lws"
+	"github.com/FissionAndFusion/lws/internal/db"
+	"github.com/FissionAndFusion/lws/test/helper"
 
 	"bytes"
 	"os"

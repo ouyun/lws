@@ -1,9 +1,9 @@
 package block
 
 // import (
-// 	"github.com/lomocoin/lws/internal/coreclient"
-// 	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/dbp"
-// 	// "github.com/lomocoin/lws/internal/stream"
+// 	"github.com/FissionAndFusion/lws/internal/coreclient"
+// 	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/dbp"
+// 	// "github.com/FissionAndFusion/lws/internal/stream"
 // 	// "log"
 // 	"context"
 // 	"testing"

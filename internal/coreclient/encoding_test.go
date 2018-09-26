@@ -1,12 +1,11 @@
 package coreclient
 
 import (
-	// "github.com/lomocoin/soolws/client"
 	"bytes"
 	"fmt"
+	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/dbp"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
-	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/dbp"
 	"testing"
 )
 

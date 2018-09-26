@@ -1,7 +1,7 @@
 package utxo
 
 import (
-	"github.com/lomocoin/lws/internal/db"
+	"github.com/FissionAndFusion/lws/internal/db"
 	"os"
 	"testing"
 )

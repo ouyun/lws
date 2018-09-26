@@ -7,11 +7,11 @@ import (
 	"math"
 	"os"
 
+	"github.com/FissionAndFusion/lws/internal/db"
+	"github.com/FissionAndFusion/lws/internal/db/model"
+	"github.com/FissionAndFusion/lws/internal/gateway/crypto"
+	"github.com/FissionAndFusion/lws/internal/stream/block"
 	"github.com/eclipse/paho.mqtt.golang"
-	"github.com/lomocoin/lws/internal/db"
-	"github.com/lomocoin/lws/internal/db/model"
-	"github.com/lomocoin/lws/internal/gateway/crypto"
-	"github.com/lomocoin/lws/internal/stream/block"
 )
 
 var syncReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {

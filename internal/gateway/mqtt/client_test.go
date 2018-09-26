@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"github.com/eclipse/paho.mqtt.golang"
-	// "github.com/lomocoin/lws/internal/db"
-	// "github.com/lomocoin/lws/test/helper"
+	// "github.com/FissionAndFusion/lws/internal/db"
+	// "github.com/FissionAndFusion/lws/test/helper"
 )
 
 var servicReplyHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
