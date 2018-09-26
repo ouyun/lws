@@ -183,8 +183,8 @@ func StartCoreClient() *coreclient.Client {
 func getUtxoIndex(index *[]byte) []*model.Utxo {
 	var utxos []*model.Utxo
 	for i := 0; i < (len(*index) / 33); i++ {
-		utxo[i].Out = uint8((*index)[(i * 33)])
-		utxo[i].TxHash = (*index)[((i * 33) + 1) : ((i+1)*33)-1]
+		utxos[i].Out = uint8((*index)[(i * 33)])
+		utxos[i].TxHash = (*index)[((i * 33) + 1) : ((i+1)*33)-1]
 	}
 	return utxos
 }
