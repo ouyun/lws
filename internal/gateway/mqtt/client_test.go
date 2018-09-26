@@ -2,14 +2,14 @@ package mqtt
 
 import (
 	// "encoding/hex"
-	"flag"
-	"log"
-	"os"
+	// "flag"
+	// "log"
+	// "os"
 	"testing"
 
 	"github.com/eclipse/paho.mqtt.golang"
-	"github.com/lomocoin/lws/internal/db"
-	"github.com/lomocoin/lws/test/helper"
+	// "github.com/lomocoin/lws/internal/db"
+	// "github.com/lomocoin/lws/test/helper"
 )
 
 var servicReplyHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
