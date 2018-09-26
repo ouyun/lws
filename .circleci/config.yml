@@ -43,18 +43,10 @@ jobs:
       - run: GOOS=linux GOARCH=amd64 go build -o bin/stream cmd/stream/main.go
       - store_artifacts:
           path: bin
-      - persist_to_workspace:
-          root: .
-          paths:
-            - bin
-
-  deploy:
-    <<: *defaults
-    machine:
-      enabled: true
-    steps:
-      - attach_workspace:
-          at: bin
+      # - persist_to_workspace:
+      #     root: .
+      #     paths:
+      #       - bin
       - add_ssh_keys:
           fingerprints:
             - "b3:71:c5:88:0f:b0:ef:d6:62:98:3c:0a:7e:37:a6:46"
@@ -63,14 +55,29 @@ jobs:
           command: |
             scp -P $TEST_SSH_PORT -r bin $TEST_SSH_USER@$TEST_SSH_HOST:~/projects/fnfn/lws/
 
-workflows:
-  version: 2
-  build-and-deploy:
-    jobs:
-      - build
-      - deploy:
-          requires:
-            - build
-          filters:
-            branches:
-              only: master
+#   deploy:
+#     <<: *defaults
+#     machine:
+#       enabled: true
+#     steps:
+#       - attach_workspace:
+#           at: bin
+#       - add_ssh_keys:
+#           fingerprints:
+#             - "b3:71:c5:88:0f:b0:ef:d6:62:98:3c:0a:7e:37:a6:46"
+#       - run:
+#           name: Delpoy via SSH
+#           command: |
+#             scp -P $TEST_SSH_PORT -r bin $TEST_SSH_USER@$TEST_SSH_HOST:~/projects/fnfn/lws/
+
+# workflows:
+#   version: 2
+#   build-and-deploy:
+#     jobs:
+#       - build
+#       - deploy:
+#           requires:
+#             - build
+#           filters:
+#             branches:
+#               only: master
