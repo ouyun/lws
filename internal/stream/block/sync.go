@@ -116,7 +116,13 @@ func writeBlock(block *lws.Block) error {
 	// txs
 	txs := make([]*lws.Transaction, 0)
 	txs = append(txs, block.Vtx...)
-	txs = append(txs, block.TxMint)
+
+	// append tx mint to tx list
+	if block.TxMint != nil {
+		txs = append(txs, block.TxMint)
+	} else {
+		log.Printf("block [%s](#%d) has no tx mint field", hex.EncodeToString(block.Hash), block.NHeight)
+	}
 	err := tx.StartBlockTxHandler(dbtx, txs, ormBlock)
 	if err != nil {
 		dbtx.Rollback()
