@@ -54,14 +54,14 @@ jobs:
       enabled: true
     steps:
       - attach_workspace:
-          at: /go/src/github.com/FissionAndFusion/lws
+          at: bin
       - add_ssh_keys:
           fingerprints:
             - "b3:71:c5:88:0f:b0:ef:d6:62:98:3c:0a:7e:37:a6:46"
       - run:
           name: Delpoy via SSH
           command: |
-            scp -P $TEST_SSH_PORT -r /tmp/artifacts/bin $TEST_SSH_USER@$TEST_SSH_HOST:~/projects/fnfn/lws/
+            scp -P $TEST_SSH_PORT -r bin $TEST_SSH_USER@$TEST_SSH_HOST:~/projects/fnfn/lws/
 
 workflows:
   version: 2
