@@ -65,7 +65,7 @@ func (p *Program) Start() error {
 		p.Subscribe("LWS/lws/UTXOAbort", 1, uTXOAbortReqHandler)
 		p.Subscribe("LWS/lws/SendTxReq", 1, sendTxReqReqHandler)
 	}
-	log.Printf("client start success!")
+	log.Printf("client start successed!")
 	return nil
 }
 
@@ -118,7 +118,7 @@ func SaveUser(conn *gorm.DB, user *model.User) (err error) {
 	conn.Create(user)
 	if conn.NewRecord(user) {
 		// fail
-		err = errors.New("save user fail")
+		err = errors.New("save user failed")
 	}
 	return err
 }
