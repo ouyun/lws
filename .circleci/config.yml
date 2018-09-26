@@ -1,7 +1,10 @@
+defaults: &defaults
+  working_directory: /go/src/github.com/FissionAndFusion/lws
+
 version: 2
 jobs:
   build:
-    working_directory: /go/src/github.com/FissionAndFusion/lws
+    <<: *defaults
     docker:
       - image: circleci/golang:1.10
       - image: circleci/mysql:5.7
@@ -38,7 +41,11 @@ jobs:
       - run: mkdir -p /tmp/artifacts/bin
       - run: GOOS=linux GOARCH=amd64 go build -o /tmp/artifacts/bin/gateway cmd/gateway/main.go
       - run: GOOS=linux GOARCH=amd64 go build -o /tmp/artifacts/bin/stream cmd/stream/main.go
+      - store_artifacts:
+          path: /tmp/artifacts/bin
+
   deploy:
+    <<: *defaults
     machine:
       enabled: true
     steps:
