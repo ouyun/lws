@@ -54,7 +54,7 @@ jobs:
       enabled: true
     steps:
       - attach_workspace:
-          at: .
+          at: bin
       - add_ssh_keys:
           fingerprints:
             - "b3:71:c5:88:0f:b0:ef:d6:62:98:3c:0a:7e:37:a6:46"
