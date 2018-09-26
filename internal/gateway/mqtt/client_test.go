@@ -102,31 +102,31 @@ func TestSendTxReq(t *testing.T) {
 	cli.Stop()
 }
 
-func TestMain(m *testing.M) {
-	helper.ResetDb()
-	connection := db.GetConnection()
-	connection.LogMode(true)
-	flag.Parse()
-	c := make(chan int, 1)
-	go func() {
-		lws := &Program{
-			Id:    "lws",
-			isLws: true,
-		}
-		lws.Init()
-		if err := lws.Start(); err != nil {
-			log.Printf("init client fail %v", err)
-			return
-		}
-		c <- 1
-		err := lws.Stop()
-		if err != nil {
-			log.Printf("stop client fail %v", err)
-			return
-		}
-	}()
-	code := m.Run()
-	<-c
-	connection.Close()
-	os.Exit(code)
-}
+// func TestMain(m *testing.M) {
+// 	helper.ResetDb()
+// 	connection := db.GetConnection()
+// 	connection.LogMode(true)
+// 	flag.Parse()
+// 	c := make(chan int, 1)
+// 	go func() {
+// 		lws := &Program{
+// 			Id:    "lws",
+// 			isLws: true,
+// 		}
+// 		lws.Init()
+// 		if err := lws.Start(); err != nil {
+// 			log.Printf("init client fail %v", err)
+// 			return
+// 		}
+// 		c <- 1
+// 		err := lws.Stop()
+// 		if err != nil {
+// 			log.Printf("stop client fail %v", err)
+// 			return
+// 		}
+// 	}()
+// 	code := m.Run()
+// 	<-c
+// 	connection.Close()
+// 	os.Exit(code)
+// }
