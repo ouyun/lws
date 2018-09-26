@@ -38,17 +38,23 @@ jobs:
           # preinstalled in circleci/* docker image
           command: dockerize -wait tcp://127.0.0.1:6379 -timeout 1m
       - run: go test -v -cover -p=1 ./...
-      - run: mkdir -p /tmp/artifacts/bin
-      - run: GOOS=linux GOARCH=amd64 go build -o /tmp/artifacts/bin/gateway cmd/gateway/main.go
-      - run: GOOS=linux GOARCH=amd64 go build -o /tmp/artifacts/bin/stream cmd/stream/main.go
+      - run: mkdir -p bin
+      - run: GOOS=linux GOARCH=amd64 go build -o bin/gateway cmd/gateway/main.go
+      - run: GOOS=linux GOARCH=amd64 go build -o bin/stream cmd/stream/main.go
       - store_artifacts:
-          path: /tmp/artifacts/bin
+          path: bin
+      - persist_to_workspace:
+          root: .
+          paths:
+            - bin
 
   deploy:
     <<: *defaults
     machine:
       enabled: true
     steps:
+      - attach_workspace:
+          at: /go/src/github.com/FissionAndFusion/lws
       - add_ssh_keys:
           fingerprints:
             - "b3:71:c5:88:0f:b0:ef:d6:62:98:3c:0a:7e:37:a6:46"
