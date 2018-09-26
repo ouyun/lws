@@ -1,7 +1,7 @@
 package coreclient
 
 import (
-	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/dbp"
+	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/dbp"
 	"io"
 	"net"
 	"testing"

@@ -5,10 +5,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/lws"
-	"github.com/lomocoin/lws/internal/db"
-	"github.com/lomocoin/lws/internal/db/model"
-	"github.com/lomocoin/lws/test/helper"
+	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/lws"
+	"github.com/FissionAndFusion/lws/internal/db"
+	"github.com/FissionAndFusion/lws/internal/db/model"
+	"github.com/FissionAndFusion/lws/test/helper"
 )
 
 func TestMain(m *testing.M) {

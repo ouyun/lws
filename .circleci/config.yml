@@ -1,7 +1,10 @@
+defaults: &defaults
+  working_directory: /go/src/github.com/FissionAndFusion/lws
+
 version: 2
 jobs:
   build:
-    working_directory: /go/src/github.com/lomocoin/lws
+    <<: *defaults
     docker:
       - image: circleci/golang:1.10
       - image: circleci/mysql:5.7
@@ -18,16 +21,63 @@ jobs:
       - image: circleci/redis:4.0.11
     steps:
       - checkout
-
-      # specify any bash command here prefixed with `run: `
       - run: go get -u github.com/golang/dep/cmd/dep
+      # - restore_cache:
+      #     key: v1-dependencies-{{ checksum "Gopkg.toml" }}
       - run: dep ensure
+      # - save_cache:
+      #     key: v1-dependencies-{{ checksum "Gopkg.toml" }}
+      #     paths:
+      #       - vendor
       - run:
           name: Wait for DB
           # preinstalled in circleci/* docker image
-          command: dockerize -wait tcp://127.0.0.1:3306 -timeout 120s
+          command: dockerize -wait tcp://127.0.0.1:3306 -timeout 1m
       - run:
           name: Wait for redis
           # preinstalled in circleci/* docker image
           command: dockerize -wait tcp://127.0.0.1:6379 -timeout 1m
       - run: go test -v -cover -p=1 ./...
+      - run: mkdir -p bin
+      - run: GOOS=linux GOARCH=amd64 go build -o "bin/gateway-$CIRCLE_BRANCH" cmd/gateway/main.go
+      - run: GOOS=linux GOARCH=amd64 go build -o "bin/stream-$CIRCLE_BRANCH" cmd/stream/main.go
+      - store_artifacts:
+          path: bin
+      # - persist_to_workspace:
+      #     root: .
+      #     paths:
+      #       - bin
+      - add_ssh_keys:
+          fingerprints:
+            - "b3:71:c5:88:0f:b0:ef:d6:62:98:3c:0a:7e:37:a6:46"
+      - run:
+          name: Delpoy via SSH
+          command: |
+            scp -P $TEST_SSH_PORT -oStrictHostKeyChecking=no -r bin $TEST_SSH_USER@$TEST_SSH_HOST:~/projects/fnfn/lws/
+
+#   deploy:
+#     <<: *defaults
+#     machine:
+#       enabled: true
+#     steps:
+#       - attach_workspace:
+#           at: bin
+#       - add_ssh_keys:
+#           fingerprints:
+#             - "b3:71:c5:88:0f:b0:ef:d6:62:98:3c:0a:7e:37:a6:46"
+#       - run:
+#           name: Delpoy via SSH
+#           command: |
+#             scp -P $TEST_SSH_PORT -r bin $TEST_SSH_USER@$TEST_SSH_HOST:~/projects/fnfn/lws/
+
+# workflows:
+#   version: 2
+#   build-and-deploy:
+#     jobs:
+#       - build
+#       - deploy:
+#           requires:
+#             - build
+#           filters:
+#             branches:
+#               only: master

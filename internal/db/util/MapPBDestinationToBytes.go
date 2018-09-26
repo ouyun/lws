@@ -2,7 +2,7 @@ package util
 
 import (
 	"bytes"
-	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/lws"
+	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/lws"
 )
 
 func MapPBDestinationToBytes(dest *lws.Transaction_CDestination) []byte {

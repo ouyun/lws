@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/lomocoin/lws/internal/db"
-	"github.com/lomocoin/lws/internal/db/migration"
+	"github.com/FissionAndFusion/lws/internal/db"
+	"github.com/FissionAndFusion/lws/internal/db/migration"
 	"gopkg.in/gormigrate.v1"
 	"log"
 	"os"

@@ -9,14 +9,14 @@ import (
 
 	"testing"
 
+	"github.com/FissionAndFusion/lws/internal/constant"
+	"github.com/FissionAndFusion/lws/internal/coreclient"
+	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/dbp"
+	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/lws"
+	cclientModule "github.com/FissionAndFusion/lws/internal/stream/cclient"
+	"github.com/FissionAndFusion/lws/test/helper"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
-	"github.com/lomocoin/lws/internal/constant"
-	"github.com/lomocoin/lws/internal/coreclient"
-	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/dbp"
-	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/lws"
-	cclientModule "github.com/lomocoin/lws/internal/stream/cclient"
-	"github.com/lomocoin/lws/test/helper"
 )
 
 // func TestFetch500(t *testing.T) {

@@ -7,10 +7,10 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/FissionAndFusion/lws/internal/db"
+	"github.com/FissionAndFusion/lws/internal/db/model"
 	"github.com/eclipse/paho.mqtt.golang"
 	"github.com/gomodule/redigo/redis"
-	"github.com/lomocoin/lws/internal/db"
-	"github.com/lomocoin/lws/internal/db/model"
 	"golang.org/x/crypto/blake2b"
 	edwards25519 "golang.org/x/crypto/ed25519"
 )

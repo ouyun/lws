@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/dbp"
+	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/dbp"
 )
 
 func TestPing(t *testing.T) {

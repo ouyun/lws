@@ -8,9 +8,9 @@ import (
 
 	// "sync"
 
+	"github.com/FissionAndFusion/lws/internal/coreclient"
+	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/dbp"
 	"github.com/golang/protobuf/proto"
-	"github.com/lomocoin/lws/internal/coreclient"
-	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/dbp"
 
 	"github.com/furdarius/rabbitroutine"
 	"github.com/streadway/amqp"

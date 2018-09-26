@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/lomocoin/lws/internal/stream"
+	"github.com/FissionAndFusion/lws/internal/stream"
 )
 
 func main() {

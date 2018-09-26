@@ -7,9 +7,9 @@ import (
 	"log"
 	"reflect"
 
+	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/dbp"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
-	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/dbp"
 )
 
 // Pack business struct to serialized BaseMsg bytes

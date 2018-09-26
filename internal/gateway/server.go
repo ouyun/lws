@@ -2,7 +2,7 @@ package gateway
 
 import (
 	"fmt"
-	"github.com/lomocoin/lws/internal/gateway/mqtt"
+	"github.com/FissionAndFusion/lws/internal/gateway/mqtt"
 )
 
 type Server struct {

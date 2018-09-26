@@ -5,15 +5,15 @@ import (
 	"encoding/hex"
 	"log"
 
+	"github.com/FissionAndFusion/lws/internal/coreclient"
+	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/dbp"
+	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/lws"
+	dbmodule "github.com/FissionAndFusion/lws/internal/db"
+	model "github.com/FissionAndFusion/lws/internal/db/model"
 	"github.com/golang/protobuf/ptypes"
-	"github.com/lomocoin/lws/internal/coreclient"
-	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/dbp"
-	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/lws"
-	dbmodule "github.com/lomocoin/lws/internal/db"
-	model "github.com/lomocoin/lws/internal/db/model"
 
-	// "github.com/lomocoin/lws/internal/db/model"
-	cclientModule "github.com/lomocoin/lws/internal/stream/cclient"
+	// "github.com/FissionAndFusion/lws/internal/db/model"
+	cclientModule "github.com/FissionAndFusion/lws/internal/stream/cclient"
 )
 
 // type FetchRangeCalculator struct {

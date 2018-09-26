@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/lomocoin/lws/internal/db"
+	"github.com/FissionAndFusion/lws/internal/db"
 )
 
 func LoadTestSeed(filename string) {

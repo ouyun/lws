@@ -8,8 +8,8 @@ import (
 	"log"
 	"reflect"
 
+	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/dbp"
 	"github.com/golang/protobuf/proto"
-	"github.com/lomocoin/lws/internal/coreclient/DBPMsg/go/dbp"
 )
 
 const UNKNOWN_MSG_TYPE = -1
