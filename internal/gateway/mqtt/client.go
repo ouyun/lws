@@ -65,6 +65,7 @@ func (p *Program) Start() error {
 		p.Subscribe("LWS/lws/UTXOAbort", 1, uTXOAbortReqHandler)
 		p.Subscribe("LWS/lws/SendTxReq", 1, sendTxReqReqHandler)
 	}
+	log.Printf("client start success!")
 	return nil
 }
 
@@ -72,7 +73,7 @@ func (p *Program) Start() error {
 func (p *Program) Init() {
 	// mqtt.DEBUG = log.New(os.Stdout, "", 0)
 	// mqtt.ERROR = log.New(os.Stdout, "", 0)
-	opts := mqtt.NewClientOptions().AddBroker(os.Getenv("MQTT_URL")).SetClientID("lws")
+	opts := mqtt.NewClientOptions().AddBroker(os.Getenv("MQTT_URL")).SetClientID(p.Id)
 	opts.SetKeepAlive(2 * time.Second)
 	if p.isLws {
 		opts.SetDefaultPublishHandler(serviceReqHandler)

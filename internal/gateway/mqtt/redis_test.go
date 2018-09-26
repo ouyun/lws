@@ -70,6 +70,23 @@ func TestRedis(t *testing.T) {
 	// log.Printf("value %+v! \n", values)
 }
 
+// func TestDELRedis(t *testing.T) {
+// 	pool := GetRedisPool()
+// 	redisConn := pool.Get()
+// 	err := redisConn.Err()
+// 	if err != nil {
+// 		t.Error("conn redis fail")
+// 	}
+// 	defer redisConn.Close()
+// 	for index := 1; index < 1000; index++ {
+// 		addressIdStr := strconv.FormatUint(uint64(index), 10)
+// 		exists, _ := redis.Bool(redisConn.Do("EXISTS", addressIdStr))
+// 		if exists {
+// 			_, err = redisConn.Do("DEL", addressIdStr)
+// 		}
+// 	}
+// }
+
 // func TestRedis(t *testing.T) {
 // 	for index := 0; index < 50; index++ {
 // 		go RunRedis(t, index)

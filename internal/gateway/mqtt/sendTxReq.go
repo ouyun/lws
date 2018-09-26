@@ -44,7 +44,7 @@ var sendTxReqReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.
 	inRedis, inDb, err := CheckAddressId(s.AddressId, connection, &redisConn, &user, &cliMap)
 	// 验证签名
 	signed := crypto.SignWithApiKey(cliMap.ApiKey, payload[:len(payload)-20])
-	if bytes.Compare(signed, payload[len(payload)-20:]) != 0 {
+	if bytes.Compare(signed, s.Signature) != 0 {
 		// 丢弃 内容
 		return
 	}

@@ -35,7 +35,7 @@ var syncReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Messa
 	inRedis, inDb, err := CheckAddressId(s.AddressId, connection, &redisConn, &user, &cliMap)
 	// 验证签名
 	signed := crypto.SignWithApiKey(cliMap.ApiKey, payload[:len(payload)-20])
-	if bytes.Compare(signed, payload[:len(payload)-20]) != 0 {
+	if bytes.Compare(signed, s.Signature) != 0 {
 		// 丢弃 请求
 		return
 	}
@@ -50,8 +50,10 @@ var syncReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Messa
 	// 检查分支
 	forkId, err := hex.DecodeString(os.Getenv("FORK_ID"))
 	if err != nil {
+		// 内部错误
 		log.Printf("err: %+v", err)
 		ReplySyncReq(&client, &s, &UTXOs, &cliMap, 16, 0)
+		return
 	}
 	if bytes.Compare(forkId, s.ForkID) != 0 {
 		// 无效分支

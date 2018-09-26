@@ -40,8 +40,8 @@ type SyncPayload struct {
 	Nonce     uint16 `len:"2"`
 	AddressId uint32 `len:"4"`
 	ForkID    []byte `len:"32"`
-	UTXOHash  string `len:"32"`
-	Signature string `len:"20"`
+	UTXOHash  []byte `len:"32"`
+	Signature []byte `len:"20"`
 }
 
 type SyncReply struct {
@@ -69,7 +69,7 @@ type AbortPayload struct {
 	Nonce     uint16 `len:"2"`
 	AddressId uint32 `len:"4"`
 	Reason    uint8  `len:"1"`
-	Signature string `len:"20"`
+	Signature []byte `len:"20"`
 }
 
 type SendTxPayload struct {
@@ -77,7 +77,7 @@ type SendTxPayload struct {
 	AddressId uint32 `len:"4"`
 	ForkID    []byte `len:"32"`
 	TxData    []byte `len:"0"`
-	Signature string `len:"20"`
+	Signature []byte `len:"20"`
 }
 
 type SendTxReply struct {
@@ -197,7 +197,7 @@ func StructToBytes(s interface{}) (result []byte, err error) {
 		}
 	}
 	result = buf.Bytes()
-	// log.Printf("generate 结构体payload: %+v\n", s)
+	log.Printf("generate payload by struct: %+v\n", s)
 	return result, err
 }
 
@@ -345,7 +345,7 @@ func DecodePayload(payload []byte, result interface{}) (err error) {
 		}
 		leftIndex = (leftIndex + leng)
 	}
-	// log.Printf("result : %+v\n", result)
+	log.Printf("decode payload get result : %+v\n", result)
 	return err
 }
 

@@ -1,6 +1,7 @@
 package mqtt
 
 import (
+	// "bytes"
 	"encoding/hex"
 	"log"
 	"os"
@@ -11,9 +12,18 @@ import (
 	"github.com/lomocoin/lws/internal/db"
 	"github.com/lomocoin/lws/internal/db/model"
 	"github.com/lomocoin/lws/internal/gateway/crypto"
+	edwards25519 "golang.org/x/crypto/ed25519"
 )
 
 func TestServiceReq(t *testing.T) {
+	// lws := &Program{
+	// 	Id:    "lws serviceReq",
+	// 	isLws: true,
+	// }
+	// lws.Init()
+	// if err := lws.Start(); err != nil {
+	// 	t.Errorf("client start failed")
+	// }
 	cli := &Program{
 		Id:    "cli",
 		isLws: false,
@@ -24,7 +34,7 @@ func TestServiceReq(t *testing.T) {
 	}
 
 	cli.Subscribe("wqweqwasasqw/fnfn/ServiceReply", 0, servicReplyHandler)
-	addr, _, _ := crypto.GenerateKeyPair(nil)
+	addr, _, signKey := crypto.GenerateKeyPair(nil)
 	address := make([]byte, 1)
 	address[0] = uint8(1)
 	address = append(address, addr[:]...)
@@ -46,6 +56,8 @@ func TestServiceReq(t *testing.T) {
 		SignBytes:     uint16(64),
 		ServSignature: []byte(RandStringBytesRmndr(64)),
 	}
+	servicMsgWithoutSign, err := StructToBytes(servicePayload)
+	GetSignature(&servicePayload, signKey[:], servicMsgWithoutSign)
 	servicMsg, err := StructToBytes(servicePayload)
 	if err != nil {
 		t.Errorf("client publish failed")
@@ -58,6 +70,10 @@ func TestServiceReq(t *testing.T) {
 	cli.Stop()
 }
 
+func GetSignature(s *ServicePayload, signKey []byte, payload []byte) {
+
+	s.ServSignature = edwards25519.Sign(edwards25519.PrivateKey(signKey), payload[:(len(payload)-66)])
+}
 func TestUser(t *testing.T) {
 	connection := db.GetConnection()
 	if connection == nil {

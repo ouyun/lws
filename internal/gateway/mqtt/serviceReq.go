@@ -16,6 +16,7 @@ import (
 )
 
 var serviceReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
+	log.Println("get serviceReq !")
 	s := ServicePayload{}
 	cliMap := CliMap{}
 	user := model.User{}
@@ -80,9 +81,10 @@ var serviceReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Me
 			ReplyServiceReq(&client, forkBitmap, 16, &s, &user, pubKey)
 			return
 		}
+		log.Println("update user !")
 	} else {
 		// save user
-		err = SaveUser(connection, &user)
+		err = SaveUser(transaction, &user)
 		if err != nil {
 			// fail
 			transaction.Rollback()
@@ -90,6 +92,7 @@ var serviceReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Me
 			ReplyServiceReq(&client, forkBitmap, 16, &s, &user, pubKey)
 			return
 		}
+		log.Printf("saved User! \n")
 	}
 	// 保存到 redis
 	copyUserToCliMap(&user, &cliMap)
