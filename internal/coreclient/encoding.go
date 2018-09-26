@@ -93,6 +93,7 @@ func (dec *messageDecoder) ReadMsg(wr *wireResponse) error {
 	}
 
 	msgLen := binary.BigEndian.Uint32(lenBuf)
+	log.Printf("received buf len [%d]", msgLen)
 
 	buf := make([]byte, msgLen)
 	_, err = io.ReadFull(dec, buf)

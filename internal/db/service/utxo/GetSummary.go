@@ -1,11 +1,11 @@
-package service
+package utxo
 
 import (
 	"github.com/jinzhu/gorm"
 	"github.com/lomocoin/lws/internal/db/model"
 )
 
-func GetUtxoSummary(utxoList []*model.Utxo, db *gorm.DB) (int64, int, error) {
+func GetSummary(utxoList []*model.Utxo, db *gorm.DB) (int64, int, error) {
 	type sumResult struct {
 		Sum   int64
 		Count int

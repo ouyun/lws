@@ -156,12 +156,12 @@ CREATE TABLE `utxo` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL,
-  `tx_hash` varbinary(255) NOT NULL,
+  `tx_hash` varbinary(32) NOT NULL,
   `destination` varbinary(33) DEFAULT NULL,
   `amount` bigint(20) DEFAULT NULL,
   `block_height` int(10) unsigned DEFAULT NULL,
   `out` tinyint(3) unsigned DEFAULT NULL,
-  PRIMARY KEY (`id`,`tx_hash`),
+  PRIMARY KEY (`id`),
   KEY `idx_utxo_deleted_at` (`deleted_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
