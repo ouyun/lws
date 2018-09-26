@@ -5,14 +5,18 @@ import (
 	"encoding/hex"
 	"log"
 	"os"
+	"strconv"
 
 	"github.com/FissionAndFusion/lws/internal/db"
 	"github.com/FissionAndFusion/lws/internal/db/model"
 	"github.com/eclipse/paho.mqtt.golang"
 	"github.com/gomodule/redigo/redis"
+	"golang.org/x/crypto/blake2b"
+	edwards25519 "golang.org/x/crypto/ed25519"
 )
 
 var serviceReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
+	log.Println("get serviceReq !")
 	s := ServicePayload{}
 	cliMap := CliMap{}
 	user := model.User{}
@@ -21,10 +25,17 @@ var serviceReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Me
 	err := DecodePayload(msg.Payload(), &s)
 	if err != nil {
 		log.Printf("err: %+v\n", err)
-		ReplyServiceReq(&client, forkBitmap, 16, &s, &user, pubKey)
+		//丢弃请求
+		// ReplyServiceReq(&client, forkBitmap, 16, &s, &user, pubKey)
 		return
 	}
 	pubKey = PayloadToUser(&user, &s)
+
+	// 验证签名
+	if !VerifyAddress(&s, msg.Payload()) {
+		//丢弃请求
+		return
+	}
 
 	//TODO: 检查分支
 	forkId, err := hex.DecodeString(os.Getenv("FORK_ID"))
@@ -47,10 +58,11 @@ var serviceReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Me
 	}
 
 	// 连接 redis && db
-	pool := NewRedisPool()
+	pool := GetRedisPool()
 	redisConn := pool.Get()
 	defer redisConn.Close()
 	connection := db.GetConnection()
+	transaction := connection.Begin()
 	if err != nil {
 		log.Printf("err: %+v\n", err)
 		ReplyServiceReq(&client, forkBitmap, 16, &s, &user, pubKey)
@@ -58,36 +70,42 @@ var serviceReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Me
 
 	// 查询 redis
 	// 没有 -> 查询 数据库
-	found := connection.Where("address = ?", s.Address).First(&user).RecordNotFound()
+	found := transaction.Where("address = ?", s.Address).First(&user).RecordNotFound()
 	if !found {
 		// update user
-		err = connection.Save(&user).Error // update user
+		err = transaction.Save(&user).Error // update user
 		if err != nil {
 			// fail
-			// TODO：回退
 			log.Printf("err: %+v\n", err)
+			transaction.Rollback()
 			ReplyServiceReq(&client, forkBitmap, 16, &s, &user, pubKey)
 			return
 		}
+		log.Println("update user !")
 	} else {
 		// save user
-		err = SaveUser(connection, &user)
+		err = SaveUser(transaction, &user)
 		if err != nil {
 			// fail
+			transaction.Rollback()
 			log.Printf("err: %+v\n", err)
 			ReplyServiceReq(&client, forkBitmap, 16, &s, &user, pubKey)
 			return
 		}
+		log.Printf("saved User! \n")
 	}
 	// 保存到 redis
 	copyUserToCliMap(&user, &cliMap)
 	err = SaveToRedis(&redisConn, &cliMap)
 	if err != nil {
 		// fail
+		RemoveRedis(&redisConn, &cliMap)
+		transaction.Rollback()
 		log.Printf("err: %+v\n", err)
 		ReplyServiceReq(&client, forkBitmap, 16, &s, &user, pubKey)
 		return
 	}
+	transaction.Commit()
 	ReplyServiceReq(&client, forkBitmap, 0, &s, &user, pubKey)
 }
 
@@ -114,12 +132,45 @@ func ReplyServiceReq(client *mqtt.Client, forkBitmap uint64, err int, s *Service
 // save to redis
 func SaveToRedis(conn *redis.Conn, cliMap *CliMap) (err error) {
 	// save struct
-	_, err = (*conn).Do("HMSET", redis.Args{}.Add(
-		cliMap.AddressId).AddFlat(cliMap)...)
+	// log.Printf("cliMap: %+v", cliMap)
+	_, err = (*conn).Do("HMSET", redis.Args{}.Add(strconv.FormatUint(uint64(cliMap.AddressId), 10)).AddFlat(cliMap)...)
+	// log.Printf("err: %+v", err)
 	if err != nil {
 		return err
 	}
 	// save set
-	_, err = (*conn).Do("SET", cliMap.Address, cliMap.AddressId)
+	_, err = (*conn).Do("SET", hex.EncodeToString(cliMap.Address), cliMap.AddressId)
+	// log.Printf("err: %+v", err)
 	return err
+}
+
+func RemoveRedis(conn *redis.Conn, cliMap *CliMap) (err error) {
+	_, err = (*conn).Do("DEL", strconv.FormatUint(uint64(cliMap.AddressId), 10))
+	if err != nil {
+		log.Printf("del key failed")
+	}
+	// delete key
+	_, err = (*conn).Do("DEL", hex.EncodeToString(cliMap.Address))
+	if err != nil {
+		log.Printf("del key failed")
+	}
+	return err
+}
+
+func VerifyAddress(s *ServicePayload, payload []byte) bool {
+	messageLen := uint16(len(payload)) - (s.SignBytes + 2)
+	if uint8(s.Address[0]) == 1 {
+		// 验证签名
+		return edwards25519.Verify(s.Address[1:], payload[:messageLen], s.ServSignature)
+	}
+	// 验证 模版地址
+	templateDataLen := s.SignBytes - 96
+	templateData := s.ServSignature[:templateDataLen]
+	pubKey := s.ServSignature[templateDataLen:(templateDataLen + 32)]
+	signature := s.ServSignature[(templateDataLen + 32):]
+	hash := blake2b.Sum512(templateData)
+	if bytes.Compare(hash[:30], s.Address[3:]) != 0 {
+		return false
+	}
+	return edwards25519.Verify(pubKey, payload[:messageLen], signature)
 }

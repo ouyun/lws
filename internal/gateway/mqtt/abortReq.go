@@ -21,7 +21,7 @@ var uTXOAbortReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.
 		log.Printf("err: %+v\n", err)
 	}
 	// 连接 redis
-	pool := NewRedisPool()
+	pool := GetRedisPool()
 	redisConn := pool.Get()
 	connection := db.GetConnection()
 	defer redisConn.Close()
@@ -29,7 +29,7 @@ var uTXOAbortReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.
 	inRedis, inDb, err := CheckAddressId(a.AddressId, connection, &redisConn, &user, &cliMap)
 	// 验证签名
 	signed := crypto.SignWithApiKey(cliMap.ApiKey, payload[:len(payload)-20])
-	if bytes.Compare(signed, payload[len(payload)-20:]) != 0 {
+	if bytes.Compare(signed, a.Signature) != 0 {
 		// 丢弃 内容
 		return
 	}

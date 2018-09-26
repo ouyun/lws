@@ -25,10 +25,10 @@ func TestSyncReq(t *testing.T) {
 	forkId, _ := hex.DecodeString(os.Getenv("FORK_ID"))
 	syncPayload := SyncPayload{ //Sync
 		Nonce:     uint16(1231),
-		AddressId: uint32(9),
+		AddressId: uint32(1),
 		ForkID:    forkId,
-		UTXOHash:  RandStringBytesRmndr(32),
-		Signature: RandStringBytesRmndr(20),
+		UTXOHash:  []byte(RandStringBytesRmndr(32)),
+		Signature: []byte(RandStringBytesRmndr(20)),
 	}
 	syncMsg, err := StructToBytes(syncPayload)
 	if err != nil {

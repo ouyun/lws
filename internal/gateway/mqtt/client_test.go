@@ -3,7 +3,7 @@ package mqtt
 import (
 	// "encoding/hex"
 	// "flag"
-	// "log"
+	"log"
 	// "os"
 	"testing"
 
@@ -13,17 +13,17 @@ import (
 )
 
 var servicReplyHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
-	// log.Printf("msg: %+v\n", msg.Payload())
-	if msg.Topic() == "wqweqwasasqw/fnfn/ServiceReply" {
-		// DecodePayload(msg.Payload(), &s)
-		// log.Printf("ServiceReply: %+v\n", s)
-	}
+	log.Printf("get reply:  %+v\n", msg.Payload())
+	// if msg.Topic() == "wqweqwasasqw/fnfn/ServiceReply" {
+	// DecodePayload(msg.Payload(), &s)
+	// log.Printf("ServiceReply: %+v\n", s)
+	// }
 }
 
 func TestClient(t *testing.T) {
 	p := &Program{
 		Id:    "lws",
-		isLws: true,
+		isLws: false,
 	}
 	err := ClientStart(p)
 	if err != nil {
@@ -32,10 +32,14 @@ func TestClient(t *testing.T) {
 }
 
 func TestStart(t *testing.T) {
-	p := &Program{Id: "LWS/lws/ServiceReq", isLws: false}
+	p := &Program{Id: "LWS/lws/ServiceReq", isLws: true}
 	p.Init()
 	if err := p.Start(); err != nil {
 		t.Errorf("init client fail %v", err)
+	}
+	err := p.Subscribe("wqweqwasasqw/fnfn/SendTxReply", 1, servicReplyHandler)
+	if err != nil {
+		t.Errorf("Subscribe client fail %v", err)
 	}
 	p.Stop()
 }
@@ -61,7 +65,7 @@ func TestUTXOAbort(t *testing.T) {
 		Nonce:     uint16(1231),
 		AddressId: uint32(5363),
 		Reason:    uint8(1),
-		Signature: RandStringBytesRmndr(20),
+		Signature: []byte(RandStringBytesRmndr(20)),
 	}
 	abortMsg, err := StructToBytes(abortPayload)
 	if err != nil {
@@ -89,7 +93,7 @@ func TestSendTxReq(t *testing.T) {
 		AddressId: uint32(5363),
 		ForkID:    []byte(RandStringBytesRmndr(32)),
 		TxData:    []byte(RandStringBytesRmndr(20)),
-		Signature: RandStringBytesRmndr(20),
+		Signature: []byte(RandStringBytesRmndr(20)),
 	}
 	sendMsg, err := StructToBytes(sendTxPayload)
 	if err != nil {
@@ -103,15 +107,15 @@ func TestSendTxReq(t *testing.T) {
 }
 
 // func TestMain(m *testing.M) {
-// 	helper.ResetDb()
+// 	// helper.ResetDb()
 // 	connection := db.GetConnection()
-// 	// connection.LogMode(true)
+// 	connection.LogMode(true)
 // 	flag.Parse()
 // 	c := make(chan int, 1)
 // 	go func() {
 // 		lws := &Program{
 // 			Id:    "lws",
-// 			isLws: true,
+// 			isLws: false,
 // 		}
 // 		lws.Init()
 // 		if err := lws.Start(); err != nil {

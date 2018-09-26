@@ -1,10 +1,12 @@
 package mqtt
 
 import (
+	"encoding/hex"
 	"errors"
 	"log"
 	"os"
 	"os/signal"
+	"strconv"
 	"time"
 
 	"github.com/FissionAndFusion/lws/internal/db/model"
@@ -63,6 +65,7 @@ func (p *Program) Start() error {
 		p.Subscribe("LWS/lws/UTXOAbort", 1, uTXOAbortReqHandler)
 		p.Subscribe("LWS/lws/SendTxReq", 1, sendTxReqReqHandler)
 	}
+	log.Printf("client start successed!")
 	return nil
 }
 
@@ -70,7 +73,7 @@ func (p *Program) Start() error {
 func (p *Program) Init() {
 	// mqtt.DEBUG = log.New(os.Stdout, "", 0)
 	// mqtt.ERROR = log.New(os.Stdout, "", 0)
-	opts := mqtt.NewClientOptions().AddBroker(os.Getenv("MQTT_URL")).SetClientID("lws")
+	opts := mqtt.NewClientOptions().AddBroker(os.Getenv("MQTT_URL")).SetClientID(p.Id)
 	opts.SetKeepAlive(2 * time.Second)
 	if p.isLws {
 		opts.SetDefaultPublishHandler(serviceReqHandler)
@@ -115,7 +118,7 @@ func SaveUser(conn *gorm.DB, user *model.User) (err error) {
 	conn.Create(user)
 	if conn.NewRecord(user) {
 		// fail
-		err = errors.New("save user fail")
+		err = errors.New("save user failed")
 	}
 	return err
 }
@@ -123,18 +126,19 @@ func SaveUser(conn *gorm.DB, user *model.User) (err error) {
 // update redis
 func updateRedis(conn *redis.Conn, cliMap *CliMap, field string, value interface{}) (err error) {
 	// save struct
-	_, err = (*conn).Do("HSET", cliMap.AddressId, value)
+	_, err = (*conn).Do("HSET", strconv.FormatUint(uint64(cliMap.AddressId), 10), field, value)
 	return err
 }
 
 // check is addressId exist
 func CheckAddressId(addressId uint32, conn *gorm.DB, redisConn *redis.Conn, user *model.User, cliMap *CliMap) (inRedis bool, inDB bool, err error) {
-	exists, err := redis.Bool((*redisConn).Do("EXISTS", addressId))
+	addressIdStr := strconv.FormatUint(uint64(addressId), 10)
+	exists, err := redis.Bool((*redisConn).Do("EXISTS", addressIdStr))
 	if err != nil {
 		return false, false, err
 	}
 	if exists {
-		value, err := redis.Values((*redisConn).Do("hgetall", addressId))
+		value, err := redis.Values((*redisConn).Do("hgetall", addressIdStr))
 		redis.ScanStruct(value, cliMap)
 		return true, false, err
 	} else {
@@ -149,16 +153,18 @@ func CheckAddressId(addressId uint32, conn *gorm.DB, redisConn *redis.Conn, user
 }
 
 func GetUserByAddress(address []byte, conn *gorm.DB, redisConn *redis.Conn, user *model.User, cliMap *CliMap) error {
-	exists, err := redis.Bool((*redisConn).Do("EXISTS", address))
+	addressStr := hex.EncodeToString(address)
+	exists, err := redis.Bool((*redisConn).Do("EXISTS", addressStr))
 	if err != nil {
 		return err
 	}
 	if exists {
-		addrId, err := redis.Uint64((*redisConn).Do("GET", address))
+		addrId, err := redis.Uint64((*redisConn).Do("GET", addressStr))
 		if err != nil {
 			return err
 		}
-		value, err := redis.Values((*redisConn).Do("hgetall", addrId))
+		addressIdStr := strconv.FormatUint(uint64(addrId), 10)
+		value, err := redis.Values((*redisConn).Do("hgetall", addressIdStr))
 		if err != nil {
 			return err
 		}

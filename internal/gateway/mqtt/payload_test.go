@@ -56,19 +56,22 @@ func genaBytes() []byte {
 }
 
 func TestStructToBytesAndDecode(t *testing.T) {
-	address, _ := hex.DecodeString("6f937c2f5944f5da2a118cebb067cd2c9c92c75955ce05aa05158a1af28e1607")
+	addr, _ := hex.DecodeString("6f937c2f5944f5da2a118cebb067cd2c9c92c75955ce05aa05158a1af28e1607")
+	address := make([]byte, 1)
+	address[0] = uint8(1)
+	address = append(address, addr[:]...)
 	topicPrefix := "wqweqwasasqw" + string(byte(0x00))
 	servicePayload := ServicePayload{ //serviceRequ
-		Nonce:       uint16(1231),
-		Address0:    uint8(1),
-		Address:     address[:],
-		Version:     uint32(5363),
-		TimeStamp:   uint32(time.Now().Unix()),
-		ForkNum:     uint8(9),
-		ForkList:    []byte(RandStringBytesRmndr(32 * 9)),
-		ReplyUTXON:  uint16(10),
-		TopicPrefix: topicPrefix,
-		Signature:   RandStringBytesRmndr(64),
+		Nonce:         uint16(1231),
+		Address:       address,
+		Version:       uint32(5363),
+		TimeStamp:     uint32(time.Now().Unix()),
+		ForkNum:       uint8(9),
+		ForkList:      []byte(RandStringBytesRmndr(32 * 9)),
+		ReplyUTXON:    uint16(10),
+		TopicPrefix:   topicPrefix,
+		SignBytes:     uint16(64),
+		ServSignature: []byte(RandStringBytesRmndr(64)),
 	}
 	result, err := StructToBytes(servicePayload)
 	if err != nil {
@@ -114,3 +117,23 @@ func TestBytesToInt(t *testing.T) {
 		}
 	}
 }
+
+// func TestReverse(t *testing.T) {
+// 	src := []byte{1, 2, 3, 12, 31, 233}
+// 	log.Printf("reverse bytes get : %+v \n", reverseBytes(src))
+// 	int64Srv := IntToBytes(uint64(1121212))
+// 	log.Printf("uint64 bytes get : %+v", int64Srv)
+// 	int64S := BytesToInt(int64Srv)
+// 	log.Printf("int64S value : %+v", int64S)
+// 	log.Printf("reverse uint64 bytes get : %+v", reverseBytes(int64Srv))
+// 	log.Printf("reverse uint64 bytes get : %+v", reverseBytes(int64Srv))
+// 	int32Srv := IntToBytes(uint32(2312))
+// 	log.Printf("uint32 bytes get : %+v", byUint32)
+// 	log.Printf("reverse uint32 bytes get : %+v", reverseBytes(int32Srv))
+// 	int16Srv := IntToBytes(uint32(2553))
+// 	log.Printf("uint16 bytes get : %+v", int16Srv)
+// 	log.Printf("reverse uint16 bytes get : %+v", reverseBytes(int16Srv))
+// 	int8Srv := IntToBytes(uint8(254))
+// 	log.Printf("uint8 bytes get : %+v", int8Srv)
+// 	log.Printf("reverse uint8 bytes get : %+v", reverseBytes(int8Srv))
+// }

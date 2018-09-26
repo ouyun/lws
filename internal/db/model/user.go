@@ -11,7 +11,7 @@ type User struct {
 	DeletedAt *time.Time `sql:"index"`
 
 	AddressId   uint32 `gorm:"AUTO_INCREMENT;primary_key;"`
-	Address     []byte
+	Address     []byte `gorm:"size:33;"`
 	ApiKey      []byte `gorm:"size:32;"`
 	TopicPrefix string
 	ForkNum     uint8
