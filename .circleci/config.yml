@@ -22,13 +22,13 @@ jobs:
     steps:
       - checkout
       - run: go get -u github.com/golang/dep/cmd/dep
-      # - restore_cache:
-      #     key: v1-dependencies-{{ checksum "Gopkg.toml" }}
+      - restore_cache:
+          key: v1-dependencies-{{ checksum "Gopkg.toml" }}
       - run: dep ensure
-      # - save_cache:
-      #     key: v1-dependencies-{{ checksum "Gopkg.toml" }}
-      #     paths:
-      #       - vendor
+      - save_cache:
+          key: v1-dependencies-{{ checksum "Gopkg.toml" }}
+          paths:
+            - vendor
       - run:
           name: Wait for DB
           # preinstalled in circleci/* docker image
