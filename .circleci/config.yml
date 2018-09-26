@@ -39,8 +39,8 @@ jobs:
           command: dockerize -wait tcp://127.0.0.1:6379 -timeout 1m
       - run: go test -v -cover -p=1 ./...
       - run: mkdir -p bin
-      - run: GOOS=linux GOARCH=amd64 go build -o bin/gateway cmd/gateway/main.go
-      - run: GOOS=linux GOARCH=amd64 go build -o bin/stream cmd/stream/main.go
+      - run: GOOS=linux GOARCH=amd64 go build -o "bin/gateway-$CIRCLE_BRANCH" cmd/gateway/main.go
+      - run: GOOS=linux GOARCH=amd64 go build -o "bin/stream-$CIRCLE_BRANCH" cmd/stream/main.go
       - store_artifacts:
           path: bin
       # - persist_to_workspace:
