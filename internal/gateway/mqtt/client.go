@@ -48,7 +48,7 @@ func Interrupt() {
 type Program struct {
 	Id     string
 	Client mqtt.Client
-	isLws  bool
+	IsLws  bool
 	subs   []string
 }
 
@@ -59,7 +59,7 @@ func (p *Program) Start() error {
 		err := errors.New("conn mqtt broker fail")
 		return err
 	}
-	if p.isLws {
+	if p.IsLws {
 		p.Subscribe("LWS/lws/ServiceReq", 0, serviceReqHandler)
 		p.Subscribe("LWS/lws/SyncReq", 1, syncReqHandler)
 		p.Subscribe("LWS/lws/UTXOAbort", 1, uTXOAbortReqHandler)
@@ -75,7 +75,7 @@ func (p *Program) Init() {
 	// mqtt.ERROR = log.New(os.Stdout, "", 0)
 	opts := mqtt.NewClientOptions().AddBroker(os.Getenv("MQTT_URL")).SetClientID(p.Id)
 	opts.SetKeepAlive(2 * time.Second)
-	if p.isLws {
+	if p.IsLws {
 		opts.SetDefaultPublishHandler(serviceReqHandler)
 	} else {
 		opts.SetDefaultPublishHandler(clientHandler)

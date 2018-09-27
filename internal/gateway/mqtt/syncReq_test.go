@@ -15,7 +15,7 @@ import (
 func TestSyncReq(t *testing.T) {
 	cli := &Program{
 		Id:    "cli",
-		isLws: false,
+		IsLws: false,
 	}
 	cli.Init()
 	if err := cli.Start(); err != nil {

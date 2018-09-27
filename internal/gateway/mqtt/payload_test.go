@@ -118,6 +118,21 @@ func TestBytesToInt(t *testing.T) {
 	}
 }
 
+// func TestStruct2Bytes(t *testing.T) {
+// 	servReq := ServiceReply{}
+// 	log.Printf("result : %+v", servReq)
+// 	servReq.Nonce = uint16(10)
+// 	servReq.Error = uint8(1)
+// 	servReq.Version = uint32(1001)
+// 	// servReq.AddressId = uint32(12)
+
+// 	result, err := StructToBytes(servReq)
+// 	log.Printf("result : %+v", result)
+// 	if err != nil {
+// 		t.Errorf("struct to bytes failed ! ")
+// 	}
+// }
+
 // func TestReverse(t *testing.T) {
 // 	src := []byte{1, 2, 3, 12, 31, 233}
 // 	log.Printf("reverse bytes get : %+v \n", reverseBytes(src))

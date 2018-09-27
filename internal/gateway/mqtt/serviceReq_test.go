@@ -16,17 +16,17 @@ import (
 )
 
 func TestServiceReq(t *testing.T) {
-	// lws := &Program{
-	// 	Id:    "lws serviceReq",
-	// 	isLws: true,
-	// }
-	// lws.Init()
-	// if err := lws.Start(); err != nil {
-	// 	t.Errorf("client start failed")
-	// }
+	lws := &Program{
+		Id:    "lws serviceReq",
+		IsLws: true,
+	}
+	lws.Init()
+	if err := lws.Start(); err != nil {
+		t.Errorf("client start failed")
+	}
 	cli := &Program{
 		Id:    "cli",
-		isLws: false,
+		IsLws: false,
 	}
 	cli.Init()
 	if err := cli.Start(); err != nil {

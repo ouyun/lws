@@ -30,7 +30,7 @@ type ServicePayload struct {
 type ServiceReply struct {
 	Nonce      uint16 `len:"2"`
 	Version    uint32 `len:"4"`
-	Error      uint8  `len:"1"`
+	Error      uint8  `len:"1" type:"ServiceReply"`
 	AddressId  uint32 `len:"4"`
 	ForkBitmap uint64 `len:"8"`
 	ApiKeySeed []byte `len:"32"`
@@ -46,7 +46,7 @@ type SyncPayload struct {
 
 type SyncReply struct {
 	Nonce       uint16 `len:"2"`
-	Error       uint8  `len:"1"`
+	Error       uint8  `len:"1" type:"SyncReply"`
 	BlockHash   []byte `len:"32"`
 	BlockHeight uint32 `len:"4"`
 	UTXONum     uint16 `len:"2"`
@@ -82,7 +82,7 @@ type SendTxPayload struct {
 
 type SendTxReply struct {
 	Nonce   uint16 `len:"2"`
-	Error   uint8  `len:"1"`
+	Error   uint8  `len:"1" return:"SendTxReply"`
 	ErrCode uint8  `len:"1"`
 	ErrDesc string `len:"0"`
 }
@@ -171,7 +171,39 @@ func StructToBytes(s interface{}) (result []byte, err error) {
 	buf := bytes.NewBuffer([]byte{})
 
 	value := reflect.ValueOf(s)
+	valueType := reflect.TypeOf(s)
 	for i := 0; i < value.NumField(); i++ {
+		if valueType.Field(i).Name == "Error" {
+			switch valueType.Field(i).Tag.Get("type") {
+			case "SendTxReply":
+				if value.Field(i).Uint() != 3 || value.Field(i).Uint() != 4 {
+					buf.Write(IntToBytes(uint8(value.Field(i).Uint())))
+					return buf.Bytes(), err
+				}
+			case "SyncReply":
+				if value.Field(i).Uint() != 0 || value.Field(i).Uint() != 1 {
+					buf.Write(IntToBytes(uint8(value.Field(i).Uint())))
+					return buf.Bytes(), err
+				}
+			case "ServiceReply":
+				if value.Field(i).Uint() != 0 {
+					buf.Write(IntToBytes(uint8(value.Field(i).Uint())))
+					return buf.Bytes(), err
+				}
+			}
+		}
+		// if reflect.DeepEqual(value.Field(i).Interface(), reflect.Zero(valueType.Field(i).Type).Interface()) {
+		// 	if valueType.Field(i).Tag.Get("notNull") == "true" {
+		// 		continue
+		// 	}
+		// }
+		// log.Print(!reflect.DeepEqual(value.Field(i).Interface(), reflect.Zero(valueType.Field(i).Type).Interface()))
+		// if valueType.Field(i).Tag.Get("null") == "false" {
+		// 	log.Printf("equal")
+		// }
+		// if valueType.Field(i).Name == "Error" {
+		// 	log.Printf("tag: %+v", value.Field(i).Uint())
+		// }
 		switch value.Field(i).Type().Kind() {
 		case reflect.Ptr:
 			b, err := StructToBytes(value.Field(i).Elem())
