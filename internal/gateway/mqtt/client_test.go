@@ -23,7 +23,7 @@ var servicReplyHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.M
 func TestClient(t *testing.T) {
 	p := &Program{
 		Id:    "lws",
-		isLws: false,
+		IsLws: false,
 	}
 	err := ClientStart(p)
 	if err != nil {
@@ -32,7 +32,7 @@ func TestClient(t *testing.T) {
 }
 
 func TestStart(t *testing.T) {
-	p := &Program{Id: "LWS/lws/ServiceReq", isLws: true}
+	p := &Program{Id: "LWS/lws/ServiceReq", IsLws: true}
 	p.Init()
 	if err := p.Start(); err != nil {
 		t.Errorf("init client fail %v", err)
@@ -55,7 +55,7 @@ func ClientStart(service Service) error {
 func TestUTXOAbort(t *testing.T) {
 	cli := &Program{
 		Id:    "cli",
-		isLws: false,
+		IsLws: false,
 	}
 	cli.Init()
 	if err := cli.Start(); err != nil {
@@ -81,7 +81,7 @@ func TestUTXOAbort(t *testing.T) {
 func TestSendTxReq(t *testing.T) {
 	cli := &Program{
 		Id:    "cli",
-		isLws: false,
+		IsLws: false,
 	}
 	cli.Init()
 	if err := cli.Start(); err != nil {

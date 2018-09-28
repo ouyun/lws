@@ -2,7 +2,7 @@ package gateway
 
 import (
 	"fmt"
-	"github.com/FissionAndFusion/lws/internal/gateway/mqtt"
+	mqtt "github.com/FissionAndFusion/lws/internal/gateway/mqtt"
 )
 
 type Server struct {
@@ -11,7 +11,7 @@ type Server struct {
 
 func (s *Server) Start() {
 	s.Status = 1
-	p := &mqtt.Program{Id: "LWS"}
+	p := &mqtt.Program{Id: "LWS", IsLws: true}
 	mqtt.Run(p)
 	fmt.Printf("gateway server started (status: %d)", 3)
 }

@@ -13,7 +13,7 @@ type UTXO struct {
 	Type        uint16 `len:"2"`
 	Amount      uint64 `len:"8"`
 	Sender      []byte `len:"33"`
-	LockUntil   string `len:"4"`
+	LockUntil   uint32 `len:"4"`
 	DataSize    uint16 `len:"2"`
 	Data        []byte `len:"0"`
 }

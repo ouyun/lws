@@ -48,8 +48,15 @@ func Interrupt() {
 type Program struct {
 	Id     string
 	Client mqtt.Client
-	isLws  bool
+	IsLws  bool
 	subs   []string
+}
+
+var connHandle mqtt.OnConnectHandler = func(client mqtt.Client) {
+	client.Subscribe("LWS/lws/ServiceReq", 0, serviceReqHandler)
+	client.Subscribe("LWS/lws/SyncReq", 1, syncReqHandler)
+	client.Subscribe("LWS/lws/UTXOAbort", 1, uTXOAbortReqHandler)
+	client.Subscribe("LWS/lws/SendTxReq", 1, sendTxReqReqHandler)
 }
 
 // start client
@@ -58,12 +65,6 @@ func (p *Program) Start() error {
 		log.Printf("conn mqtt broker failed : %+v \n", token.Error())
 		err := errors.New("conn mqtt broker fail")
 		return err
-	}
-	if p.isLws {
-		p.Subscribe("LWS/lws/ServiceReq", 0, serviceReqHandler)
-		p.Subscribe("LWS/lws/SyncReq", 1, syncReqHandler)
-		p.Subscribe("LWS/lws/UTXOAbort", 1, uTXOAbortReqHandler)
-		p.Subscribe("LWS/lws/SendTxReq", 1, sendTxReqReqHandler)
 	}
 	log.Printf("client start successed!")
 	return nil
@@ -75,10 +76,13 @@ func (p *Program) Init() {
 	// mqtt.ERROR = log.New(os.Stdout, "", 0)
 	opts := mqtt.NewClientOptions().AddBroker(os.Getenv("MQTT_URL")).SetClientID(p.Id)
 	opts.SetKeepAlive(2 * time.Second)
-	if p.isLws {
+	if p.IsLws {
 		opts.SetDefaultPublishHandler(serviceReqHandler)
 	} else {
 		opts.SetDefaultPublishHandler(clientHandler)
+	}
+	if p.IsLws {
+		opts.SetOnConnectHandler(connHandle)
 	}
 	opts.SetConnectTimeout(10 * time.Second)
 	opts.SetPingTimeout(1 * time.Second)
