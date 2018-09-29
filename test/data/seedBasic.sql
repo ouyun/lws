@@ -84,7 +84,7 @@ INSERT INTO utxo (created_at,updated_at,tx_hash,destination,amount,block_height,
 	0
 );
 
--- [2]Create tx block
+-- [2]Create tx block  address Mint transfer 8000000 to user
 INSERT INTO block (created_at,updated_at,hash,version,block_type,prev,tstamp,merkle,height,mint_tx_id,sig) VALUES (
 	'2018-09-06 07:08:24.000',
 	'2018-09-06 07:08:24.000',
@@ -99,7 +99,7 @@ INSERT INTO block (created_at,updated_at,hash,version,block_type,prev,tstamp,mer
 	NULL
 );
 
-INSERT INTO tx (created_at,updated_at,hash,version,tx_type,block_hash,block_height,lock_until,amount,fee,send_to,data,sig) VALUES (
+INSERT INTO tx (created_at,updated_at,hash,version,tx_type,block_hash,block_height,lock_until,amount,fee,send_to,data,sig,sender) VALUES (
 	'2018-09-06 07:08:24.000',
 	'2018-09-06 07:08:24.000',
 	0x0003000000000000000000000000000000000000000000000000000000000001,
@@ -111,6 +111,7 @@ INSERT INTO tx (created_at,updated_at,hash,version,tx_type,block_hash,block_heig
 	15000100,
 	0,
 	0x020000000000000000000000000000000000000000000000000000000000000002,
+	NULL,
 	NULL,
 	NULL
 ), (
@@ -126,7 +127,8 @@ INSERT INTO tx (created_at,updated_at,hash,version,tx_type,block_hash,block_heig
 	100,
 	0x020000000000000000000000000000000000000000000000000000000000000003,
 	NULL,
-	NULL
+	NULL,
+	0x020000000000000000000000000000000000000000000000000000000000000002
 );
 
 INSERT INTO utxo (created_at,updated_at,tx_hash,destination,amount,block_height,`out`) VALUES (

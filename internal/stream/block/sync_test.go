@@ -16,7 +16,7 @@ import (
 
 func TestMain(m *testing.M) {
 	connection := db.GetConnection()
-	connection.LogMode(true)
+	// connection.LogMode(true)
 
 	exitCode := m.Run()
 
