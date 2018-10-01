@@ -4,9 +4,13 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os"
 	"time"
 
 	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/dbp"
+	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/lws"
+	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/any"
 )
 
 const VERSION = 1
@@ -59,6 +63,7 @@ func (c *Client) negotiate(rwc io.ReadWriteCloser) error {
 			Version: VERSION,
 			Client:  CLIENT,
 			Session: "",
+			Udata:   generateUdata(),
 		}
 	} else {
 		wreq.Request = &dbp.Connect{
@@ -97,4 +102,18 @@ func (c *Client) negotiate(rwc io.ReadWriteCloser) error {
 	}
 
 	return err
+}
+
+/* udata { forkid, } */
+func generateUdata() map[string]*any.Any {
+	udata := make(map[string]*any.Any)
+	forkid := &lws.ForkID{
+		Ids: []string{os.Getenv("FORK_ID")},
+	}
+	forkidAny, err := ptypes.MarshalAny(forkid)
+	if err != nil {
+		log.Fatalf("pack forkid any failed [%s]", err)
+	}
+	udata["forkid"] = forkidAny
+	return udata
 }
