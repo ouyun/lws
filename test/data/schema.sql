@@ -96,6 +96,7 @@ CREATE TABLE `tx` (
   `amount` bigint(20) DEFAULT NULL,
   `fee` bigint(20) DEFAULT NULL,
   `send_to` varbinary(33) DEFAULT NULL,
+  `sender` varbinary(33) DEFAULT NULL,
   `data` blob,
   `sig` varbinary(255) DEFAULT NULL,
   PRIMARY KEY (`id`),

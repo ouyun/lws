@@ -14,9 +14,10 @@ import (
 )
 
 type BlockTxHandler struct {
-	txs        []*lws.Transaction
-	dbtx       *gorm.DB
-	blockModel *model.Block
+	txs           []*lws.Transaction
+	dbtx          *gorm.DB
+	blockModel    *model.Block
+	mapTxToSender map[[32]byte][]byte
 	// newTxs   []*lws.Transaction
 	// oldTxs   []*lws.Transaction
 }
@@ -35,6 +36,13 @@ func StartBlockTxHandler(db *gorm.DB, txs []*lws.Transaction, blockModel *model.
 }
 
 func (h *BlockTxHandler) handleTxs() error {
+	// prepare txs
+	err := h.prepareSenders()
+	if err != nil {
+		log.Printf("prepare senders failed [%s]", err)
+		return err
+	}
+
 	// query existance
 	oldHashes, err := h.queryExistance()
 	if err != nil {
@@ -69,6 +77,71 @@ func (h *BlockTxHandler) rollbackIfErr(err error) {
 		log.Printf("roll back for [%s]", err)
 		h.dbtx.Rollback()
 	}
+}
+
+func (h *BlockTxHandler) prepareSenders() error {
+	if len(h.txs) == 0 {
+		return nil
+	}
+	var prevTxs []interface{}
+	mapPrevTxToTx := make(map[[32]byte][]byte)
+	mapTxToSender := make(map[[32]byte][]byte)
+	for _, tx := range h.txs {
+		if len(tx.VInput) > 0 {
+			var prevTx [32]byte
+			copy(prevTx[:], tx.VInput[0].Hash)
+			prevTxs = append(prevTxs, prevTx[:])
+			mapPrevTxToTx[prevTx] = tx.Hash
+		}
+	}
+
+	if len(prevTxs) == 0 {
+		return nil
+	}
+
+	// build sender query sql
+	sb := sqlbuilder.NewSelectBuilder()
+	sb.Select("hash", "send_to")
+	sb.From("tx")
+	sb.Where(sb.In("hash", prevTxs...))
+	sql, args := sb.Build()
+
+	// log.Printf("prepare sender sql[%s] args[%v]", sql, args)
+	// get results
+	rows, err := h.dbtx.CommonDB().Query(sql, args...)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	var (
+		prevHash []byte
+		sender   []byte
+	)
+	for rows.Next() {
+		err := rows.Scan(&prevHash, &sender)
+		if err != nil {
+			return err
+		}
+		// log.Printf("prevHash[%v], sender[%v]", prevHash, sender)
+
+		// current tx --> inputs(prevHash) --> sendto
+		var prevHashArr [32]byte
+		copy(prevHashArr[:], prevHash)
+
+		if hash, ok := mapPrevTxToTx[prevHashArr]; ok {
+			var hashArr [32]byte
+			copy(hashArr[:], hash)
+			mapTxToSender[hashArr] = sender
+		}
+	}
+	// log.Printf("mapTxToSender %v", mapTxToSender)
+	h.mapTxToSender = mapTxToSender
+	return nil
+}
+
+// for testing
+func (h *BlockTxHandler) GetMapTxToSender() map[[32]byte][]byte {
+	return h.mapTxToSender
 }
 
 func (h *BlockTxHandler) getOldNewTxList(oldHashes [][]byte) ([]*lws.Transaction, []*lws.Transaction) {
@@ -133,10 +206,10 @@ func (h *BlockTxHandler) insertTxs(txs []*lws.Transaction, block *model.Block) e
 	ib.Cols("created_at", "updated_at", "hash", "version", "tx_type",
 		"block_id", "block_hash", "block_height",
 		"inputs", "send_to",
-		"lock_until", "amount", "fee", "data", "sig")
+		"lock_until", "amount", "fee", "data", "sig", "sender")
 
 	for _, tx := range txs {
-		insertBuilderTxValue(ib, tx, block)
+		insertBuilderTxValue(ib, tx, block, h.mapTxToSender)
 		if err := utxo.HandleTx(h.dbtx, tx, block); err != nil {
 			return err
 		}
@@ -161,9 +234,10 @@ func (h *BlockTxHandler) insertTxs(txs []*lws.Transaction, block *model.Block) e
 	return nil
 }
 
-func insertBuilderTxValue(ib *sqlbuilder.InsertBuilder, tx *lws.Transaction, block *model.Block) {
+func insertBuilderTxValue(ib *sqlbuilder.InsertBuilder, tx *lws.Transaction, block *model.Block, mapTxToSender map[[32]byte][]byte) {
 	inputs := calculateOrmTxInputs(tx.VInput)
 	sendTo := calculateOrmTxSendTo(tx.CDestination)
+	sender := getSenderFromMap(tx.Hash, mapTxToSender)
 
 	ib.Values(
 		sqlbuilder.Raw("now()"), //created_at
@@ -180,7 +254,20 @@ func insertBuilderTxValue(ib *sqlbuilder.InsertBuilder, tx *lws.Transaction, blo
 		tx.NAmount,
 		tx.NTxFee,
 		tx.VchData,
-		tx.VchSig)
+		tx.VchSig,
+		sender)
+}
+
+func getSenderFromMap(txHash []byte, mapTxToSender map[[32]byte][]byte) []byte {
+	var hashArr [32]byte
+	copy(hashArr[:], txHash)
+	sender, ok := mapTxToSender[hashArr]
+	if !ok {
+		log.Printf("sender not found hash[%v]", hashArr)
+		return nil
+	}
+	log.Printf("got sender [%v]", sender)
+	return sender
 }
 
 func includeHash(hash []byte, hashList [][]byte) bool {
