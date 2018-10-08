@@ -22,31 +22,39 @@ var syncReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Messa
 	pool := GetRedisPool()
 	user := model.User{}
 
-	redisConn := pool.Get()
-	connection := db.GetConnection()
 	payload := msg.Payload()
 	err := DecodePayload(payload, &s)
 	if err != nil {
 		log.Printf("err: %+v\n", err)
 	}
 	// 连接 redis
+	redisConn := pool.Get()
+	connection := db.GetConnection()
 	defer redisConn.Close()
+	if redisConn.Err() != nil {
+		log.Printf("redisConn: \n")
+	}
 
+	log.Printf("zhe001: \n")
 	inRedis, inDb, err := CheckAddressId(s.AddressId, connection, &redisConn, &user, &cliMap)
 	// 验证签名
 	signed := crypto.SignWithApiKey(cliMap.ApiKey, payload[:len(payload)-20])
 	if bytes.Compare(signed, s.Signature) != 0 {
 		// 丢弃 请求
+		log.Printf("verify failed : \n")
 		return
 	}
 	if err != nil {
-		ReplySyncReq(&client, &s, &UTXOs, &cliMap, 16, 0)
+		log.Printf("err: %+v", err)
+		// ReplySyncReq(&client, &s, &UTXOs, &cliMap, 16, 0)
 		return
 	}
 	if !inRedis && !inDb {
+		log.Printf("err: %+v", err)
 		ReplySyncReq(&client, &s, &UTXOs, &cliMap, 2, 0)
 		return
 	}
+	log.Printf("zhe002: \n")
 	// 检查分支
 	forkId, err := hex.DecodeString(os.Getenv("FORK_ID"))
 	if err != nil {
@@ -55,26 +63,27 @@ var syncReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Messa
 		ReplySyncReq(&client, &s, &UTXOs, &cliMap, 16, 0)
 		return
 	}
+	log.Printf("zhe003: \n")
 	if bytes.Compare(forkId, s.ForkID) != 0 {
 		// 无效分支
 		ReplySyncReq(&client, &s, &UTXOs, &cliMap, 3, 0)
 		return
 	}
 	//get utxo list
-	err = connection.Exec("SELECT"+
-		"utxo.tx_hash AS tx_id,"+
-		"utxo.out,"+
-		"utxo.block_height,"+
-		"utxo.amount,"+
-		"tx.data,"+
-		"tx.lock_until,"+
-		"tx.send_to,"+
-		"tx.tx_type"+
-		"FROM utxo"+
-		"INNER JOIN tx"+
-		"ON utxo.tx_hash = tx.hash"+
-		"AND utxo.SendTo = ? "+
-		"ORDER BY tx_hash ASC, out ASC", cliMap.Address).Find(&UTXOs).Error
+	err = connection.Exec("SELECT "+
+		"utxo.tx_hash AS tx_id, "+
+		"utxo.`out`, "+
+		"utxo.block_height, "+
+		"tx.tx_type, "+
+		"utxo.amount, "+
+		"utxo.destination AS sender, "+
+		"tx.lock_until, "+
+		"tx.`data` "+
+		"FROM utxo "+
+		"INNER JOIN tx "+
+		"ON utxo.tx_hash = tx.`hash` "+
+		"AND utxo.destination = ? "+
+		"ORDER BY amount ASC, `out` ASC", cliMap.Address).Find(&UTXOs).Error
 	if err != nil {
 		ReplySyncReq(&client, &s, &UTXOs, &cliMap, 16, 0)
 		return

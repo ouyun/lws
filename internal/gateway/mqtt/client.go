@@ -53,10 +53,10 @@ type Program struct {
 }
 
 var connHandle mqtt.OnConnectHandler = func(client mqtt.Client) {
-	client.Subscribe("LWS/lws/ServiceReq", 0, serviceReqHandler)
-	client.Subscribe("LWS/lws/SyncReq", 1, syncReqHandler)
-	client.Subscribe("LWS/lws/UTXOAbort", 1, uTXOAbortReqHandler)
-	client.Subscribe("LWS/lws/SendTxReq", 1, sendTxReqReqHandler)
+	client.Subscribe("LWS/lws/ServiceReq", byte(0), serviceReqHandler)
+	client.Subscribe("LWS/lws/SyncReq", byte(1), syncReqHandler)
+	client.Subscribe("LWS/lws/UTXOAbort", byte(1), uTXOAbortReqHandler)
+	client.Subscribe("LWS/lws/SendTxReq", byte(1), sendTxReqReqHandler)
 }
 
 // start client
@@ -72,20 +72,18 @@ func (p *Program) Start() error {
 
 // init client
 func (p *Program) Init() {
-	// mqtt.DEBUG = log.New(os.Stdout, "", 0)
+	mqtt.DEBUG = log.New(os.Stdout, "", 20)
 	// mqtt.ERROR = log.New(os.Stdout, "", 0)
 	opts := mqtt.NewClientOptions().AddBroker(os.Getenv("MQTT_URL")).SetClientID(p.Id)
-	opts.SetKeepAlive(2 * time.Second)
-	if p.IsLws {
-		opts.SetDefaultPublishHandler(serviceReqHandler)
-	} else {
-		opts.SetDefaultPublishHandler(clientHandler)
-	}
+	opts.SetKeepAlive(3000 * time.Second)
+	opts.SetAutoReconnect(true)
+	opts.SetCleanSession(false)
+	opts.SetDefaultPublishHandler(clientHandler)
 	if p.IsLws {
 		opts.SetOnConnectHandler(connHandle)
 	}
-	opts.SetConnectTimeout(10 * time.Second)
-	opts.SetPingTimeout(1 * time.Second)
+	opts.SetConnectTimeout(30 * time.Second)
+	opts.SetPingTimeout(3 * time.Second)
 	p.Client = mqtt.NewClient(opts)
 }
 

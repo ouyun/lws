@@ -13,8 +13,16 @@ import (
 )
 
 func TestSyncReq(t *testing.T) {
+	lws := &Program{
+		Id:    "lws syncReq",
+		IsLws: true,
+	}
+	lws.Init()
+	if err := lws.Start(); err != nil {
+		t.Errorf("client start failed")
+	}
 	cli := &Program{
-		Id:    "cli",
+		Id:    "clissss",
 		IsLws: false,
 	}
 	cli.Init()
@@ -25,7 +33,7 @@ func TestSyncReq(t *testing.T) {
 	forkId, _ := hex.DecodeString(os.Getenv("FORK_ID"))
 	syncPayload := SyncPayload{ //Sync
 		Nonce:     uint16(1231),
-		AddressId: uint32(1),
+		AddressId: uint32(4),
 		ForkID:    forkId,
 		UTXOHash:  []byte(RandStringBytesRmndr(32)),
 		Signature: []byte(RandStringBytesRmndr(20)),
