@@ -1,6 +1,7 @@
 package utxo
 
 import (
+	"encoding/hex"
 	"fmt"
 	"log"
 
@@ -39,7 +40,7 @@ func HandleTx(db *gorm.DB, tx *lws.Transaction, blockModel *model.Block) error {
 		})
 		return result.Error
 	}
-	log.Printf("start handling utxo in tx: %v (%v inputs)", tx.Hash, inputLength)
+	log.Printf("start handling utxo in tx: [%s] (%v inputs)", hex.EncodeToString(tx.Hash), inputLength)
 
 	inputs := util.MapPBTxToUtxo(tx, blockHeight)
 	// check if inputs exists and delete them

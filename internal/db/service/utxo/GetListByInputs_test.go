@@ -21,10 +21,24 @@ func TestGetListByInputs(t *testing.T) {
 		Out:         0,
 	}
 
+	testUtxo2 := model.Utxo{
+		TxHash:      []byte{1, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+		Destination: []byte{2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3},
+		Amount:      100,
+		BlockHeight: 0xFFFFFFFF,
+		Out:         1,
+	}
+
 	result := connection.Create(&testUtxo)
 
 	if result.Error != nil {
 		t.Errorf("create temp utxo record err: [%s]", result.Error)
+	}
+
+	result = connection.Create(&testUtxo2)
+
+	if result.Error != nil {
+		t.Errorf("create temp utxo2 record err: [%s]", result.Error)
 	}
 
 	list, err := GetListByInputs([]*model.Utxo{

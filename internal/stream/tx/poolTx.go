@@ -54,8 +54,29 @@ func StartPoolTxHandler(tx *lws.Transaction) error {
 	return nil
 }
 
+func getSingleTxSender(dbtx *gorm.DB, tx *model.Tx) ([]byte, error) {
+	if len(tx.Inputs) < 33 {
+		return nil, nil
+	}
+	prevHash := tx.Inputs[:32]
+	prevTx := &model.Tx{}
+
+	res := dbtx.Select("send_to").Where("hash = ?", prevHash).Take(&prevTx)
+	if res.Error != nil {
+		log.Printf("error query tx sender failed [%s]", res.Error)
+		return nil, res.Error
+	}
+	return prevTx.SendTo, nil
+}
+
 func insertTx(dbtx *gorm.DB, tx *lws.Transaction) error {
 	ormTx := convertTxFromDbpToOrm(tx)
+
+	sender, err := getSingleTxSender(dbtx, ormTx)
+	if err != nil {
+		return err
+	}
+	ormTx.Sender = sender
 
 	res := dbtx.Create(ormTx)
 	if res.Error != nil {
