@@ -7,9 +7,9 @@ import (
 	// "os"
 	"testing"
 
-	"github.com/eclipse/paho.mqtt.golang"
 	// "github.com/FissionAndFusion/lws/internal/db"
 	// "github.com/FissionAndFusion/lws/test/helper"
+	"github.com/eclipse/paho.mqtt.golang"
 )
 
 var servicReplyHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
@@ -106,8 +106,23 @@ func TestSendTxReq(t *testing.T) {
 	cli.Stop()
 }
 
+func TestNewClient(t *testing.T) {
+	client, err := NewClient()
+	if err != nil {
+		t.Errorf("new  client failed")
+	}
+	if client == nil {
+		t.Errorf("new  client failed")
+	}
+	client.Stop()
+}
+
+// func TestResetD(t *testing.T) {
+
+// }
+
 // func TestMain(m *testing.M) {
-// 	// helper.ResetDb()
+// 	helper.ResetDb()
 // 	connection := db.GetConnection()
 // 	connection.LogMode(true)
 // 	flag.Parse()
@@ -115,7 +130,7 @@ func TestSendTxReq(t *testing.T) {
 // 	go func() {
 // 		lws := &Program{
 // 			Id:    "lws",
-// 			isLws: false,
+// 			IsLws: false,
 // 		}
 // 		lws.Init()
 // 		if err := lws.Start(); err != nil {

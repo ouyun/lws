@@ -16,11 +16,6 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-var clientHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
-	log.Printf("TOPIC: %s\n", msg.Topic())
-	// DecodePayload(msg.Payload())
-}
-
 type Service interface {
 	Init()
 	Start() error
@@ -29,13 +24,40 @@ type Service interface {
 	Subscribe(string, byte, mqtt.MessageHandler) error
 }
 
+type Program struct {
+	Id     string
+	Client mqtt.Client
+	IsLws  bool
+	subs   []string
+}
+
+var clientHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
+	log.Printf("TOPIC: %s\n", msg.Topic())
+	// DecodePayload(msg.Payload())
+}
+
+var Client *Program
+
 var msgChan = make(chan os.Signal, 1)
+
+func NewClient() (Client *Program, err error) {
+	if Client != nil {
+		return Client, err
+	}
+	Client = &Program{Id: "LWS00001", IsLws: true}
+	Client.Init()
+	if err := Client.Start(); err != nil {
+		log.Printf("client start failed")
+	}
+	return Client, err
+}
 
 func Run(service Service) error {
 	service.Init()
 	if err := service.Start(); err != nil {
 		return err
 	}
+	Client = service.(*Program)
 	signal.Notify(msgChan, os.Interrupt, os.Kill)
 	<-msgChan
 	return service.Stop()
@@ -43,13 +65,6 @@ func Run(service Service) error {
 
 func Interrupt() {
 	msgChan <- os.Interrupt
-}
-
-type Program struct {
-	Id     string
-	Client mqtt.Client
-	IsLws  bool
-	subs   []string
 }
 
 var connHandle mqtt.OnConnectHandler = func(client mqtt.Client) {

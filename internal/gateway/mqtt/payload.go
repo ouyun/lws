@@ -199,6 +199,9 @@ func StructToBytes(s interface{}) (result []byte, err error) {
 				buf.Write(b)
 			}
 		case reflect.Slice:
+			if valueType.Field(i).Name == "Data" && len(value.Field(i).Bytes()) == 0 {
+				continue
+			}
 			buf.Write(value.Field(i).Bytes())
 		case reflect.String:
 			buf.Write([]byte(value.Field(i).String()))

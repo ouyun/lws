@@ -25,6 +25,7 @@ type UTXOIndex struct {
 }
 
 var sendTxReqReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
+	log.Println("Received sendTxReq !")
 	s := SendTxPayload{}
 	payload := msg.Payload()
 	cliMap := CliMap{}

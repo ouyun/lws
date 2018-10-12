@@ -16,7 +16,7 @@ import (
 )
 
 var serviceReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
-	log.Println("get serviceReq !")
+	log.Println("Received serviceReq !")
 	s := ServicePayload{}
 	cliMap := CliMap{}
 	user := model.User{}
