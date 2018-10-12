@@ -6,6 +6,7 @@ import (
 	"github.com/FissionAndFusion/lws/internal/constant"
 	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/lws"
 	"github.com/FissionAndFusion/lws/internal/db"
+	blockService "github.com/FissionAndFusion/lws/internal/db/service/block"
 	"github.com/FissionAndFusion/lws/test/helper"
 
 	"bytes"
@@ -46,7 +47,7 @@ func TestIsBlockExistedFalse(t *testing.T) {
 
 func TestGetTail(t *testing.T) {
 	TestHandleSyncBlockExtendSuccess(t)
-	tail := GetTailBlock()
+	tail := blockService.GetTailBlock()
 	if tail == nil {
 		t.Errorf("expect tail, but [%v]", tail)
 		return
@@ -222,7 +223,7 @@ func TestHandleSyncBlockExtendWrongHeightRecovery(t *testing.T) {
 		t.Errorf("should not skip the trigger-block")
 	}
 
-	tail := GetTailBlock()
+	tail := blockService.GetTailBlock()
 	if bytes.Compare(tail.Hash, block.Hash) == 0 {
 		t.Errorf("should not inserted wrong height block")
 	}

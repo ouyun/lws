@@ -9,7 +9,7 @@ import (
 
 	"github.com/FissionAndFusion/lws/internal/db"
 	"github.com/FissionAndFusion/lws/internal/db/model"
-	"github.com/FissionAndFusion/lws/internal/stream/block"
+	"github.com/FissionAndFusion/lws/internal/db/service/block"
 	"github.com/eclipse/paho.mqtt.golang"
 	"github.com/gomodule/redigo/redis"
 )
@@ -45,7 +45,7 @@ func SendUTXOUpdate(u *[]UTXOUpdate, address []byte) {
 
 	// send
 	c := make(chan int, 1)
-	if user.ReplyUTXON < uint16(len(*(u))) {
+	if user.ReplyUTXON < uint16(len(*(u))) && user.ReplyUTXON != 0 {
 		// 多次发送
 
 		// 发送次数
@@ -71,6 +71,7 @@ func SendUTXOUpdate(u *[]UTXOUpdate, address []byte) {
 		SendUpdateMessage(&client.Client, &redisConn, &updatePayload, utxoUList, &cliMap, 0, c)
 		<-c
 	}
+	log.Printf("--------------------------")
 }
 
 // send update message

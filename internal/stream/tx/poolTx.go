@@ -43,13 +43,6 @@ func StartPoolTxHandler(tx *lws.Transaction) error {
 		return err
 	}
 
-	err = utxo.HandleTx(dbtx, tx, nil)
-	if err != nil {
-		log.Printf("handle utxo error: %v", err)
-		dbtx.Rollback()
-		return err
-	}
-
 	dbtx.Commit()
 	return nil
 }
@@ -83,9 +76,9 @@ func insertTx(dbtx *gorm.DB, tx *lws.Transaction) error {
 		return res.Error
 	}
 
-	// if err := utxo.HandleTx(dbtx, tx); err != nil {
-	// 	return err
-	// }
+	if err := utxo.HandleTx(dbtx, tx, nil); err != nil {
+		return err
+	}
 
 	return nil
 }
