@@ -199,6 +199,9 @@ func StructToBytes(s interface{}) (result []byte, err error) {
 				buf.Write(b)
 			}
 		case reflect.Slice:
+			if valueType.Field(i).Name == "Data" && len(value.Field(i).Bytes()) == 0 {
+				continue
+			}
 			buf.Write(value.Field(i).Bytes())
 		case reflect.String:
 			buf.Write([]byte(value.Field(i).String()))
@@ -217,7 +220,8 @@ func StructToBytes(s interface{}) (result []byte, err error) {
 		}
 	}
 	result = buf.Bytes()
-	log.Printf("generate payload by struct: %+v\n", s)
+	log.Printf("by struct: %+v\n", s)
+	log.Printf("generate payload by struct: %+v\n", result)
 	return result, err
 }
 
@@ -284,7 +288,7 @@ func DecodePayload(payload []byte, result interface{}) (err error) {
 	resultValue := reflect.ValueOf(result).Elem()
 	resultType := reflect.TypeOf(result).Elem()
 
-	// log.Printf("resultType : %+v\n", resultType.NumField())
+	log.Printf("payload bytes : %+v\n", payload)
 	leftIndex := 0
 	forkNum := 0
 	for i := 0; i < resultValue.NumField(); i++ {
@@ -293,6 +297,7 @@ func DecodePayload(payload []byte, result interface{}) (err error) {
 		if err != nil {
 			return err
 		}
+		log.Printf("result get : %+v\n", result)
 		if resultValue.Field(i).CanSet() {
 			switch resultValue.Field(i).Type().Kind() {
 			case reflect.String:
@@ -320,6 +325,7 @@ func DecodePayload(payload []byte, result interface{}) (err error) {
 					if resultType.Field(i).Name == "ServSignature" {
 						resultValue.Field(i).SetBytes(payload[leftIndex:])
 					} else {
+						// log.Printf("result get : %+v\n", payload[leftIndex:(leftIndex+leng)])
 						resultValue.Field(i).SetBytes(payload[leftIndex:(leftIndex + leng)])
 					}
 				} else if resultType.Field(i).Name == "TxData" {
@@ -349,6 +355,7 @@ func DecodePayload(payload []byte, result interface{}) (err error) {
 					forkNum = int(BytesToInt(payload[leftIndex:(leftIndex + leng)]).(uint8))
 				}
 			case reflect.Uint16:
+				// log.Printf("uint16 get : %+v\n", payload[leftIndex:(leftIndex+leng)])
 				resultValue.Field(i).Set(
 					reflect.ValueOf(BytesToInt(payload[leftIndex:(leftIndex + leng)]).(uint16)))
 			case reflect.Uint32:

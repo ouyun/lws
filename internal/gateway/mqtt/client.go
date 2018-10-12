@@ -16,33 +16,12 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-var clientHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
-	log.Printf("TOPIC: %s\n", msg.Topic())
-	// DecodePayload(msg.Payload())
-}
-
 type Service interface {
 	Init()
 	Start() error
 	Stop() error
 	Publish(string, byte, bool, []byte) error
 	Subscribe(string, byte, mqtt.MessageHandler) error
-}
-
-var msgChan = make(chan os.Signal, 1)
-
-func Run(service Service) error {
-	service.Init()
-	if err := service.Start(); err != nil {
-		return err
-	}
-	signal.Notify(msgChan, os.Interrupt, os.Kill)
-	<-msgChan
-	return service.Stop()
-}
-
-func Interrupt() {
-	msgChan <- os.Interrupt
 }
 
 type Program struct {
@@ -52,11 +31,47 @@ type Program struct {
 	subs   []string
 }
 
+var clientHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
+	log.Printf("TOPIC: %s\n", msg.Topic())
+	// DecodePayload(msg.Payload())
+}
+
+var Client *Program
+
+var msgChan = make(chan os.Signal, 1)
+
+func NewClient() (Client *Program, err error) {
+	if Client != nil {
+		return Client, err
+	}
+	Client = &Program{Id: "LWS00001", IsLws: true}
+	Client.Init()
+	if err := Client.Start(); err != nil {
+		log.Printf("client start failed")
+	}
+	return Client, err
+}
+
+func Run(service Service) error {
+	service.Init()
+	if err := service.Start(); err != nil {
+		return err
+	}
+	Client = service.(*Program)
+	signal.Notify(msgChan, os.Interrupt, os.Kill)
+	<-msgChan
+	return service.Stop()
+}
+
+func Interrupt() {
+	msgChan <- os.Interrupt
+}
+
 var connHandle mqtt.OnConnectHandler = func(client mqtt.Client) {
-	client.Subscribe("LWS/lws/ServiceReq", 0, serviceReqHandler)
-	client.Subscribe("LWS/lws/SyncReq", 1, syncReqHandler)
-	client.Subscribe("LWS/lws/UTXOAbort", 1, uTXOAbortReqHandler)
-	client.Subscribe("LWS/lws/SendTxReq", 1, sendTxReqReqHandler)
+	client.Subscribe("LWS/lws/ServiceReq", byte(0), serviceReqHandler)
+	client.Subscribe("LWS/lws/SyncReq", byte(1), syncReqHandler)
+	client.Subscribe("LWS/lws/UTXOAbort", byte(1), uTXOAbortReqHandler)
+	client.Subscribe("LWS/lws/SendTxReq", byte(1), sendTxReqReqHandler)
 }
 
 // start client
@@ -72,20 +87,18 @@ func (p *Program) Start() error {
 
 // init client
 func (p *Program) Init() {
-	// mqtt.DEBUG = log.New(os.Stdout, "", 0)
+	mqtt.DEBUG = log.New(os.Stdout, "", 20)
 	// mqtt.ERROR = log.New(os.Stdout, "", 0)
 	opts := mqtt.NewClientOptions().AddBroker(os.Getenv("MQTT_URL")).SetClientID(p.Id)
-	opts.SetKeepAlive(2 * time.Second)
-	if p.IsLws {
-		opts.SetDefaultPublishHandler(serviceReqHandler)
-	} else {
-		opts.SetDefaultPublishHandler(clientHandler)
-	}
+	opts.SetKeepAlive(3000 * time.Second)
+	opts.SetAutoReconnect(true)
+	opts.SetCleanSession(false)
+	opts.SetDefaultPublishHandler(clientHandler)
 	if p.IsLws {
 		opts.SetOnConnectHandler(connHandle)
 	}
-	opts.SetConnectTimeout(10 * time.Second)
-	opts.SetPingTimeout(1 * time.Second)
+	opts.SetConnectTimeout(30 * time.Second)
+	opts.SetPingTimeout(3 * time.Second)
 	p.Client = mqtt.NewClient(opts)
 }
 

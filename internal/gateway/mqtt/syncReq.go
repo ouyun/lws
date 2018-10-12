@@ -16,34 +16,41 @@ import (
 
 var syncReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
 	// TODO ：
+	log.Println("Received syncReq !")
 	var UTXOs []UTXO
 	s := SyncPayload{}
 	cliMap := CliMap{}
 	pool := GetRedisPool()
 	user := model.User{}
 
-	redisConn := pool.Get()
-	connection := db.GetConnection()
 	payload := msg.Payload()
 	err := DecodePayload(payload, &s)
 	if err != nil {
 		log.Printf("err: %+v\n", err)
 	}
 	// 连接 redis
+	redisConn := pool.Get()
+	connection := db.GetConnection()
 	defer redisConn.Close()
+	if redisConn.Err() != nil {
+		log.Printf("redisConn: \n")
+	}
 
 	inRedis, inDb, err := CheckAddressId(s.AddressId, connection, &redisConn, &user, &cliMap)
 	// 验证签名
 	signed := crypto.SignWithApiKey(cliMap.ApiKey, payload[:len(payload)-20])
 	if bytes.Compare(signed, s.Signature) != 0 {
 		// 丢弃 请求
+		log.Printf("verify failed : \n")
 		return
 	}
 	if err != nil {
-		ReplySyncReq(&client, &s, &UTXOs, &cliMap, 16, 0)
+		log.Printf("err: %+v", err)
+		// ReplySyncReq(&client, &s, &UTXOs, &cliMap, 16, 0)
 		return
 	}
 	if !inRedis && !inDb {
+		log.Printf("err: %+v", err)
 		ReplySyncReq(&client, &s, &UTXOs, &cliMap, 2, 0)
 		return
 	}
@@ -61,28 +68,32 @@ var syncReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Messa
 		return
 	}
 	//get utxo list
-	err = connection.Exec("SELECT"+
-		"utxo.tx_hash AS tx_id,"+
-		"utxo.out,"+
-		"utxo.block_height,"+
-		"utxo.amount,"+
-		"tx.data,"+
-		"tx.lock_until,"+
-		"tx.send_to,"+
-		"tx.tx_type"+
-		"FROM utxo"+
-		"INNER JOIN tx"+
-		"ON utxo.tx_hash = tx.hash"+
-		"AND utxo.SendTo = ? "+
-		"ORDER BY tx_hash ASC, out ASC", cliMap.Address).Find(&UTXOs).Error
+
+	err = connection.Raw("SELECT "+
+		"utxo.tx_hash AS tx_id, "+
+		"utxo.out, "+
+		"utxo.block_height, "+
+		"tx.tx_type, "+
+		"utxo.amount, "+
+		"tx.sender AS sender, "+
+		"tx.lock_until, "+
+		"tx.data "+
+		"FROM utxo "+
+		"INNER JOIN tx "+
+		"ON utxo.tx_hash = tx.hash "+
+		"AND utxo.destination = ? "+
+		"ORDER BY utxo.amount ASC, utxo.out ASC ", cliMap.Address).Find(&UTXOs).Error
 	if err != nil {
 		ReplySyncReq(&client, &s, &UTXOs, &cliMap, 16, 0)
 		return
 	}
 	// 计算utxo hash
 	utxoHash := UTXOHash(&UTXOs)
+	log.Printf("get UTXOs %+v\n", UTXOs)
 	if bytes.Compare(utxoHash, []byte(s.UTXOHash)) == 0 {
+		log.Printf("clinet hash equal local hash!")
 		ReplySyncReq(&client, &s, &UTXOs, &cliMap, 0, 0)
+
 		updateRedis(&redisConn, &cliMap, "Nonce", s.Nonce)
 		return
 	}
@@ -101,9 +112,10 @@ var syncReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Messa
 	} else if cliMap.ReplyUTXON < uint16(len(UTXOs)) {
 		// 多次发送
 		// 发送次数
-		c := make(chan bool)
+		c := make(chan int, 1)
 		times := int(math.Ceil(float64(uint16(len(UTXOs)) / cliMap.ReplyUTXON)))
 		for index := 0; index < times; index++ {
+			log.Printf("total：%+v, send utxo in data pack %d\n", times, index)
 			if index != (times - 1) {
 				// TODO: sync
 				var rightIndex uint16
@@ -120,6 +132,7 @@ var syncReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Messa
 			<-c
 		}
 	} else {
+		log.Printf("send utxo in one data pack \n")
 		// 一次发送
 		ReplySyncReq(&client, &s, &UTXOs, &cliMap, 1, 0)
 	}
@@ -129,6 +142,7 @@ var syncReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Messa
 
 // reply sync req
 func ReplySyncReq(client *mqtt.Client, s *SyncPayload, u *[]UTXO, cliMap *CliMap, err, end int) {
+	log.Printf("send update list !")
 	reply := SyncReply{}
 	reply.Nonce = s.Nonce
 	reply.Error = uint8(err)
@@ -140,6 +154,9 @@ func ReplySyncReq(client *mqtt.Client, s *SyncPayload, u *[]UTXO, cliMap *CliMap
 		reply.Continue = uint8(end)
 	}
 	if err == 1 {
+		tailBlock := block.GetTailBlock()
+		reply.BlockHash = tailBlock.Hash
+		reply.BlockHeight = tailBlock.Height
 		reply.UTXONum = uint16(len(*u))
 		byteList, _ := UTXOListToByte(u)
 		reply.UTXOList = byteList
@@ -151,11 +168,15 @@ func ReplySyncReq(client *mqtt.Client, s *SyncPayload, u *[]UTXO, cliMap *CliMap
 	}
 	t := cliMap.TopicPrefix + "/fnfn/SyncReply"
 	// TODO
-	(*client).Publish(t, 1, false, result)
+	token := (*client).Publish(t, 1, false, result)
+	if token.Wait() {
+		log.Printf("publish err: %+v", token.Error())
+	}
 }
 
 // reply sync req with chan
-func ReplySyncReqWithChan(client *mqtt.Client, s *SyncPayload, u []UTXO, cliMap *CliMap, err, end int, send chan bool) {
+func ReplySyncReqWithChan(client *mqtt.Client, s *SyncPayload, u []UTXO, cliMap *CliMap, err, end int, send chan int) {
+	log.Printf("send update list with chan !")
 	reply := SyncReply{}
 	reply.Nonce = s.Nonce
 	reply.Error = uint8(err)
@@ -174,7 +195,11 @@ func ReplySyncReqWithChan(client *mqtt.Client, s *SyncPayload, u []UTXO, cliMap 
 	}
 	t := cliMap.TopicPrefix + "/fnfn/SyncReply"
 	token := (*client).Publish(t, 1, false, result)
-	if token.Wait() {
-		send <- true
+	for {
+		if token.Wait() && token.Error() == nil {
+			send <- 1
+			log.Printf("err: %+v\n", token.Error())
+			break
+		}
 	}
 }

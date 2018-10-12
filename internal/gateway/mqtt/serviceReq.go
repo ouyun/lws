@@ -16,10 +16,11 @@ import (
 )
 
 var serviceReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
-	log.Println("get serviceReq !")
+	log.Println("Received serviceReq !")
 	s := ServicePayload{}
 	cliMap := CliMap{}
 	user := model.User{}
+	newUser := model.User{}
 	var pubKey []byte
 	var forkBitmap uint64 = 1
 	err := DecodePayload(msg.Payload(), &s)
@@ -29,18 +30,19 @@ var serviceReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Me
 		// ReplyServiceReq(&client, forkBitmap, 16, &s, &user, pubKey)
 		return
 	}
-	pubKey = PayloadToUser(&user, &s)
+	pubKey = PayloadToUser(&newUser, &s)
 
 	// 验证签名
 	if !VerifyAddress(&s, msg.Payload()) {
 		//丢弃请求
+		log.Printf("sign err ！discard data!\n")
 		return
 	}
 
 	//TODO: 检查分支
 	forkId, err := hex.DecodeString(os.Getenv("FORK_ID"))
 	if err != nil {
-		ReplyServiceReq(&client, forkBitmap, 16, &s, &user, pubKey)
+		ReplyServiceReq(&client, forkBitmap, 16, &s, &newUser, pubKey)
 		return
 	}
 
@@ -53,7 +55,7 @@ var serviceReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Me
 		}
 	}
 	if !suportForkId {
-		ReplyServiceReq(&client, forkBitmap, 3, &s, &user, pubKey)
+		ReplyServiceReq(&client, forkBitmap, 3, &s, &newUser, pubKey)
 		return
 	}
 
@@ -65,12 +67,13 @@ var serviceReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Me
 	transaction := connection.Begin()
 	if err != nil {
 		log.Printf("err: %+v\n", err)
-		ReplyServiceReq(&client, forkBitmap, 16, &s, &user, pubKey)
+		ReplyServiceReq(&client, forkBitmap, 16, &s, &newUser, pubKey)
 	}
 
 	// 查询 redis
 	// 没有 -> 查询 数据库
 	found := transaction.Where("address = ?", s.Address).First(&user).RecordNotFound()
+	copyUserStruct(&newUser, &user)
 	if !found {
 		// update user
 		err = transaction.Save(&user).Error // update user
@@ -81,6 +84,8 @@ var serviceReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Me
 			ReplyServiceReq(&client, forkBitmap, 16, &s, &user, pubKey)
 			return
 		}
+		log.Printf("user: %+v\n", user)
+		copyUserToCliMap(&user, &cliMap)
 		log.Println("update user !")
 	} else {
 		// save user
@@ -92,10 +97,10 @@ var serviceReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Me
 			ReplyServiceReq(&client, forkBitmap, 16, &s, &user, pubKey)
 			return
 		}
+		copyUserToCliMap(&user, &cliMap)
 		log.Printf("saved User! \n")
 	}
 	// 保存到 redis
-	copyUserToCliMap(&user, &cliMap)
 	err = SaveToRedis(&redisConn, &cliMap)
 	if err != nil {
 		// fail
@@ -126,7 +131,10 @@ func ReplyServiceReq(client *mqtt.Client, forkBitmap uint64, err int, s *Service
 	}
 	t := s.TopicPrefix + "/fnfn/ServiceReply"
 	// TODO
-	(*client).Publish(t, 0, false, result)
+	token := (*client).Publish(t, 0, false, result)
+	if token.Wait() {
+		log.Printf("publish err: %+v", token.Error())
+	}
 }
 
 // save to redis
@@ -159,8 +167,12 @@ func RemoveRedis(conn *redis.Conn, cliMap *CliMap) (err error) {
 
 func VerifyAddress(s *ServicePayload, payload []byte) bool {
 	messageLen := uint16(len(payload)) - (s.SignBytes + 2)
+	log.Printf("messageLen: %d", messageLen)
+	log.Printf("pub Key: %+v", s.Address[1:])
+	log.Printf("payload : %+v", payload[:messageLen])
 	if uint8(s.Address[0]) == 1 {
 		// 验证签名
+		log.Printf("address type = 1 \n")
 		return edwards25519.Verify(s.Address[1:], payload[:messageLen], s.ServSignature)
 	}
 	// 验证 模版地址
@@ -173,4 +185,14 @@ func VerifyAddress(s *ServicePayload, payload []byte) bool {
 		return false
 	}
 	return edwards25519.Verify(pubKey, payload[:messageLen], signature)
+}
+
+func copyUserStruct(user *model.User, dbUser *model.User) {
+	dbUser.ApiKey = user.ApiKey
+	dbUser.Address = user.Address
+	dbUser.ForkList = user.ForkList
+	dbUser.ForkNum = user.ForkNum
+	dbUser.TopicPrefix = user.TopicPrefix
+	dbUser.TimeStamp = user.TimeStamp
+	dbUser.ReplyUTXON = user.ReplyUTXON
 }

@@ -2,6 +2,7 @@ package mqtt
 
 import (
 	"bytes"
+	"log"
 
 	"golang.org/x/crypto/blake2b"
 )
@@ -10,7 +11,7 @@ type UTXO struct {
 	TXID        []byte `len:"32"`
 	Out         uint8  `len:"1"`
 	BlockHeight uint32 `len:"4"`
-	Type        uint16 `len:"2"`
+	BlockType   uint16 `len:"2"`
 	Amount      uint64 `len:"8"`
 	Sender      []byte `len:"33"`
 	LockUntil   uint32 `len:"4"`
@@ -51,9 +52,35 @@ func UTXOListToByte(u *[]UTXO) (result []byte, err error) {
 		(*u)[index].DataSize = uint16(len((*u)[index].Data))
 		utxoByte, err := StructToBytes((*u)[index])
 		if err != nil {
+			log.Printf("StructToBytes err: %+v", err)
 			return result, err
 		}
 		buf.Write(utxoByte)
+	}
+	result = buf.Bytes()
+	return result, err
+}
+
+func UTXOUpdateListToByte(u *[]UTXOUpdate) (result []byte, err error) {
+	buf := bytes.NewBuffer([]byte{})
+	for index := 0; index < len(*u); index++ {
+		buf.Write([]byte{byte((*u)[index].OpType)})
+		switch (*u)[index].OpType {
+		case 0:
+		case 1:
+			buf.Write((*u)[index].UTXOIndex)
+		case 2:
+			buf.Write((*u)[index].UTXOIndex)
+			buf.Write(IntToBytes((*u)[index].BlockHeight))
+		case 3:
+			(*u)[index].UTXO.DataSize = uint16(len((*u)[index].UTXO.Data))
+			utxoByte, err := StructToBytes((*u)[index].UTXO)
+			if err != nil {
+				log.Printf("StructToBytes err: %+v", err)
+				return result, err
+			}
+			buf.Write(utxoByte)
+		}
 	}
 	result = buf.Bytes()
 	return result, err
