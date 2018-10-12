@@ -18,6 +18,8 @@ services:
     restart: always
     ports:
       - 11883:1883
+    volumes:
+      - './mqtt/config/mosquitto.conf:/mosquitto/config/mosquitto.conf'
   rabbitmq:
     image: rabbitmq:3-management
     container_name: lws-rabbitmq
