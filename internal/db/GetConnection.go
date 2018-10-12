@@ -20,7 +20,7 @@ func GetConnection() *gorm.DB {
 	}
 
 	db.SingularTable(true)
-	db.LogMode(true)
+	// db.LogMode(true)
 
 	connection = db
 
