@@ -171,16 +171,6 @@ func SendTxToCore(client *coreclient.Client, s *SendTxPayload) (resultMessage *l
 	return sendTxResponse, err
 }
 
-func StartCoreClient() *coreclient.Client {
-	addr := os.Getenv("CORECLIENT_URL")
-
-	log.Printf("Connect to core client [%s]", addr)
-	client := coreclient.NewTCPClient(addr)
-
-	client.Start()
-	return client
-}
-
 func getUtxoIndex(index *[]byte) []*model.Utxo {
 	var utxos []*model.Utxo
 	for i := 0; i < (len(*index) / 33); i++ {

@@ -2,8 +2,9 @@ package mqtt
 
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/hex"
-	// "log"
+	"log"
 	"math/rand"
 	"reflect"
 	// "strconv"
@@ -24,7 +25,7 @@ type casepair2 struct {
 
 func TestTxDataToStruct(t *testing.T) {
 	address, _ := hex.DecodeString("6f937c2f5944f5da2a118cebb067cd2c9c92c75955ce05aa05158a1af28e1607")
-	anch, _ := hex.DecodeString("6f937c2f6f937c2f")
+	anch, _ := hex.DecodeString("6f937c2f6f937c2f6f937c2f6f937c2f6f937c2f6f937c2f6f937c2f6f937c2f")
 
 	txs := TxData{
 		NVersion:   uint16(45),
@@ -35,8 +36,8 @@ func TestTxDataToStruct(t *testing.T) {
 		UtxoIndex:  genaBytes(),
 		Prefix:     uint8(122),
 		Data:       address,
-		NAmount:    uint64(121),
-		NTxFee:     uint64(121),
+		NAmount:    int64(121),
+		NTxFee:     int64(121),
 	}
 	txData := TxData{}
 	result, err := StructToBytes(txs)

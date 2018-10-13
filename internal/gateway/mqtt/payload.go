@@ -96,8 +96,8 @@ type TxData struct {
 	UtxoIndex  []byte `len:"0"`
 	Prefix     uint8  `len:"1"`
 	Data       []byte `len:"32"`
-	NAmount    uint64 `len:"8"`
-	NTxFee     uint64 `len:"8"`
+	NAmount    int64  `len:"8"`
+	NTxFee     int64  `len:"8"`
 }
 
 func TxDataToStruct(tx []byte, txData *TxData) (err error) {
@@ -137,7 +137,7 @@ func TxDataToStruct(tx []byte, txData *TxData) (err error) {
 					reflect.ValueOf(BytesToInt(tx[leftIndex:(leftIndex + len64)]).(uint32)))
 			case reflect.Int64:
 				resultValue.Field(i).Set(
-					reflect.ValueOf(BytesToInt(tx[leftIndex:(leftIndex + len64)]).(int64)))
+					reflect.ValueOf(int64(BytesToInt(tx[leftIndex:(leftIndex + len64)]).(uint64))))
 			case reflect.Uint64:
 				log.Printf("leftIndex : %d", leftIndex)
 				log.Printf("len64 : %d", len64)
