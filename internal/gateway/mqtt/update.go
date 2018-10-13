@@ -6,6 +6,7 @@ import (
 	"math"
 	"os"
 	"strconv"
+	"sync"
 
 	"github.com/FissionAndFusion/lws/internal/db"
 	"github.com/FissionAndFusion/lws/internal/db/model"
@@ -14,12 +15,17 @@ import (
 	"github.com/gomodule/redigo/redis"
 )
 
+var mu sync.Mutex
+
+var cliMap *Program
+
 // send UTXO update list
 func SendUTXOUpdate(u *[]UTXOUpdate, address []byte) {
 	log.Println("update utxoUpdate !")
-	client, err := NewClient()
-	if err != nil {
-		log.Printf("new mqtt client err: %+v", err)
+	client := GetProgram()
+	if client.Client == nil {
+		log.Printf("new mqtt client err: client == nil")
+		return
 	}
 	updatePayload := UpdatePayload{}
 	user := model.User{}
@@ -27,6 +33,9 @@ func SendUTXOUpdate(u *[]UTXOUpdate, address []byte) {
 	pool := GetRedisPool()
 	utxoUList := *u
 
+	// defer func() {
+	// 	client.Stop()
+	// }()
 	// get user by address
 	redisConn := pool.Get()
 	connection := db.GetConnection()
@@ -59,16 +68,16 @@ func SendUTXOUpdate(u *[]UTXOUpdate, address []byte) {
 				} else {
 					rightIndex = uint16(len(*u)) - 1
 				}
-				SendUpdateMessage(&client.Client, &redisConn, &updatePayload, utxoUList[user.ReplyUTXON*uint16(index):rightIndex], &cliMap, 1, c)
+				SendUpdateMessage(&(*client).Client, &redisConn, &updatePayload, utxoUList[user.ReplyUTXON*uint16(index):rightIndex], &cliMap, 1, c)
 				<-c
 				continue
 			}
-			SendUpdateMessage(&client.Client, &redisConn, &updatePayload, utxoUList[user.ReplyUTXON*uint16(index):], &cliMap, 0, c)
+			SendUpdateMessage(&(*client).Client, &redisConn, &updatePayload, utxoUList[user.ReplyUTXON*uint16(index):], &cliMap, 0, c)
 			<-c
 		}
 	} else {
 		//发送一次
-		SendUpdateMessage(&client.Client, &redisConn, &updatePayload, utxoUList, &cliMap, 0, c)
+		SendUpdateMessage(&(*client).Client, &redisConn, &updatePayload, utxoUList, &cliMap, 0, c)
 		<-c
 	}
 	log.Printf("--------------------------")
@@ -96,7 +105,7 @@ func SendUpdateMessage(client *mqtt.Client, redisConn *redis.Conn, uPayload *Upd
 	}
 	uPayload.UpdateList = uList
 	uPayload.Continue = uint8(end)
-	result, errs := StructToBytes(uPayload)
+	result, errs := StructToBytes(*uPayload)
 	if errs != nil {
 		log.Printf("struct to bytes err: %+v\n", errs)
 		return
@@ -111,4 +120,21 @@ func SendUpdateMessage(client *mqtt.Client, redisConn *redis.Conn, uPayload *Upd
 			break
 		}
 	}
+}
+
+func GetProgram() *Program {
+	// log.Printf("old local client: %+v", cliMap)
+	if cliMap == nil {
+		mu.Lock()
+		defer mu.Unlock()
+		if cliMap == nil {
+			cliMap = &Program{Id: "update001", IsLws: false}
+			cliMap.Init()
+			if err := cliMap.Start(); err != nil {
+				log.Printf("client start failed")
+			}
+			// log.Printf("new local client: %+v", cliMap)
+		}
+	}
+	return cliMap
 }

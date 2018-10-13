@@ -35,8 +35,8 @@ func TestTxDataToStruct(t *testing.T) {
 		UtxoIndex:  genaBytes(),
 		Prefix:     uint8(122),
 		Data:       address,
-		NAmount:    int64(121),
-		NTxFee:     int64(121),
+		NAmount:    uint64(121),
+		NTxFee:     uint64(121),
 	}
 	txData := TxData{}
 	result, err := StructToBytes(txs)

@@ -106,17 +106,6 @@ func TestSendTxReq(t *testing.T) {
 	cli.Stop()
 }
 
-func TestNewClient(t *testing.T) {
-	client, err := NewClient()
-	if err != nil {
-		t.Errorf("new  client failed")
-	}
-	if client == nil {
-		t.Errorf("new  client failed")
-	}
-	client.Stop()
-}
-
 // func TestResetD(t *testing.T) {
 
 // }
