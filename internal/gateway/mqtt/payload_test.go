@@ -2,9 +2,7 @@ package mqtt
 
 import (
 	"bytes"
-	"encoding/binary"
 	"encoding/hex"
-	"log"
 	"math/rand"
 	"reflect"
 	// "strconv"
