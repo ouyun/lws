@@ -32,10 +32,8 @@ func SendUTXOUpdate(u *[]UTXOUpdate, address []byte) {
 	cliMap := CliMap{}
 	pool := GetRedisPool()
 	utxoUList := *u
+	c := make(chan int, 1)
 
-	// defer func() {
-	// 	client.Stop()
-	// }()
 	// get user by address
 	redisConn := pool.Get()
 	connection := db.GetConnection()
@@ -43,6 +41,11 @@ func SendUTXOUpdate(u *[]UTXOUpdate, address []byte) {
 	updatePayload.Nonce = cliMap.Nonce
 	updatePayload.AddressId = cliMap.AddressId
 	tailBlock := block.GetTailBlock()
+	if tailBlock == nil {
+		log.Printf("tailBlock get: %+v", tailBlock)
+		return
+	}
+
 	updatePayload.BlockHash = tailBlock.Hash
 	updatePayload.Height = tailBlock.Height
 	forkId, err := hex.DecodeString(os.Getenv("FORK_ID"))
@@ -53,7 +56,6 @@ func SendUTXOUpdate(u *[]UTXOUpdate, address []byte) {
 	updatePayload.ForkId = forkId
 
 	// send
-	c := make(chan int, 1)
 	if user.ReplyUTXON < uint16(len(*(u))) && user.ReplyUTXON != 0 {
 		// 多次发送
 
