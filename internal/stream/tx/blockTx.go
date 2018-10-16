@@ -8,6 +8,7 @@ import (
 
 	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/lws"
 	"github.com/FissionAndFusion/lws/internal/db/model"
+	"github.com/FissionAndFusion/lws/internal/gateway/mqtt"
 	"github.com/FissionAndFusion/lws/internal/stream/utxo"
 	sqlbuilder "github.com/huandu/go-sqlbuilder"
 	"github.com/jinzhu/gorm"
@@ -22,54 +23,49 @@ type BlockTxHandler struct {
 	// oldTxs   []*lws.Transaction
 }
 
-func StartBlockTxHandler(db *gorm.DB, txs []*lws.Transaction, blockModel *model.Block) error {
+func StartBlockTxHandler(db *gorm.DB, txs []*lws.Transaction, blockModel *model.Block) (map[[33]byte][]mqtt.UTXOUpdate, error) {
 	log.Printf("StartBlockTxHandler len txs [%d]", len(txs))
+
+	var updates map[[33]byte][]mqtt.UTXOUpdate
+
 	h := &BlockTxHandler{
 		txs:        txs,
 		blockModel: blockModel,
 		dbtx:       db,
 	}
 
-	err := h.handleTxs()
-	// h.rollbackIfErr(err)
-	return err
-}
-
-func (h *BlockTxHandler) handleTxs() error {
 	// prepare txs
 	err := h.prepareSenders()
 	if err != nil {
 		log.Printf("prepare senders failed [%s]", err)
-		return err
+		return nil, err
 	}
 
 	// query existance
 	oldHashes, err := h.queryExistance()
 	if err != nil {
 		log.Printf("queryExistance for [%s]", err)
-		return err
+		return nil, err
 	}
 
 	newTxs, oldTxs := h.getOldNewTxList(oldHashes)
 	err = h.deleteTxs(oldHashes)
 	if err != nil {
 		log.Printf("delete hashex failed for [%s]", err)
-		return err
+		return nil, err
 	}
 
-	err = h.insertTxs(oldTxs, h.blockModel)
+	pendingTxs := []*lws.Transaction{}
+	pendingTxs = append(pendingTxs, oldTxs...)
+	pendingTxs = append(pendingTxs, newTxs...)
+
+	updates, err = h.insertTxs(pendingTxs, h.blockModel)
 	if err != nil {
-		log.Printf("insert old hashex failed for [%s]", err)
-		return err
+		log.Printf("insert old/new hashex failed for [%s]", err)
+		return nil, err
 	}
 
-	err = h.insertTxs(newTxs, h.blockModel)
-	if err != nil {
-		log.Printf("insert new hashex failed for [%s]", err)
-		return err
-	}
-
-	return nil
+	return updates, nil
 }
 
 func (h *BlockTxHandler) rollbackIfErr(err error) {
@@ -196,9 +192,10 @@ func (h *BlockTxHandler) deleteTxs(hashes [][]byte) error {
 	return nil
 }
 
-func (h *BlockTxHandler) insertTxs(txs []*lws.Transaction, block *model.Block) error {
+func (h *BlockTxHandler) insertTxs(txs []*lws.Transaction, block *model.Block) (map[[33]byte][]mqtt.UTXOUpdate, error) {
+	updates := make(map[[33]byte][]mqtt.UTXOUpdate)
 	if len(txs) == 0 {
-		return nil
+		return updates, nil
 	}
 	ib := sqlbuilder.NewInsertBuilder()
 	ib.InsertInto("tx")
@@ -210,8 +207,15 @@ func (h *BlockTxHandler) insertTxs(txs []*lws.Transaction, block *model.Block) e
 
 	for _, tx := range txs {
 		insertBuilderTxValue(ib, tx, block, h.mapTxToSender)
-		if err := utxo.HandleTx(h.dbtx, tx, block); err != nil {
-			return err
+		txUpdates, err := utxo.HandleTx(h.dbtx, tx, block)
+		if err != nil {
+			return nil, err
+		}
+		for destination, items := range txUpdates {
+			if updates[destination] == nil {
+				updates[destination] = []mqtt.UTXOUpdate{}
+			}
+			updates[destination] = append(updates[destination], items...)
 		}
 	}
 
@@ -220,18 +224,18 @@ func (h *BlockTxHandler) insertTxs(txs []*lws.Transaction, block *model.Block) e
 	results, err := h.dbtx.CommonDB().Exec(sql, args...)
 	if err != nil {
 		log.Printf("bulk tx insertion failed: [%s]", err)
-		return err
+		return nil, err
 	}
 	if cnt, err := results.RowsAffected(); int(cnt) != len(txs) {
 		if err != nil {
 			log.Printf("can not get inserted cnt error [%s]", err)
-			return err
+			return nil, err
 		}
 		err = fmt.Errorf("try to insert [%d] tx, but [%d] success", len(txs), cnt)
 		log.Printf("insert cnt error [%s]", err)
-		return err
+		return nil, err
 	}
-	return nil
+	return updates, nil
 }
 
 func insertBuilderTxValue(ib *sqlbuilder.InsertBuilder, tx *lws.Transaction, block *model.Block, mapTxToSender map[[32]byte][]byte) {

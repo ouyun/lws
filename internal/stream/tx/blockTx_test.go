@@ -78,7 +78,7 @@ func TestInsertTxs(t *testing.T) {
 	if err != nil {
 		t.Errorf("prepare senders err: [%s]", err)
 	}
-	err = handler.insertTxs(txs[:], blockModel)
+	_, err = handler.insertTxs(txs[:], blockModel)
 	connection.Commit()
 	if err != nil {
 		t.Errorf("insert txs err: [%s]", err)

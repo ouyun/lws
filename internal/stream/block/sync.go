@@ -11,6 +11,7 @@ import (
 	"github.com/FissionAndFusion/lws/internal/db"
 	"github.com/FissionAndFusion/lws/internal/db/model"
 	blockService "github.com/FissionAndFusion/lws/internal/db/service/block"
+	"github.com/FissionAndFusion/lws/internal/gateway/mqtt"
 	"github.com/FissionAndFusion/lws/internal/stream/tx"
 )
 
@@ -124,13 +125,18 @@ func writeBlock(block *lws.Block) error {
 	} else {
 		log.Printf("block [%s](#%d) has no tx mint field", hex.EncodeToString(block.Hash), block.NHeight)
 	}
-	err := tx.StartBlockTxHandler(dbtx, txs, ormBlock)
+	updates, err := tx.StartBlockTxHandler(dbtx, txs, ormBlock)
 	if err != nil {
 		dbtx.Rollback()
 		return err
 	}
 
 	dbtx.Commit()
+
+	for destination, item := range updates {
+		mptt.SendUTXOUpdate(&item, destination)
+	}
+
 	return nil
 }
 
