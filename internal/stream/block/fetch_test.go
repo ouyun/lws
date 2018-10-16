@@ -13,6 +13,7 @@ import (
 	"github.com/FissionAndFusion/lws/internal/coreclient"
 	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/dbp"
 	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/lws"
+	blockService "github.com/FissionAndFusion/lws/internal/db/service/block"
 	cclientModule "github.com/FissionAndFusion/lws/internal/stream/cclient"
 	"github.com/FissionAndFusion/lws/test/helper"
 	"github.com/golang/protobuf/ptypes"
@@ -439,7 +440,7 @@ func TestFetchForkedChain(t *testing.T) {
 	case <-doneChan:
 	}
 
-	tail := GetTailBlock()
+	tail := blockService.GetTailBlock()
 	tailHash := []byte("1000000000000000000000000007")
 	if bytes.Compare(tail.Hash, tailHash) != 0 {
 		t.Fatalf("tail hash expect [%s], but [%s]", tailHash, tail.Hash)

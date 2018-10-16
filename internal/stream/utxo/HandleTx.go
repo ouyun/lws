@@ -10,18 +10,48 @@ import (
 	"github.com/FissionAndFusion/lws/internal/db/model"
 	"github.com/FissionAndFusion/lws/internal/db/service/utxo"
 	"github.com/FissionAndFusion/lws/internal/db/util"
+	"github.com/FissionAndFusion/lws/internal/gateway/mqtt"
 	sqlbuilder "github.com/huandu/go-sqlbuilder"
 	"github.com/jinzhu/gorm"
 )
 
+func mapRemovedUtxosToUpdates(list []*model.Utxo) []mqtt.UTXOUpdate {
+	result := make([]mqtt.UTXOUpdate, len(list))
+	for i, item := range list {
+		result[i] = mqtt.UTXOUpdate{
+			OpType:    constant.UTXO_UPDATE_TYPE_REMOVE,
+			UTXOIndex: append(item.TxHash, item.Out),
+		}
+	}
+
+	return result
+}
+
+func mapUtxoWithTxToUpdate(utxo *model.Utxo, tx *lws.Transaction) *mqtt.UTXO {
+	return &mqtt.UTXO{
+		TXID:        utxo.TxHash,
+		Out:         utxo.Out,
+		BlockHeight: utxo.BlockHeight,
+		Type:        uint16(tx.NType),
+		Amount:      utxo.Amount,
+		LockUntil:   tx.NLockUntil,
+		DataSize:    uint16(len(tx.VchData)),
+		Data:        tx.VchData,
+	}
+}
+
 // entry for handling utxos in a single tx
-func HandleTx(db *gorm.DB, tx *lws.Transaction, blockModel *model.Block) error {
+func HandleTx(db *gorm.DB, tx *lws.Transaction, blockModel *model.Block) (map[[33]byte][]mqtt.UTXOUpdate, error) {
 	inputLength := len(tx.VInput)
 	hash := tx.Hash
 	txFee := tx.NTxFee
 	destination := util.MapPBDestinationToBytes(tx.CDestination)
 	amount := tx.NAmount
 	blockHeight := constant.BLOCK_HEIGHT_IN_POOL
+
+	var dest [33]byte
+	updates := make(map[[33]byte][]mqtt.UTXOUpdate)
+
 	if blockModel != nil {
 		blockHeight = blockModel.Height
 	}
@@ -38,7 +68,44 @@ func HandleTx(db *gorm.DB, tx *lws.Transaction, blockModel *model.Block) error {
 			BlockHeight: blockHeight,
 			Out:         0,
 		})
-		return result.Error
+
+		if result.Error != nil {
+			return nil, result.Error
+		}
+
+		// mqtt.SendUTXOUpdate(&[]mqtt.UTXOUpdate{
+		// 	mqtt.UTXOUpdate{
+		// 		OpType: constant.UTXO_UPDATE_TYPE_NEW,
+		// 		UTXO: &mqtt.UTXO{
+		// 			TXID:        hash,
+		// 			Out:         0,
+		// 			BlockHeight: blockHeight,
+		// 			Type:        uint16(tx.NType),
+		// 			Amount:      amount,
+		// 			LockUntil:   tx.NLockUntil,
+		// 			DataSize:    uint16(len(tx.VchData)),
+		// 			Data:        tx.VchData,
+		// 		},
+		// 	},
+		// }, destination)
+		copy(dest[:], destination)
+		updates[dest] = []mqtt.UTXOUpdate{
+			mqtt.UTXOUpdate{
+				OpType: constant.UTXO_UPDATE_TYPE_NEW,
+				UTXO: &mqtt.UTXO{
+					TXID:        hash,
+					Out:         0,
+					BlockHeight: blockHeight,
+					Type:        uint16(tx.NType),
+					Amount:      amount,
+					LockUntil:   tx.NLockUntil,
+					DataSize:    uint16(len(tx.VchData)),
+					Data:        tx.VchData,
+				},
+			},
+		}
+
+		return updates, nil
 	}
 	log.Printf("start handling utxo in tx: [%s] (%v inputs)", hex.EncodeToString(tx.Hash), inputLength)
 
@@ -48,11 +115,11 @@ func HandleTx(db *gorm.DB, tx *lws.Transaction, blockModel *model.Block) error {
 	// correctness depends on external flow
 	inputList, err := utxo.GetListByInputs(inputs, db)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if len(inputList) != inputLength {
-		return fmt.Errorf("utxo inputs (%d) in this tx does not match to utxos (%d) in database", inputLength, len(inputList))
+		return nil, fmt.Errorf("utxo inputs (%d) in this tx does not match to utxos (%d) in database", inputLength, len(inputList))
 	}
 
 	var inputSum int64
@@ -63,12 +130,16 @@ func HandleTx(db *gorm.DB, tx *lws.Transaction, blockModel *model.Block) error {
 
 	// remove utxos based on inputs
 	if err = utxo.RemoveInputs(inputList, db); err != nil {
-		return err
+		return nil, err
 	}
+
+	// mqtt.SendUTXOUpdate(mapRemovedUtxosToUpdates(inputList), inputList[0].Destination)
+	copy(dest[:], inputList[0].Destination)
+	updates[dest] = mapRemovedUtxosToUpdates(inputList)
 
 	var utxos []*model.Utxo
 	if utxos, err = utxo.GetByTxHash(tx.Hash, db); err != nil {
-		return err
+		return nil, err
 	}
 
 	// check if the utxos are already exist (all exist or none)
@@ -76,14 +147,23 @@ func HandleTx(db *gorm.DB, tx *lws.Transaction, blockModel *model.Block) error {
 	if len(utxos) != 0 {
 		for _, item := range utxos {
 			if item.BlockHeight == constant.BLOCK_HEIGHT_IN_POOL && blockModel != nil {
-				item.BlockHeight = blockModel.Height
+				item.BlockHeight = blockHeight
 				result := db.Save(item)
 				if result.Error != nil {
-					return result.Error
+					return nil, result.Error
 				}
+				copy(dest[:], item.Destination)
+				if updates[dest] == nil {
+					updates[dest] = []mqtt.UTXOUpdate{}
+				}
+				updates[dest] = append(updates[dest], mqtt.UTXOUpdate{
+					OpType:      constant.UTXO_UPDATE_TYPE_CHANGE,
+					UTXOIndex:   append(item.TxHash, item.Out),
+					BlockHeight: blockHeight,
+				})
 			}
 		}
-		return nil
+		return updates, nil
 	}
 
 	outputs = []*model.Utxo{
@@ -96,11 +176,13 @@ func HandleTx(db *gorm.DB, tx *lws.Transaction, blockModel *model.Block) error {
 		},
 	}
 	// when txFee is not 0, it's a normal tx. otherwise it is mint tx.
-	if txFee != 0 {
+	// and only if self change is larger than 0, will add additional utxo.
+	change := inputSum - tx.NAmount - txFee
+	if txFee != 0 && change > 0 {
 		outputs = append(outputs, &model.Utxo{
 			TxHash:      tx.Hash,
-			Destination: inputList[0].Destination,      // get self change destination from last input
-			Amount:      inputSum - tx.NAmount - txFee, // calculate change to self
+			Destination: inputList[0].Destination, // get self change destination from last input
+			Amount:      change,                   // calculate change to self
 			BlockHeight: blockHeight,
 			Out:         1,
 		})
@@ -124,5 +206,27 @@ func HandleTx(db *gorm.DB, tx *lws.Transaction, blockModel *model.Block) error {
 
 	sql, args := ib.Build()
 	_, err = db.CommonDB().Exec(sql, args...)
-	return err
+	if err != nil {
+		return nil, err
+	}
+
+	for _, item := range outputs {
+		// mqtt.SendUTXOUpdate(&[]mqtt.UTXOUpdate{
+		// 	mqtt.UTXOUpdate{
+		// 		OpType: constant.UTXO_UPDATE_TYPE_NEW,
+		// 		UTXO:   mapUtxoWithTxToUpdate(item, tx),
+		// 	},
+		// }, item.Destination)
+
+		copy(dest[:], item.Destination)
+		if updates[dest] == nil {
+			updates[dest] = []mqtt.UTXOUpdate{}
+		}
+		updates[dest] = append(updates[dest], mqtt.UTXOUpdate{
+			OpType: constant.UTXO_UPDATE_TYPE_NEW,
+			UTXO:   mapUtxoWithTxToUpdate(item, tx),
+		})
+	}
+
+	return updates, nil
 }

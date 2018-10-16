@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/FissionAndFusion/lws/internal/coreclient"
 	"github.com/FissionAndFusion/lws/internal/db/model"
 	"github.com/FissionAndFusion/lws/internal/gateway/crypto"
 	"github.com/eclipse/paho.mqtt.golang"
@@ -36,20 +37,21 @@ var clientHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Messag
 	// DecodePayload(msg.Payload())
 }
 
-var Client *Program
+var coreClient *coreclient.Client
 
 var msgChan = make(chan os.Signal, 1)
 
-func NewClient() (Client *Program, err error) {
-	if Client != nil {
-		return Client, err
+func StartCoreClient() *coreclient.Client {
+	if coreClient != nil {
+		return coreClient
 	}
-	Client = &Program{Id: "LWS00001", IsLws: true}
-	Client.Init()
-	if err := Client.Start(); err != nil {
-		log.Printf("client start failed")
-	}
-	return Client, err
+	addr := os.Getenv("CORECLIENT_URL")
+
+	log.Printf("Connect to core client [%s]", addr)
+	client := coreclient.NewTCPClient(addr)
+
+	client.Start()
+	return client
 }
 
 func Run(service Service) error {
@@ -57,7 +59,6 @@ func Run(service Service) error {
 	if err := service.Start(); err != nil {
 		return err
 	}
-	Client = service.(*Program)
 	signal.Notify(msgChan, os.Interrupt, os.Kill)
 	<-msgChan
 	return service.Stop()
@@ -87,10 +88,10 @@ func (p *Program) Start() error {
 
 // init client
 func (p *Program) Init() {
-	mqtt.DEBUG = log.New(os.Stdout, "", 20)
+	// mqtt.DEBUG = log.New(os.Stdout, "", 20)
 	// mqtt.ERROR = log.New(os.Stdout, "", 0)
 	opts := mqtt.NewClientOptions().AddBroker(os.Getenv("MQTT_URL")).SetClientID(p.Id)
-	opts.SetKeepAlive(3000 * time.Second)
+	opts.SetKeepAlive(300 * time.Second)
 	opts.SetAutoReconnect(true)
 	opts.SetCleanSession(false)
 	opts.SetDefaultPublishHandler(clientHandler)

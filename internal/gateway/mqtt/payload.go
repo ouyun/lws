@@ -91,7 +91,7 @@ type TxData struct {
 	NVersion   uint16 `len:"2"`
 	NType      uint16 `len:"2"`
 	NLockUntil uint32 `len:"4"`
-	HashAnchor []byte `len:"8"`
+	HashAnchor []byte `len:"32"`
 	Size       uint64 `len:"0"`
 	UtxoIndex  []byte `len:"0"`
 	Prefix     uint8  `len:"1"`
@@ -101,7 +101,6 @@ type TxData struct {
 }
 
 func TxDataToStruct(tx []byte, txData *TxData) (err error) {
-
 	resultValue := reflect.ValueOf(txData).Elem()
 
 	resultType := reflect.TypeOf(txData).Elem()
@@ -116,14 +115,16 @@ func TxDataToStruct(tx []byte, txData *TxData) (err error) {
 		if err != nil {
 			return err
 		}
+		log.Printf("txData : %+v\n", txData)
 		if resultValue.Field(i).CanSet() {
 			switch resultValue.Field(i).Type().Kind() {
 			case reflect.Slice:
 				if leng > 0 {
 					resultValue.Field(i).SetBytes(reverseBytes(tx[leftIndex:(leftIndex + len64)]))
 				} else if resultType.Field(i).Name == "UtxoIndex" {
+					log.Printf("tx : %+v\n", tx[leftIndex:])
 					resultValue.Field(i).SetBytes(reverseBytes(tx[leftIndex:(uint64(leftIndex) + (sizeLen * 33))]))
-					len64 = sizeLen
+					len64 = sizeLen * 33
 				}
 			case reflect.Uint8:
 				resultValue.Field(i).Set(
@@ -134,7 +135,12 @@ func TxDataToStruct(tx []byte, txData *TxData) (err error) {
 			case reflect.Uint32:
 				resultValue.Field(i).Set(
 					reflect.ValueOf(BytesToInt(tx[leftIndex:(leftIndex + len64)]).(uint32)))
+			case reflect.Int64:
+				resultValue.Field(i).Set(
+					reflect.ValueOf(int64(BytesToInt(tx[leftIndex:(leftIndex + len64)]).(uint64))))
 			case reflect.Uint64:
+				log.Printf("leftIndex : %d", leftIndex)
+				log.Printf("len64 : %d", len64)
 				if resultType.Field(i).Name == "Size" {
 					num := BytesToInt(tx[leftIndex:(leftIndex + 1)]).(uint8)
 					if num < 253 {
@@ -287,6 +293,7 @@ func DecodePayload(payload []byte, result interface{}) (err error) {
 
 	resultValue := reflect.ValueOf(result).Elem()
 	resultType := reflect.TypeOf(result).Elem()
+	totalLength := len(payload)
 
 	log.Printf("payload bytes : %+v\n", payload)
 	leftIndex := 0
@@ -302,6 +309,9 @@ func DecodePayload(payload []byte, result interface{}) (err error) {
 			switch resultValue.Field(i).Type().Kind() {
 			case reflect.String:
 				if leng > 0 {
+					if (leftIndex + leng) > totalLength {
+						return errors.New("slice bounds out of range")
+					}
 					resultValue.Field(i).SetString(string(payload[leftIndex:(leftIndex + leng)]))
 				} else if resultType.Field(i).Name == "TxData" {
 					allLength := len(payload)
@@ -310,6 +320,9 @@ func DecodePayload(payload []byte, result interface{}) (err error) {
 						return err
 					}
 					leng = allLength - length
+					if (leftIndex + leng) > totalLength {
+						return errors.New("slice bounds out of range")
+					}
 					resultValue.Field(i).SetString(string(payload[leftIndex:(leftIndex + leng)]))
 				} else {
 					buff := []byte{}
@@ -326,6 +339,9 @@ func DecodePayload(payload []byte, result interface{}) (err error) {
 						resultValue.Field(i).SetBytes(payload[leftIndex:])
 					} else {
 						// log.Printf("result get : %+v\n", payload[leftIndex:(leftIndex+leng)])
+						if (leftIndex + leng) > totalLength {
+							return errors.New("slice bounds out of range")
+						}
 						resultValue.Field(i).SetBytes(payload[leftIndex:(leftIndex + leng)])
 					}
 				} else if resultType.Field(i).Name == "TxData" {
@@ -335,9 +351,15 @@ func DecodePayload(payload []byte, result interface{}) (err error) {
 						return err
 					}
 					leng = allLength - length
+					if (leftIndex + leng) > totalLength {
+						return errors.New("slice bounds out of range")
+					}
 					resultValue.Field(i).SetBytes(payload[leftIndex:(leftIndex + leng)])
 				} else if resultType.Field(i).Name == "ForkList" {
 					leng = forkNum * 32
+					if (leftIndex + leng) > totalLength {
+						return errors.New("slice bounds out of range")
+					}
 					resultValue.Field(i).SetBytes(payload[leftIndex:(leftIndex + leng)])
 				} else {
 					buff := []byte{}
@@ -349,26 +371,37 @@ func DecodePayload(payload []byte, result interface{}) (err error) {
 					resultValue.Field(i).SetBytes(h[:leng-1])
 				}
 			case reflect.Uint8:
+				if (leftIndex + leng) > totalLength {
+					return errors.New("slice bounds out of range")
+				}
 				resultValue.Field(i).Set(
 					reflect.ValueOf(BytesToInt(payload[leftIndex:(leftIndex + leng)]).(uint8)))
 				if resultType.Field(i).Name == "ForkNum" {
 					forkNum = int(BytesToInt(payload[leftIndex:(leftIndex + leng)]).(uint8))
 				}
 			case reflect.Uint16:
-				// log.Printf("uint16 get : %+v\n", payload[leftIndex:(leftIndex+leng)])
+				if (leftIndex + leng) > totalLength {
+					return errors.New("slice bounds out of range")
+				}
 				resultValue.Field(i).Set(
 					reflect.ValueOf(BytesToInt(payload[leftIndex:(leftIndex + leng)]).(uint16)))
 			case reflect.Uint32:
+				if (leftIndex + leng) > totalLength {
+					return errors.New("slice bounds out of range")
+				}
 				resultValue.Field(i).Set(
 					reflect.ValueOf(BytesToInt(payload[leftIndex:(leftIndex + leng)]).(uint32)))
 			case reflect.Uint64:
+				if (leftIndex + leng) > totalLength {
+					return errors.New("slice bounds out of range")
+				}
 				resultValue.Field(i).Set(
 					reflect.ValueOf(BytesToInt(payload[leftIndex:(leftIndex + leng)]).(uint64)))
 			default:
 				err = errors.New("unsuport type")
 			}
 		} else {
-			err = errors.New("can not set value ")
+			err = errors.New("decode payload get err: can not set value!")
 		}
 		leftIndex = (leftIndex + leng)
 	}

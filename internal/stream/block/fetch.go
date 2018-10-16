@@ -10,6 +10,7 @@ import (
 	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/lws"
 	dbmodule "github.com/FissionAndFusion/lws/internal/db"
 	model "github.com/FissionAndFusion/lws/internal/db/model"
+	blockService "github.com/FissionAndFusion/lws/internal/db/service/block"
 	"github.com/golang/protobuf/ptypes"
 
 	// "github.com/FissionAndFusion/lws/internal/db/model"
@@ -64,7 +65,7 @@ func (b *BlockFetcher) startFetchBlocks(triggerBlock *lws.Block) {
 	// 1. if the fork chain is detected, remove the bad-chain data
 	tail := b.checkForkedChain()
 
-	for ; tail == nil || !b.isTriggerBlockSynced; tail = GetTailBlock() {
+	for ; tail == nil || !b.isTriggerBlockSynced; tail = blockService.GetTailBlock() {
 		var hash []byte
 		if tail != nil {
 			hash = tail.Hash
@@ -75,7 +76,7 @@ func (b *BlockFetcher) startFetchBlocks(triggerBlock *lws.Block) {
 }
 
 func (b *BlockFetcher) checkForkedChain() *model.Block {
-	tail := GetTailBlock()
+	tail := blockService.GetTailBlock()
 	if tail == nil {
 		return tail
 	}
@@ -103,7 +104,7 @@ func (b *BlockFetcher) checkForkedChain() *model.Block {
 	}
 
 	// retrieve new cleared tail
-	tail = GetTailBlock()
+	tail = blockService.GetTailBlock()
 	return tail
 }
 

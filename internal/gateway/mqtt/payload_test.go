@@ -3,7 +3,6 @@ package mqtt
 import (
 	"bytes"
 	"encoding/hex"
-	// "log"
 	"math/rand"
 	"reflect"
 	// "strconv"
@@ -24,7 +23,7 @@ type casepair2 struct {
 
 func TestTxDataToStruct(t *testing.T) {
 	address, _ := hex.DecodeString("6f937c2f5944f5da2a118cebb067cd2c9c92c75955ce05aa05158a1af28e1607")
-	anch, _ := hex.DecodeString("6f937c2f6f937c2f")
+	anch, _ := hex.DecodeString("6f937c2f6f937c2f6f937c2f6f937c2f6f937c2f6f937c2f6f937c2f6f937c2f")
 
 	txs := TxData{
 		NVersion:   uint16(45),

@@ -9,8 +9,8 @@ import (
 
 	"github.com/FissionAndFusion/lws/internal/db"
 	"github.com/FissionAndFusion/lws/internal/db/model"
+	"github.com/FissionAndFusion/lws/internal/db/service/block"
 	"github.com/FissionAndFusion/lws/internal/gateway/crypto"
-	"github.com/FissionAndFusion/lws/internal/stream/block"
 	"github.com/eclipse/paho.mqtt.golang"
 )
 

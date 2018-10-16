@@ -10,6 +10,8 @@ import (
 	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/lws"
 	"github.com/FissionAndFusion/lws/internal/db"
 	"github.com/FissionAndFusion/lws/internal/db/model"
+	blockService "github.com/FissionAndFusion/lws/internal/db/service/block"
+	"github.com/FissionAndFusion/lws/internal/gateway/mqtt"
 	"github.com/FissionAndFusion/lws/internal/stream/tx"
 )
 
@@ -89,7 +91,7 @@ func isTailOrOrigin(block *lws.Block) bool {
 		return true
 	}
 
-	tail := GetTailBlock()
+	tail := blockService.GetTailBlock()
 	if tail != nil {
 		// log.Printf("tail [%s](%d), block [%s](%d) prev[%s]", tail.Hash, tail.Height, block.Hash, block.Height, block.HashPrev)
 		if bytes.Compare(tail.Hash, block.HashPrev) == 0 && block.NHeight == tail.Height+1 {
@@ -123,13 +125,18 @@ func writeBlock(block *lws.Block) error {
 	} else {
 		log.Printf("block [%s](#%d) has no tx mint field", hex.EncodeToString(block.Hash), block.NHeight)
 	}
-	err := tx.StartBlockTxHandler(dbtx, txs, ormBlock)
+	updates, err := tx.StartBlockTxHandler(dbtx, txs, ormBlock)
 	if err != nil {
 		dbtx.Rollback()
 		return err
 	}
 
 	dbtx.Commit()
+
+	for destination, item := range updates {
+		mqtt.SendUTXOUpdate(&item, destination[:])
+	}
+
 	return nil
 }
 
@@ -144,22 +151,6 @@ func convertBlockFromDbpToOrm(block *lws.Block) *model.Block {
 		Tstamp:    block.NTimeStamp,
 	}
 	return ormBlock
-}
-
-func GetTailBlock() *model.Block {
-	block := &model.Block{}
-	connection := db.GetConnection()
-	res := connection.
-		Where("block_type != ?", constant.BLOCK_TYPE_SUBSIDIARY).
-		Order("height desc").
-		Take(block)
-	if res.Error != nil {
-		log.Println("GetTailBlock failed", res.Error)
-		return nil
-	}
-	hashStr := hex.EncodeToString(block.Hash)
-	log.Printf("Tail: [%s](%d) type[%d]", hashStr, block.Height, block.BlockType)
-	return block
 }
 
 func isBlockExisted(height uint32, hash []byte, isSubBlock bool) bool {

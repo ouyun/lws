@@ -7,6 +7,7 @@ import (
 	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/lws"
 	"github.com/FissionAndFusion/lws/internal/db"
 	"github.com/FissionAndFusion/lws/internal/db/model"
+	"github.com/FissionAndFusion/lws/internal/gateway/mqtt"
 	"github.com/FissionAndFusion/lws/internal/stream/utxo"
 	"github.com/jinzhu/gorm"
 )
@@ -36,21 +37,19 @@ func StartPoolTxHandler(tx *lws.Transaction) error {
 		return nil
 	}
 
-	err := insertTx(dbtx, tx)
+	updates, err := insertTx(dbtx, tx)
 	if err != nil {
 		log.Println("pool tx handler rollback")
 		dbtx.Rollback()
 		return err
 	}
 
-	err = utxo.HandleTx(dbtx, tx, nil)
-	if err != nil {
-		log.Printf("handle utxo error: %v", err)
-		dbtx.Rollback()
-		return err
+	dbtx.Commit()
+
+	for destination, item := range updates {
+		mqtt.SendUTXOUpdate(&item, destination[:])
 	}
 
-	dbtx.Commit()
 	return nil
 }
 
@@ -69,25 +68,26 @@ func getSingleTxSender(dbtx *gorm.DB, tx *model.Tx) ([]byte, error) {
 	return prevTx.SendTo, nil
 }
 
-func insertTx(dbtx *gorm.DB, tx *lws.Transaction) error {
+func insertTx(dbtx *gorm.DB, tx *lws.Transaction) (map[[33]byte][]mqtt.UTXOUpdate, error) {
 	ormTx := convertTxFromDbpToOrm(tx)
 
 	sender, err := getSingleTxSender(dbtx, ormTx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	ormTx.Sender = sender
 
 	res := dbtx.Create(ormTx)
 	if res.Error != nil {
-		return res.Error
+		return nil, res.Error
 	}
 
-	// if err := utxo.HandleTx(dbtx, tx); err != nil {
-	// 	return err
-	// }
+	updates, err := utxo.HandleTx(dbtx, tx, nil)
+	if err != nil {
+		return nil, err
+	}
 
-	return nil
+	return updates, nil
 }
 
 func convertTxFromDbpToOrm(tx *lws.Transaction) *model.Tx {
