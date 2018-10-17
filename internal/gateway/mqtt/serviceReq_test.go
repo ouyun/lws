@@ -7,8 +7,8 @@ import (
 	"encoding/hex"
 	"log"
 	"os"
-	// "strconv"
-	// "strings"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -46,36 +46,33 @@ import (
 // 	// }
 // }
 
-// func TestAPISS(t *testing.T) {
+func TestAPISS(t *testing.T) {
 
-// 	code1 := "233 249 230 49 102 97 68 115 223 140 189 218 85 57 40 239 114 182 160 237 75 50 138 97 171 14 40 114 0 252 172 102"
-// 	codeArr1 := strings.Split(code1, " ")
-// 	log.Printf("len : %+v", len(codeArr1))
-// 	codeAdd1 := make([]byte, 32)
-// 	log.Printf("len : %+v", codeArr1)
-// 	for index := 0; index < len(codeArr1); index++ {
-// 		value, _ := strconv.Atoi(codeArr1[index])
-// 		codeAdd1[index] = byte(value)
-// 	}
-
-// 	code := "0 126 44 55 193 57 193 90 149 130 22 46 166 14 119 117 30 33 10 196 12 255 221 14 180 133 55 97 135 13 8 89"
-// 	codeArr := strings.Split(code, " ")
-// 	log.Printf("len : %+v", len(codeArr))
-// 	codeAdd := make([]byte, 32)
-// 	log.Printf("len : %+v", codeArr)
-// 	for index := 0; index < len(codeArr); index++ {
-// 		value, _ := strconv.Atoi(codeArr[index])
-// 		codeAdd[index] = byte(value)
-// 	}
-// 	log.Printf("len : %+v", codeAdd)
-// 	// pubKey, privKey, _ := crypto.GenerateKeyPair(nil)
-// 	var address crypto.PrivateKey
-// 	copy(address[:], codeAdd[:])
-// 	var addressPub crypto.PublicKey
-// 	copy(addressPub[:], codeAdd1[:])
-// 	apiKey := crypto.GenerateApiKey(&address, &addressPub)
-// 	log.Printf("apiKey : %+v", apiKey)
-// }
+	code1 := "1 0 0 0 0 0 0 0 192 175 220 23 105 128 160 161 235 232 73 208 155 81 228 180 193 221 70 251 147 149 121 215 27 220 85 128 157 111 61 166 1 97 2 114 2 220 86 158 197 47 247 108 124 239 212 253 253 23 180 13 45 205 180 62 92 96 216 251 69 172 98 227 163 0 1 21 31 223 54 184 6 54 94 213 182 216 67 173 88 68 174 66 80 132 46 27 115 69 27 63 250 22 209 215 234 10 178 64 66 15 0 0 0 0 0 100 0 0 0 0 0 0 0 1 48 64 72 239 202 206 155 76 155 125 107 97 213 125 110 110 131 103 162 31 143 16 108 236 124 139 30 17 85 149 250 254 1 140 83 14 230 250 172 18 219 242 88 166 117 94 30 154 33 251 34 182 254 50 40 178 135 38 164 168 35 45 34 127 250 11"
+	codeArr1 := strings.Split(code1, " ")
+	log.Printf("len : %+v", len(codeArr1))
+	codeAdd1 := make([]byte, 190)
+	log.Printf("len : %+v", codeArr1)
+	for index := 0; index < len(codeArr1); index++ {
+		value, _ := strconv.Atoi(codeArr1[index])
+		codeAdd1[index] = byte(value)
+	}
+	log.Printf("codeAdd1 : %+v", codeAdd1)
+	var txData TxData
+	err := TxDataToStruct(codeAdd1, &txData)
+	if err != nil {
+		log.Printf("err : %+v", err)
+	}
+	// code := "0 126 44 55 193 57 193 90 149 130 22 46 166 14 119 117 30 33 10 196 12 255 221 14 180 133 55 97 135 13 8 89"
+	// codeArr := strings.Split(code, " ")
+	// log.Printf("len : %+v", len(codeArr))
+	// codeAdd := make([]byte, 32)
+	// log.Printf("len : %+v", codeArr)
+	// for index := 0; index < len(codeArr); index++ {
+	// 	value, _ := strconv.Atoi(codeArr[index])
+	// 	codeAdd[index] = byte(value)
+	// }
+}
 
 func TestServiceReq(t *testing.T) {
 	// lws := &Program{
@@ -151,55 +148,60 @@ func TestServiceReq(t *testing.T) {
 	cli.Stop()
 }
 
-// func TestSignCase(t *testing.T) {
-// 	code := "1 0 1 21 31 223 54 184 6 54 94 213 182 216 67 173 88 68 174 66 80 132 46 27 115 69 27 63 250 22 209 215 234 10 178 101 0 0 0 225 239 173 91 1 111 147 124 47 89 68 245 218 42 17 140 235 176 103 205 44 156 146 199 89 85 206 5 170 5 21 138 26 242 142 22 7 2 0 84 69 83 84 0 62 0 175 0 182 224 100 110 90 225 12 50 185 111 187 154 240 196 70 75 74 145 218 86 188 179 168 35 47 155 206 96 156 73 243 171 20 81 148 139 9 4 53 83 42 239 214 112 134 221 246 166 243 98 249 180 33 21 74 130 159 149 81 94"
-// 	codeArr := strings.Split(code, " ")
-// 	log.Printf("len : %+v", len(codeArr))
-// 	codeAdd := make([]byte, 147)
-// 	log.Printf("len : %+v", codeArr)
-// 	for index := 0; index < len(codeArr); index++ {
-// 		value, _ := strconv.Atoi(codeArr[index])
-// 		codeAdd[index] = byte(value)
-// 	}
-// 	s := ServicePayload{}
+func TestSignCase(t *testing.T) {
+	// 	code := "1 0 1 21 31 223 54 184 6 54 94 213 182 216 67 173 88 68 174 66 80 132 46 27 115 69 27 63 250 22 209 215 234 10 178 101 0 0 0 225 239 173 91 1 111 147 124 47 89 68 245 218 42 17 140 235 176 103 205 44 156 146 199 89 85 206 5 170 5 21 138 26 242 142 22 7 2 0 84 69 83 84 0 62 0 175 0 182 224 100 110 90 225 12 50 185 111 187 154 240 196 70 75 74 145 218 86 188 179 168 35 47 155 206 96 156 73 243 171 20 81 148 139 9 4 53 83 42 239 214 112 134 221 246 166 243 98 249 180 33 21 74 130 159 149 81 94"
+	// 	codeArr := strings.Split(code, " ")
+	// 	log.Printf("len : %+v", len(codeArr))
+	// 	codeAdd := make([]byte, 147)
+	// 	log.Printf("len : %+v", codeArr)
+	// 	for index := 0; index < len(codeArr); index++ {
+	// 		value, _ := strconv.Atoi(codeArr[index])
+	// 		codeAdd[index] = byte(value)
+	// 	}
+	// 	s := ServicePayload{}
 
-// 	err := DecodePayload(codeAdd, &s)
-// 	if err != nil {
-// 		log.Printf("err: %+v", err)
-// 	}
-// 	connection := db.GetConnection()
-// 	user := model.User{}
+	// 	err := DecodePayload(codeAdd, &s)
+	// 	if err != nil {
+	// 		log.Printf("err: %+v", err)
+	// 	}
+	connection := db.GetConnection()
+	user := model.User{}
 
-// 	connection.LogMode(true)
-// 	found := connection.Where("address_id = ?", 2).Find(&user).RecordNotFound()
-// 	if !found {
-// 		log.Printf("user: %+v", user)
-// 	}
-// 	log.Printf("user: %s", hex.EncodeToString(user.Address))
-// 	var UTXOs []UTXO
-// 	var utxol []model.Utxo
+	connection.LogMode(true)
+	found := connection.Where("address_id = ?", 2).Find(&user).RecordNotFound()
+	if !found {
+		log.Printf("user: %+v", user)
+	}
+	// 	log.Printf("user: %s", hex.EncodeToString(user.Address))
+	var UTXOs []UTXO
+	// 	var utxol []model.Utxo
 
-// 	// connection.Raw("SELECT * FROM utxo WHERE ID = ?", 1).Scan(&utxol)
-// 	log.Printf("utxol: %+v", utxol)
+	// 	// connection.Raw("SELECT * FROM utxo WHERE ID = ?", 1).Scan(&utxol)
+	// 	log.Printf("utxol: %+v", utxol)
 
-// 	connection.Raw("SELECT "+
-// 		"utxo.tx_hash AS tx_id, "+
-// 		"utxo.out, "+
-// 		"utxo.block_height, "+
-// 		"tx.tx_type, "+
-// 		"utxo.amount, "+
-// 		"tx.sender AS sender, "+
-// 		"tx.lock_until, "+
-// 		"tx.data "+
-// 		"FROM utxo "+
-// 		"INNER JOIN tx "+
-// 		"ON utxo.tx_hash = tx.hash "+
-// 		"AND utxo.destination = ? "+
-// 		"ORDER BY utxo.amount ASC, utxo.out ASC ", user.Address).Find(&UTXOs)
-// 	// Scan(&UTXOs)
-// 	log.Printf("UTXOs: %+v", UTXOs)
+	connection.Raw("SELECT "+
+		"utxo.tx_hash AS tx_id, "+
+		"utxo.out, "+
+		"utxo.block_height, "+
+		"tx.tx_type, "+
+		"utxo.amount, "+
+		"tx.sender AS sender, "+
+		"tx.lock_until, "+
+		"tx.data "+
+		"FROM utxo "+
+		"INNER JOIN tx "+
+		"ON utxo.tx_hash = tx.hash "+
+		"AND utxo.destination = ? "+
+		"ORDER BY utxo.amount ASC, utxo.out ASC ", user.Address).Find(&UTXOs)
+	// 	// Scan(&UTXOs)
+	log.Printf("UTXOs: %+v", UTXOs)
+	result, err := UTXOListToByte(&UTXOs)
+	if err != nil {
+		log.Printf("err: %+v", err)
+	}
+	log.Printf("result: %+v", result)
 
-// }
+}
 
 func GetSignature(s *ServicePayload, signKey []byte, payload []byte) {
 	s.ServSignature = edwards25519.Sign(edwards25519.PrivateKey(signKey), payload[:(len(payload)-66)])

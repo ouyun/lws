@@ -136,6 +136,9 @@ func TxDataToStruct(tx []byte, txData *TxData) (err error) {
 				resultValue.Field(i).Set(
 					reflect.ValueOf(BytesToInt(tx[leftIndex:(leftIndex + len64)]).(uint32)))
 			case reflect.Int64:
+				log.Printf("leftIndex : %d", leftIndex)
+				log.Printf("len64 : %d", len64)
+				log.Printf("tx int64 : %+v", int64(BytesToInt(tx[leftIndex:(leftIndex+len64)]).(uint64)))
 				resultValue.Field(i).Set(
 					reflect.ValueOf(int64(BytesToInt(tx[leftIndex:(leftIndex + len64)]).(uint64))))
 			case reflect.Uint64:
@@ -170,6 +173,7 @@ func TxDataToStruct(tx []byte, txData *TxData) (err error) {
 		}
 		leftIndex += len64
 	}
+	log.Printf("txData : %+v\n", txData)
 	return err
 }
 
@@ -220,6 +224,7 @@ func StructToBytes(s interface{}) (result []byte, err error) {
 		case reflect.Uint64:
 			buf.Write(IntToBytes(uint64(value.Field(i).Uint())))
 		case reflect.Int64:
+			log.Printf("bytes: %+v", IntToBytes(int64(value.Field(i).Int())))
 			buf.Write(IntToBytes(int64(value.Field(i).Int())))
 		default:
 			err = errors.New("unsuport type")
@@ -251,6 +256,10 @@ func IntToBytes(i interface{}) []byte {
 	case uint64:
 		var buf = make([]byte, 8)
 		binary.LittleEndian.PutUint64(buf, v)
+		return buf
+	case int64:
+		var buf = make([]byte, 8)
+		binary.LittleEndian.PutUint64(buf, uint64(v))
 		return buf
 	case uint8:
 		buf := []byte{byte(uint8(v))}

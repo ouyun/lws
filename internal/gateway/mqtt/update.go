@@ -82,6 +82,7 @@ func SendUTXOUpdate(u *[]UTXOUpdate, address []byte) {
 		SendUpdateMessage(&(*client).Client, &redisConn, &updatePayload, utxoUList, &cliMap, 0, c)
 		<-c
 	}
+	log.Printf("--------------------------")
 }
 
 // send update message

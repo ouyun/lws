@@ -33,11 +33,11 @@ var serviceReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Me
 	pubKey = PayloadToUser(&newUser, &s)
 
 	// 验证签名
-	if !VerifyAddress(&s, msg.Payload()) {
-		//丢弃请求
-		log.Printf("sign err ！discard data!\n")
-		return
-	}
+	// if !VerifyAddress(&s, msg.Payload()) {
+	// 	//丢弃请求
+	// 	log.Printf("sign err ！discard data!\n")
+	// 	return
+	// }
 
 	//TODO: 检查分支
 	forkId, err := hex.DecodeString(os.Getenv("FORK_ID"))
