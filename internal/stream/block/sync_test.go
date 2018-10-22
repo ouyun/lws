@@ -117,7 +117,7 @@ func TestHandleSyncBlockExtendSuccess(t *testing.T) {
 	TestHandleSyncBlockOriginSuccess(t)
 	block := &lws.Block{
 		NVersion:   0x0000001,
-		NType:      uint32(constant.BLOCK_TYPE_EXTENDED),
+		NType:      uint32(constant.BLOCK_TYPE_SUBSIDIARY),
 		NTimeStamp: uint32(time.Now().Unix()),
 		NHeight:    2,
 		Hash:       []byte("0000000000000000000000000003"),
@@ -143,7 +143,7 @@ func TestHandleSyncBlockExtendSuccessWithTx(t *testing.T) {
 	TestHandleSyncBlockOriginSuccess(t)
 	block := &lws.Block{
 		NVersion:   0x0000001,
-		NType:      uint32(constant.BLOCK_TYPE_EXTENDED),
+		NType:      uint32(constant.BLOCK_TYPE_SUBSIDIARY),
 		NTimeStamp: uint32(time.Now().Unix()),
 		NHeight:    2,
 		Hash:       []byte("0000000000000000000000000003"),
@@ -193,7 +193,7 @@ func TestHandleSyncBlockExtendWrongHeightRecovery(t *testing.T) {
 
 	block := &lws.Block{
 		NVersion:   0x0000001,
-		NType:      uint32(constant.BLOCK_TYPE_EXTENDED),
+		NType:      uint32(constant.BLOCK_TYPE_SUBSIDIARY),
 		NTimeStamp: uint32(time.Now().Unix()),
 		NHeight:    3,
 		Hash:       []byte("0000000000000000000000000006"),

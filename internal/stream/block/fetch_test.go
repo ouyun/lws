@@ -348,37 +348,37 @@ func TestFetchForkedChain(t *testing.T) {
 		results = []*lws.Block{
 			&lws.Block{
 				NHeight:  1,
-				NType:    uint32(constant.BLOCK_TYPE_EXTENDED),
+				NType:    uint32(constant.BLOCK_TYPE_SUBSIDIARY),
 				Hash:     []byte("0000000000000000000000000002"),
 				HashPrev: []byte("0000000000000000000000000001"),
 			},
 			&lws.Block{
 				NHeight:  2,
-				NType:    uint32(constant.BLOCK_TYPE_EXTENDED),
+				NType:    uint32(constant.BLOCK_TYPE_SUBSIDIARY),
 				Hash:     []byte("0000000000000000000000000003"),
 				HashPrev: []byte("0000000000000000000000000002"),
 			},
 			&lws.Block{
 				NHeight:  3,
-				NType:    uint32(constant.BLOCK_TYPE_EXTENDED),
+				NType:    uint32(constant.BLOCK_TYPE_SUBSIDIARY),
 				Hash:     []byte("1000000000000000000000000004"),
 				HashPrev: []byte("0000000000000000000000000003"),
 			},
 			&lws.Block{
 				NHeight:  4,
-				NType:    uint32(constant.BLOCK_TYPE_EXTENDED),
+				NType:    uint32(constant.BLOCK_TYPE_SUBSIDIARY),
 				Hash:     []byte("1000000000000000000000000005"),
 				HashPrev: []byte("1000000000000000000000000004"),
 			},
 			&lws.Block{
 				NHeight:  5,
-				NType:    uint32(constant.BLOCK_TYPE_EXTENDED),
+				NType:    uint32(constant.BLOCK_TYPE_SUBSIDIARY),
 				Hash:     []byte("1000000000000000000000000006"),
 				HashPrev: []byte("1000000000000000000000000005"),
 			},
 			&lws.Block{
 				NHeight:  6,
-				NType:    uint32(constant.BLOCK_TYPE_EXTENDED),
+				NType:    uint32(constant.BLOCK_TYPE_SUBSIDIARY),
 				Hash:     []byte("1000000000000000000000000007"),
 				HashPrev: []byte("1000000000000000000000000006"),
 			},
