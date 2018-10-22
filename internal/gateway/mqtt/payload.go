@@ -49,6 +49,7 @@ type SyncReply struct {
 	Error       uint8  `len:"1" type:"SyncReply"`
 	BlockHash   []byte `len:"32"`
 	BlockHeight uint32 `len:"4"`
+	BlockTime   uint32 `len:"4"`
 	UTXONum     uint16 `len:"2"`
 	UTXOList    []byte `len:"0"`
 	Continue    uint8  `len:"1"`
@@ -60,6 +61,7 @@ type UpdatePayload struct {
 	ForkId     []byte `len:"32"`
 	BlockHash  []byte `len:"32"`
 	Height     uint32 `len:"4"`
+	BlockTime  uint32 `len:"4"`
 	UpdateNum  uint16 `len:"2"`
 	UpdateList []byte `len:"0"`
 	Continue   uint8  `len:"1"`
@@ -179,7 +181,7 @@ func TxDataToStruct(tx []byte, txData *TxData) (err error) {
 
 func StructToBytes(s interface{}) (result []byte, err error) {
 	buf := bytes.NewBuffer([]byte{})
-
+	log.Printf("StructToBytes: %+v\n", s)
 	value := reflect.ValueOf(s)
 	valueType := reflect.TypeOf(s)
 	for i := 0; i < value.NumField(); i++ {
@@ -444,4 +446,17 @@ func reverseBytes(src []byte) []byte {
 		src[i], src[opp] = src[opp], src[i]
 	}
 	return src
+}
+
+func reverseString(s string) string {
+	runes := []rune(s)
+
+	// runes := []rune(s)
+	for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
+		runes[i], runes[j] = runes[j], runes[i]
+	}
+	for i := 0; i < len(s); i += 2 {
+		runes[i], runes[i+1] = runes[i+1], runes[i]
+	}
+	return string(runes)
 }

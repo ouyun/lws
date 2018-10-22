@@ -34,5 +34,5 @@ type Tx struct {
 	// tx 包含的数据
 	Data []byte `gorm:"type:blob;"`
 	// tx 签名
-	Sig []byte
+	Sig []byte `gorm:"type:blob;"`
 }

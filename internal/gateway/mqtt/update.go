@@ -37,7 +37,11 @@ func SendUTXOUpdate(u *[]UTXOUpdate, address []byte) {
 	// get user by address
 	redisConn := pool.Get()
 	connection := db.GetConnection()
-	GetUserByAddress(address, connection, &redisConn, &user, &cliMap)
+	err := GetUserByAddress(address, connection, &redisConn, &user, &cliMap)
+	if err != nil {
+		log.Printf("get user failed: %+v", err)
+		return
+	}
 	updatePayload.Nonce = cliMap.Nonce
 	updatePayload.AddressId = cliMap.AddressId
 	tailBlock := block.GetTailBlock()
@@ -48,6 +52,7 @@ func SendUTXOUpdate(u *[]UTXOUpdate, address []byte) {
 
 	updatePayload.BlockHash = tailBlock.Hash
 	updatePayload.Height = tailBlock.Height
+	updatePayload.BlockTime = tailBlock.Tstamp
 	forkId, err := hex.DecodeString(os.Getenv("FORK_ID"))
 	if err != nil {
 		log.Printf("Getenv FORK_ID err: %+v", err)

@@ -88,3 +88,26 @@ func SignWithApiKey(apikey []byte, message []byte) []byte {
 	hbyte := h.Sum(nil)
 	return hbyte
 }
+
+func GenerateKeyPairBySeed(seed []byte, count int) (PublicKey, PrivateKey, PrivateSignKey) {
+	digest := sha512.Sum512(seed)
+	digest[0] &= 248
+	digest[31] &= 127
+	digest[31] |= 64
+
+	var A edwards25519.ExtendedGroupElement
+	var hBytes [32]byte
+
+	copy(hBytes[:], digest[:])
+
+	edwards25519.GeScalarMultBase(&A, &hBytes)
+	var publicKeyBytes [32]byte
+	A.ToBytes(&publicKeyBytes)
+	var privKeyBytes [32]byte
+	var privateSignKey [64]byte
+	copy(privKeyBytes[:], digest[:32])
+	copy(privateSignKey[:], seed)
+	copy(privateSignKey[32:], publicKeyBytes[:])
+
+	return publicKeyBytes, privKeyBytes, privateSignKey
+}

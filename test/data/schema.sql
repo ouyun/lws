@@ -35,7 +35,7 @@ CREATE TABLE `block` (
   `merkle` varchar(32) DEFAULT NULL,
   `height` int(10) unsigned DEFAULT NULL,
   `mint_tx_id` varbinary(255) DEFAULT NULL,
-  `sig` varbinary(255) DEFAULT NULL,
+  `sig` blob DEFAULT NULL,
   PRIMARY KEY (`id`,`hash`),
   KEY `idx_block_deleted_at` (`deleted_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
@@ -98,7 +98,7 @@ CREATE TABLE `tx` (
   `send_to` varbinary(33) DEFAULT NULL,
   `sender` varbinary(33) DEFAULT NULL,
   `data` blob,
-  `sig` varbinary(255) DEFAULT NULL,
+  `sig` blob DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `hash` (`hash`),
   KEY `idx_tx_deleted_at` (`deleted_at`)

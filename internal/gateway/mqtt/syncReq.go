@@ -10,7 +10,7 @@ import (
 	"github.com/FissionAndFusion/lws/internal/db"
 	"github.com/FissionAndFusion/lws/internal/db/model"
 	"github.com/FissionAndFusion/lws/internal/db/service/block"
-	// "github.com/FissionAndFusion/lws/internal/gateway/crypto"
+	"github.com/FissionAndFusion/lws/internal/gateway/crypto"
 	"github.com/eclipse/paho.mqtt.golang"
 )
 
@@ -38,12 +38,12 @@ var syncReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Messa
 
 	inRedis, inDb, err := CheckAddressId(s.AddressId, connection, &redisConn, &user, &cliMap)
 	// 验证签名
-	// signed := crypto.SignWithApiKey(cliMap.ApiKey, payload[:len(payload)-20])
-	// if bytes.Compare(signed, s.Signature) != 0 {
-	// 	// 丢弃 请求
-	// 	log.Printf("verify failed : \n")
-	// 	return
-	// }
+	signed := crypto.SignWithApiKey(cliMap.ApiKey, payload[:len(payload)-20])
+	if bytes.Compare(signed, s.Signature) != 0 {
+		// 丢弃 请求
+		log.Printf("verify failed : \n")
+		return
+	}
 	if err != nil {
 		log.Printf("err: %+v", err)
 		// ReplySyncReq(&client, &s, &UTXOs, &cliMap, 16, 0)
@@ -151,6 +151,7 @@ func ReplySyncReq(client *mqtt.Client, s *SyncPayload, u *[]UTXO, cliMap *CliMap
 		tailBlock := block.GetTailBlock()
 		reply.BlockHash = tailBlock.Hash
 		reply.BlockHeight = tailBlock.Height
+		reply.BlockTime = tailBlock.Tstamp
 		reply.UTXONum = uint16(0)
 		reply.Continue = uint8(end)
 	}
@@ -158,6 +159,7 @@ func ReplySyncReq(client *mqtt.Client, s *SyncPayload, u *[]UTXO, cliMap *CliMap
 		tailBlock := block.GetTailBlock()
 		reply.BlockHash = tailBlock.Hash
 		reply.BlockHeight = tailBlock.Height
+		reply.BlockTime = tailBlock.Tstamp
 		reply.UTXONum = uint16(len(*u))
 		byteList, _ := UTXOListToByte(u)
 		reply.UTXOList = byteList
@@ -185,6 +187,7 @@ func ReplySyncReqWithChan(client *mqtt.Client, s *SyncPayload, u []UTXO, cliMap 
 		tailBlock := block.GetTailBlock()
 		reply.BlockHash = tailBlock.Hash
 		reply.BlockHeight = tailBlock.Height
+		reply.BlockTime = tailBlock.Tstamp
 		reply.UTXONum = uint16(len(u))
 		byteList, _ := UTXOListToByte(&u)
 		reply.UTXOList = byteList

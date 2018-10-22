@@ -14,7 +14,7 @@ import (
 	"github.com/FissionAndFusion/lws/internal/db"
 	"github.com/FissionAndFusion/lws/internal/db/model"
 	"github.com/FissionAndFusion/lws/internal/db/service/utxo"
-	// "github.com/FissionAndFusion/lws/internal/gateway/crypto"
+	"github.com/FissionAndFusion/lws/internal/gateway/crypto"
 	"github.com/eclipse/paho.mqtt.golang"
 	"github.com/golang/protobuf/ptypes"
 )
@@ -44,11 +44,11 @@ var sendTxReqReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.
 
 	inRedis, inDb, err := CheckAddressId(s.AddressId, connection, &redisConn, &user, &cliMap)
 	// 验证签名
-	// signed := crypto.SignWithApiKey(cliMap.ApiKey, payload[:len(payload)-20])
-	// if bytes.Compare(signed, s.Signature) != 0 {
-	// 	// 丢弃 内容
-	// 	return
-	// }
+	signed := crypto.SignWithApiKey(cliMap.ApiKey, payload[:len(payload)-20])
+	if bytes.Compare(signed, s.Signature) != 0 {
+		// 丢弃 内容
+		return
+	}
 	if err != nil {
 		ReplySendTx(&client, &s, 16, 0, "", &cliMap)
 		return

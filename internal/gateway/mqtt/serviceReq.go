@@ -25,19 +25,18 @@ var serviceReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Me
 	var forkBitmap uint64 = 1
 	err := DecodePayload(msg.Payload(), &s)
 	if err != nil {
-		log.Printf("err: %+v\n", err)
+		log.Printf("Discard req with decodePayload err: %+v\n", err)
 		//丢弃请求
-		// ReplyServiceReq(&client, forkBitmap, 16, &s, &user, pubKey)
 		return
 	}
 	pubKey = PayloadToUser(&newUser, &s)
 
 	// 验证签名
-	// if !VerifyAddress(&s, msg.Payload()) {
-	// 	//丢弃请求
-	// 	log.Printf("sign err ！discard data!\n")
-	// 	return
-	// }
+	if !VerifyAddress(&s, msg.Payload()) {
+		//丢弃请求
+		log.Printf("sign err ！discard data!\n")
+		return
+	}
 
 	//TODO: 检查分支
 	forkId, err := hex.DecodeString(os.Getenv("FORK_ID"))
@@ -48,6 +47,7 @@ var serviceReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Me
 
 	suportForkId := false
 	for index := 0; index < (len(s.ForkList) / 32); index++ {
+
 		if bytes.Compare(s.ForkList[(index*32):((index+1)*32)], forkId) == 0 {
 			suportForkId = true
 			forkBitmap = forkBitmap << uint(index)
@@ -55,7 +55,7 @@ var serviceReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Me
 		}
 	}
 	if !suportForkId {
-		ReplyServiceReq(&client, forkBitmap, 3, &s, &newUser, pubKey)
+		ReplyServiceReq(&client, forkBitmap, 2, &s, &newUser, pubKey)
 		return
 	}
 
@@ -170,11 +170,16 @@ func VerifyAddress(s *ServicePayload, payload []byte) bool {
 	log.Printf("messageLen: %d", messageLen)
 	log.Printf("pub Key: %+v", s.Address[1:])
 	log.Printf("payload : %+v", payload[:messageLen])
+	if messageLen > uint16(len(payload)) {
+		log.Printf("VerifyAddress failed with err:slice bounds out of range")
+		return false
+	}
 	if uint8(s.Address[0]) == 1 {
 		// 验证签名
-		log.Printf("address type = 1 \n")
+		log.Printf("VerifyAddress with address type = 1 \n")
 		return edwards25519.Verify(s.Address[1:], payload[:messageLen], s.ServSignature)
 	}
+	log.Printf("VerifyAddress with address type = 2 \n")
 	// 验证 模版地址
 	templateDataLen := s.SignBytes - 96
 	templateData := s.ServSignature[:templateDataLen]
