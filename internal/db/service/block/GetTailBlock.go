@@ -13,7 +13,7 @@ func GetTailBlock() *model.Block {
 	block := &model.Block{}
 	connection := db.GetConnection()
 	res := connection.
-		Where("block_type != ?", constant.BLOCK_TYPE_SUBSIDIARY).
+		Where("block_type != ?", constant.BLOCK_TYPE_EXTENDED).
 		Order("height desc").
 		Take(block)
 	if res.Error != nil {
