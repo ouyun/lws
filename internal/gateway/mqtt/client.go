@@ -82,7 +82,7 @@ func (p *Program) Start() error {
 		err := errors.New("conn mqtt broker fail")
 		return err
 	}
-	log.Printf("client start successed!")
+	log.Printf("client: %s tart successed!", p.Id)
 	return nil
 }
 
