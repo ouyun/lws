@@ -53,7 +53,7 @@ jobs:
       - run:
           name: Delpoy via SSH
           command: |
-            if [[ $CIRCLE_BRANCH = "master" ]]; then scp -P $TEST_SSH_PORT -oStrictHostKeyChecking=no -r bin $TEST_SSH_USER@$TEST_SSH_HOST:~/projects/fnfn/lws/; fi
+            if [[ $CIRCLE_BRANCH = "master" ]] || [[ $CIRCLE_BRANCH = test* ]]; then scp -P $TEST_SSH_PORT -oStrictHostKeyChecking=no -r bin $TEST_SSH_USER@$TEST_SSH_HOST:~/projects/fnfn/lws/; fi
 
 #   deploy:
 #     <<: *defaults
