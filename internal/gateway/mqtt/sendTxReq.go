@@ -89,28 +89,35 @@ var sendTxReqReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.
 	balance := txData.NAmount - amount - txData.NTxFee
 	if balance < 0 {
 		// return fail
-		ReplySendTx(&client, &s, 1, 4, "", &cliMap)
+		ReplySendTx(&client, &s, 4, 0, "balance err", &cliMap)
+		log.Printf("balance do not enough")
 		return
 	}
 
 	// 验证打包费
 	txFee, err := strconv.ParseInt(os.Getenv("TX_FEE"), 10, 64)
 	if txData.NTxFee != txFee {
-		ReplySendTx(&client, &s, 1, 4, "", &cliMap)
+		ReplySendTx(&client, &s, 4, 0, "txFee err", &cliMap)
+		log.Printf("txFee do not enough")
 		return
 	}
 
 	// TODO：send tx
-	result, err := SendTxToCore(StartCoreClient(), &s)
+	coreClient := StartCoreClient()
+	defer coreClient.Stop()
+	result, err := SendTxToCore(coreClient, &s)
 	if err != nil {
 		ReplySendTx(&client, &s, 16, 0, "", &cliMap)
+		log.Printf("err : %+v", err)
 		return
 	}
 	if result.Result == "failed" {
 		ReplySendTx(&client, &s, 3, 0, result.Reason, &cliMap)
+		log.Printf("result : %+v", result)
 		return
 	}
 	ReplySendTx(&client, &s, 0, 0, "", &cliMap)
+	log.Printf("send tx success !")
 	return
 }
 

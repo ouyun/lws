@@ -16,30 +16,33 @@ import (
 )
 
 var mu sync.Mutex
-
-var cliMap *Program
+var cliProgram *Program
 
 // send UTXO update list
 func SendUTXOUpdate(u *[]UTXOUpdate, address []byte) {
 	log.Println("update utxoUpdate !")
-	client := GetProgram()
-	if client.Client == nil {
-		log.Printf("new mqtt client err: client == nil")
-		return
-	}
+
 	updatePayload := UpdatePayload{}
 	user := model.User{}
 	cliMap := CliMap{}
+
 	pool := GetRedisPool()
+	redisConn := pool.Get()
+
+	defer redisConn.Close()
 	utxoUList := *u
 	c := make(chan int, 1)
 
 	// get user by address
-	redisConn := pool.Get()
 	connection := db.GetConnection()
 	err := GetUserByAddress(address, connection, &redisConn, &user, &cliMap)
 	if err != nil {
 		log.Printf("get user failed: %+v", err)
+		return
+	}
+	client := GetProgram()
+	if client.Client == nil {
+		log.Printf("new mqtt client err: client == nil")
 		return
 	}
 	updatePayload.Nonce = cliMap.Nonce
@@ -130,18 +133,18 @@ func SendUpdateMessage(client *mqtt.Client, redisConn *redis.Conn, uPayload *Upd
 }
 
 func GetProgram() *Program {
-	// log.Printf("old local client: %+v", cliMap)
-	if cliMap == nil {
+	// log.Printf("old local client: %+v", cliProgram)
+	if cliProgram == nil {
 		mu.Lock()
 		defer mu.Unlock()
-		if cliMap == nil {
-			cliMap = &Program{Id: "update001", IsLws: false}
-			cliMap.Init()
-			if err := cliMap.Start(); err != nil {
+		if cliProgram == nil {
+			cliProgram = &Program{Id: "update001", IsLws: false}
+			cliProgram.Init()
+			if err := cliProgram.Start(); err != nil {
 				log.Printf("client start failed")
 			}
-			// log.Printf("new local client: %+v", cliMap)
+			// log.Printf("new local client: %+v", cliProgram)
 		}
 	}
-	return cliMap
+	return cliProgram
 }

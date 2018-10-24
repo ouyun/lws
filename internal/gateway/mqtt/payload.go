@@ -107,7 +107,7 @@ func TxDataToStruct(tx []byte, txData *TxData) (err error) {
 
 	resultType := reflect.TypeOf(txData).Elem()
 
-	// log.Printf("resultType : %+v\n", resultType.NumField())
+	log.Printf("tx bytes : %+v\n", tx)
 	var leftIndex uint64 = 0
 	var sizeLen uint64 = 0
 	for i := 0; i < resultValue.NumField(); i++ {
@@ -139,7 +139,7 @@ func TxDataToStruct(tx []byte, txData *TxData) (err error) {
 					reflect.ValueOf(BytesToInt(tx[leftIndex:(leftIndex + len64)]).(uint32)))
 			case reflect.Int64:
 				log.Printf("leftIndex : %d", leftIndex)
-				log.Printf("len64 : %d", len64)
+				log.Printf("rightIndex : %d", (leftIndex + len64))
 				log.Printf("tx int64 : %+v", int64(BytesToInt(tx[leftIndex:(leftIndex+len64)]).(uint64)))
 				resultValue.Field(i).Set(
 					reflect.ValueOf(int64(BytesToInt(tx[leftIndex:(leftIndex + len64)]).(uint64))))
@@ -181,7 +181,7 @@ func TxDataToStruct(tx []byte, txData *TxData) (err error) {
 
 func StructToBytes(s interface{}) (result []byte, err error) {
 	buf := bytes.NewBuffer([]byte{})
-	log.Printf("StructToBytes: %+v\n", s)
+	log.Printf("StructToBytes params struct: %+v\n", s)
 	value := reflect.ValueOf(s)
 	valueType := reflect.TypeOf(s)
 	for i := 0; i < value.NumField(); i++ {
@@ -233,8 +233,8 @@ func StructToBytes(s interface{}) (result []byte, err error) {
 		}
 	}
 	result = buf.Bytes()
-	log.Printf("by struct: %+v\n", s)
-	log.Printf("generate payload by struct: %+v\n", result)
+	log.Printf("struct to bytes by struct: %+v\n", s)
+	log.Printf("struct to bytes generate payload: %+v\n", result)
 	return result, err
 }
 

@@ -81,7 +81,7 @@ func TestSENDDD(t *testing.T) {
 
 func TestAPISS(t *testing.T) {
 
-	code1 := "21 31 223 54 184 6 54 94 213 182 216 67 173 88 68 174 66 80 132 46 27 115 69 27 63 250 22 209 215 234 10 178"
+	code1 := "90 134 255 167 38 42 220 84 131 70 81 116 43 64 75 75 2 0 0 0 0 0 0 0 100 0 0 0 0 0 0 39 16 178 10 234 215 209 22 250 63 27 69 115 27 46 132 80 66 174 68 88 173 67 216 182 213 94 54 6 184 54 223 31 21 1"
 	codeArr1 := strings.Split(code1, " ")
 	log.Printf("len : %+v", len(codeArr1))
 	codeAdd1 := make([]byte, 32)
@@ -90,16 +90,17 @@ func TestAPISS(t *testing.T) {
 		value, _ := strconv.Atoi(codeArr1[index])
 		codeAdd1[index] = byte(value)
 	}
-	log.Printf("cliPubkey : %+v", hex.EncodeToString(codeAdd1[:]))
-	pubKey02, _ := hex.DecodeString(reverseString("b20aead7d116fa3f1b45731b2e845042ae4458ad43d8b6d55e3606b836df1f15"))
-	log.Printf("pubKey02: %+v \n", hex.EncodeToString(pubKey02))
-	privKey02, _ := hex.DecodeString("c70f5d194f5093c5066889790af15069fa8fa3a8a8045f1462e7a49c019dbaf0")
-	var pubKeyCli crypto.PublicKey
-	copy(pubKeyCli[:], pubKey02[:])
-	var privKeyLws crypto.PrivateKey
-	copy(privKeyLws[:], privKey02[:])
-	apikey := crypto.GenerateApiKey(&privKeyLws, &pubKeyCli)
-	log.Printf("apikey: %+v \n", hex.EncodeToString(apikey[:]))
+	log.Printf("codeAdd1 : %+v", codeAdd1)
+	// log.Printf("cliPubkey : %+v", hex.EncodeToString(codeAdd1[:]))
+	// pubKey02, _ := hex.DecodeString(reverseString("b20aead7d116fa3f1b45731b2e845042ae4458ad43d8b6d55e3606b836df1f15"))
+	// log.Printf("pubKey02: %+v \n", hex.EncodeToString(pubKey02))
+	// privKey02, _ := hex.DecodeString("c70f5d194f5093c5066889790af15069fa8fa3a8a8045f1462e7a49c019dbaf0")
+	// var pubKeyCli crypto.PublicKey
+	// copy(pubKeyCli[:], pubKey02[:])
+	// var privKeyLws crypto.PrivateKey
+	// copy(privKeyLws[:], privKey02[:])
+	// apikey := crypto.GenerateApiKey(&privKeyLws, &pubKeyCli)
+	// log.Printf("apikey: %+v \n", hex.EncodeToString(apikey[:]))
 	// log.Printf("codeAdd1 : %+v", len("c8f10736fb9b03a2d224c9d79b60ccc156b4bf9c28072fb332d0ea5fc104e085"))
 	// fork, _ := hex.DecodeString("c8f10736fb9b03a2d224c9d79b60ccc156b4bf9c28072fb332d0ea5fc104e085")
 	// log.Printf("codeAdd1 : %+v", reverseString(hex.EncodeToString(codeAdd1[:32])))
