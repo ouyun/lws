@@ -69,10 +69,10 @@ func Interrupt() {
 }
 
 var connHandle mqtt.OnConnectHandler = func(client mqtt.Client) {
-	client.Subscribe("LWS/lws/ServiceReq", byte(0), serviceReqHandler)
-	client.Subscribe("LWS/lws/SyncReq", byte(1), syncReqHandler)
-	client.Subscribe("LWS/lws/UTXOAbort", byte(1), uTXOAbortReqHandler)
-	client.Subscribe("LWS/lws/SendTxReq", byte(1), sendTxReqReqHandler)
+	client.Subscribe("LWS01/lws/ServiceReq", byte(0), serviceReqHandler)
+	client.Subscribe("LWS01/lws/SyncReq", byte(1), syncReqHandler)
+	client.Subscribe("LWS01/lws/UTXOAbort", byte(1), uTXOAbortReqHandler)
+	client.Subscribe("LWS01/lws/SendTxReq", byte(1), sendTxReqReqHandler)
 }
 
 // start client
@@ -88,7 +88,7 @@ func (p *Program) Start() error {
 
 // init client
 func (p *Program) Init() {
-	mqtt.DEBUG = log.New(os.Stdout, "", 20)
+	// mqtt.DEBUG = log.New(os.Stdout, "", 20)
 	// mqtt.ERROR = log.New(os.Stdout, "", 0)
 	opts := mqtt.NewClientOptions().AddBroker(os.Getenv("MQTT_URL")).SetClientID(p.Id)
 	opts.SetKeepAlive(10 * time.Second)
