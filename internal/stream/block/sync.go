@@ -22,7 +22,7 @@ func handleSyncBlock(block *lws.Block, shouldRecover bool) (error, bool) {
 	log.Printf("Receive Block hash v [%s] type[%d] (#%d)", hex.EncodeToString(block.Hash), block.NType, block.NHeight)
 
 	// 1. 判断是否为子块
-	isSubBlock := uint16(block.NType) == constant.BLOCK_TYPE_SUBSIDIARY
+	isSubBlock := uint16(block.NType) == constant.BLOCK_TYPE_EXTENDED
 	var skip bool
 	var write bool
 	if isSubBlock {
@@ -47,12 +47,12 @@ func handleSyncBlock(block *lws.Block, shouldRecover bool) (error, bool) {
 func validateSubBlock(block *lws.Block) (error, bool, bool) {
 	// 1. 判断子块是否在链上
 	if ok := isBlockExisted(block.NHeight, block.Hash, true); ok {
-		log.Printf("Block hash [%s] is already existed", hex.EncodeToString(block.Hash))
+		log.Printf("subBlock hash [%s] is already existed", hex.EncodeToString(block.Hash))
 		return nil, true, false
 	}
 	// 2. 判断所连的主块是否在链上
 	if ok := isBlockExisted(block.NHeight, block.HashPrev, false); !ok {
-		log.Printf("subBlock HashPrev [%s](#%d) is not existed, skip the sub block [%s]", block.HashPrev, block.NHeight, block)
+		log.Printf("subBlock HashPrev [%s](#%d) is not existed, skip the sub block [%s]", hex.EncodeToString(block.HashPrev), block.NHeight, block)
 		return nil, true, false
 	}
 	return nil, false, true
@@ -159,9 +159,9 @@ func isBlockExisted(height uint32, hash []byte, isSubBlock bool) bool {
 
 	tx := connection.Model(&model.Block{}).Where("height = ? AND hash = ?", height, hash)
 	if isSubBlock {
-		tx = tx.Where("block_type = ?", constant.BLOCK_TYPE_SUBSIDIARY)
+		tx = tx.Where("block_type = ?", constant.BLOCK_TYPE_EXTENDED)
 	} else {
-		tx = tx.Where("block_type != ?", constant.BLOCK_TYPE_SUBSIDIARY)
+		tx = tx.Where("block_type != ?", constant.BLOCK_TYPE_EXTENDED)
 	}
 
 	res := tx.Count(&count)
