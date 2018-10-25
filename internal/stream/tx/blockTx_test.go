@@ -130,12 +130,28 @@ func TestPrepareSender(t *testing.T) {
 			NTxFee:   100,
 			CDestination: &lws.Transaction_CDestination{
 				Prefix: uint32(2),
-				Data:   []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2},
+				Data:   []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4},
 			},
 			VInput: []*lws.Transaction_CTxIn{
 				&lws.Transaction_CTxIn{
 					Hash: []byte{0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2},
 					N:    1,
+				},
+			},
+		},
+		&lws.Transaction{
+			NVersion: uint32(1),
+			Hash:     []byte{1, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3},
+			NAmount:  200,
+			NTxFee:   100,
+			CDestination: &lws.Transaction_CDestination{
+				Prefix: uint32(2),
+				Data:   []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2},
+			},
+			VInput: []*lws.Transaction_CTxIn{
+				&lws.Transaction_CTxIn{
+					Hash: []byte{1, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2},
+					N:    0,
 				},
 			},
 		},
@@ -154,8 +170,8 @@ func TestPrepareSender(t *testing.T) {
 
 	mapTxToSender := handler.GetMapTxToSender()
 
-	if length := len(mapTxToSender); length != 1 {
-		t.Fatalf("len(mapTxToSender) expect 1, but [%d]", length)
+	if length := len(mapTxToSender); length != 2 {
+		t.Fatalf("len(mapTxToSender) expect 2, but [%d]", length)
 	}
 
 	txHash := [32]byte{1, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2}
@@ -164,8 +180,18 @@ func TestPrepareSender(t *testing.T) {
 		t.Fatalf("expect tx hash sender, but none")
 	}
 	expectedSender := []byte{2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3}
-
 	if bytes.Compare(sender, expectedSender) != 0 {
 		t.Fatalf("expect sender [%v], but [%v]", expectedSender, sender)
 	}
+
+	txHash2 := [32]byte{1, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3}
+	sender2, ok := mapTxToSender[txHash2]
+	if !ok {
+		t.Fatalf("expect tx hash sender, but none")
+	}
+	expectedSender2 := []byte{2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4}
+	if bytes.Compare(sender2, expectedSender2) != 0 {
+		t.Fatalf("expect sender [%v], but [%v]", expectedSender2, sender2)
+	}
+
 }
