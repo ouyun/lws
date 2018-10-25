@@ -118,14 +118,10 @@ func HandleTx(db *gorm.DB, tx *lws.Transaction, blockModel *model.Block) (map[[3
 		return nil, err
 	}
 
-	if len(inputList) != inputLength {
-		return nil, fmt.Errorf("utxo inputs (%d) in this tx does not match to utxos (%d) in database", inputLength, len(inputList))
-	}
-
-	var inputSum int64
-
-	for _, item := range inputList {
-		inputSum += item.Amount
+	inputLengthInDB := len(inputList)
+	// inputLengthInDB == 0 indicates the tx has been handled
+	if inputLengthInDB > 0 && inputLengthInDB != inputLength {
+		return nil, fmt.Errorf("utxo inputs (%d) in this tx does not match to utxos (%d) in database", inputLength, inputLengthInDB)
 	}
 
 	// remove utxos based on inputs
@@ -174,6 +170,12 @@ func HandleTx(db *gorm.DB, tx *lws.Transaction, blockModel *model.Block) (map[[3
 			BlockHeight: blockHeight,
 			Out:         0,
 		},
+	}
+
+	var inputSum int64
+
+	for _, item := range inputList {
+		inputSum += item.Amount
 	}
 	// when txFee is not 0, it's a normal tx. otherwise it is mint tx.
 	// and only if self change is larger than 0, will add additional utxo.
