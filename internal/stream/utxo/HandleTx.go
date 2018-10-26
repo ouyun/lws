@@ -6,11 +6,12 @@ import (
 	"log"
 
 	"github.com/FissionAndFusion/lws/internal/constant"
-	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/lws"
+	// "github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/lws"
 	"github.com/FissionAndFusion/lws/internal/db/model"
 	"github.com/FissionAndFusion/lws/internal/db/service/utxo"
 	"github.com/FissionAndFusion/lws/internal/db/util"
 	"github.com/FissionAndFusion/lws/internal/gateway/mqtt"
+	streamModel "github.com/FissionAndFusion/lws/internal/stream/model"
 	sqlbuilder "github.com/huandu/go-sqlbuilder"
 	"github.com/jinzhu/gorm"
 )
@@ -27,7 +28,7 @@ func mapRemovedUtxosToUpdates(list []*model.Utxo) []mqtt.UTXOUpdate {
 	return result
 }
 
-func mapUtxoWithTxToUpdate(utxo *model.Utxo, tx *lws.Transaction) *mqtt.UTXO {
+func mapUtxoWithTxToUpdate(utxo *model.Utxo, tx *streamModel.StreamTx) *mqtt.UTXO {
 	return &mqtt.UTXO{
 		TXID:        utxo.TxHash,
 		Out:         utxo.Out,
@@ -37,11 +38,12 @@ func mapUtxoWithTxToUpdate(utxo *model.Utxo, tx *lws.Transaction) *mqtt.UTXO {
 		LockUntil:   tx.NLockUntil,
 		DataSize:    uint16(len(tx.VchData)),
 		Data:        tx.VchData,
+		Sender:      tx.Sender,
 	}
 }
 
 // entry for handling utxos in a single tx
-func HandleTx(db *gorm.DB, tx *lws.Transaction, blockModel *model.Block) (map[[33]byte][]mqtt.UTXOUpdate, error) {
+func HandleTx(db *gorm.DB, tx *streamModel.StreamTx, blockModel *model.Block) (map[[33]byte][]mqtt.UTXOUpdate, error) {
 	inputLength := len(tx.VInput)
 	hash := tx.Hash
 	txFee := tx.NTxFee
@@ -101,6 +103,7 @@ func HandleTx(db *gorm.DB, tx *lws.Transaction, blockModel *model.Block) (map[[3
 					LockUntil:   tx.NLockUntil,
 					DataSize:    uint16(len(tx.VchData)),
 					Data:        tx.VchData,
+					Sender:      tx.Sender,
 				},
 			},
 		}
@@ -109,7 +112,7 @@ func HandleTx(db *gorm.DB, tx *lws.Transaction, blockModel *model.Block) (map[[3
 	}
 	log.Printf("start handling utxo in tx: [%s] (%v inputs)", hex.EncodeToString(tx.Hash), inputLength)
 
-	inputs := util.MapPBTxToUtxo(tx, blockHeight)
+	inputs := util.MapPBTxToUtxo(tx.Transaction, blockHeight)
 	// check if inputs exists and delete them
 	// if not exists just throw error
 	// correctness depends on external flow

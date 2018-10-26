@@ -107,7 +107,7 @@ func TxDataToStruct(tx []byte, txData *TxData) (err error) {
 
 	resultType := reflect.TypeOf(txData).Elem()
 
-	log.Printf("tx bytes : %+v\n", tx)
+	log.Printf("TxDataToStruct get params:tx--%+v\n", tx)
 	var leftIndex uint64 = 0
 	var sizeLen uint64 = 0
 	for i := 0; i < resultValue.NumField(); i++ {
@@ -117,14 +117,13 @@ func TxDataToStruct(tx []byte, txData *TxData) (err error) {
 		if err != nil {
 			return err
 		}
-		log.Printf("txData : %+v\n", txData)
+		// log.Printf("txData : %+v\n", txData)
 		if resultValue.Field(i).CanSet() {
 			switch resultValue.Field(i).Type().Kind() {
 			case reflect.Slice:
 				if leng > 0 {
 					resultValue.Field(i).SetBytes(reverseBytes(tx[leftIndex:(leftIndex + len64)]))
 				} else if resultType.Field(i).Name == "UtxoIndex" {
-					log.Printf("tx : %+v\n", tx[leftIndex:])
 					resultValue.Field(i).SetBytes(reverseBytes(tx[leftIndex:(uint64(leftIndex) + (sizeLen * 33))]))
 					len64 = sizeLen * 33
 				}
@@ -138,14 +137,9 @@ func TxDataToStruct(tx []byte, txData *TxData) (err error) {
 				resultValue.Field(i).Set(
 					reflect.ValueOf(BytesToInt(tx[leftIndex:(leftIndex + len64)]).(uint32)))
 			case reflect.Int64:
-				log.Printf("leftIndex : %d", leftIndex)
-				log.Printf("rightIndex : %d", (leftIndex + len64))
-				log.Printf("tx int64 : %+v", int64(BytesToInt(tx[leftIndex:(leftIndex+len64)]).(uint64)))
 				resultValue.Field(i).Set(
 					reflect.ValueOf(int64(BytesToInt(tx[leftIndex:(leftIndex + len64)]).(uint64))))
 			case reflect.Uint64:
-				log.Printf("leftIndex : %d", leftIndex)
-				log.Printf("len64 : %d", len64)
 				if resultType.Field(i).Name == "Size" {
 					num := BytesToInt(tx[leftIndex:(leftIndex + 1)]).(uint8)
 					if num < 253 {
@@ -175,13 +169,13 @@ func TxDataToStruct(tx []byte, txData *TxData) (err error) {
 		}
 		leftIndex += len64
 	}
-	log.Printf("txData : %+v\n", txData)
+	log.Printf("TxDataToStruct get result : %+v\n", txData)
 	return err
 }
 
 func StructToBytes(s interface{}) (result []byte, err error) {
 	buf := bytes.NewBuffer([]byte{})
-	log.Printf("StructToBytes params struct: %+v\n", s)
+	log.Printf("StructToBytes get param:struct-- %+v\n", s)
 	value := reflect.ValueOf(s)
 	valueType := reflect.TypeOf(s)
 	for i := 0; i < value.NumField(); i++ {
@@ -226,14 +220,13 @@ func StructToBytes(s interface{}) (result []byte, err error) {
 		case reflect.Uint64:
 			buf.Write(IntToBytes(uint64(value.Field(i).Uint())))
 		case reflect.Int64:
-			log.Printf("bytes: %+v", IntToBytes(int64(value.Field(i).Int())))
 			buf.Write(IntToBytes(int64(value.Field(i).Int())))
 		default:
 			err = errors.New("unsuport type")
 		}
 	}
 	result = buf.Bytes()
-	log.Printf("struct to bytes by struct: %+v\n", s)
+	// log.Printf("struct to bytes by struct: %+v\n", s)
 	log.Printf("struct to bytes generate payload: %+v\n", result)
 	return result, err
 }
@@ -305,8 +298,8 @@ func DecodePayload(payload []byte, result interface{}) (err error) {
 	resultValue := reflect.ValueOf(result).Elem()
 	resultType := reflect.TypeOf(result).Elem()
 	totalLength := len(payload)
-
-	log.Printf("payload bytes : %+v\n", payload)
+	log.Printf("DecodePayload params: payload bytes length : %d\n", len(payload))
+	log.Printf("DecodePayload params: payload bytes : %+v\n", payload)
 	leftIndex := 0
 	forkNum := 0
 	for i := 0; i < resultValue.NumField(); i++ {
@@ -416,7 +409,7 @@ func DecodePayload(payload []byte, result interface{}) (err error) {
 		}
 		leftIndex = (leftIndex + leng)
 	}
-	log.Printf("decode payload get result : %+v\n", result)
+	log.Printf("DecodePayload get result : %+v\n", result)
 	return err
 }
 
@@ -441,11 +434,13 @@ func Sign(key ed25519.PrivateKey, message []byte) []byte {
 
 // reverse Bytes
 func reverseBytes(src []byte) []byte {
-	for i := len(src)/2 - 1; i >= 0; i-- {
-		opp := len(src) - 1 - i
-		src[i], src[opp] = src[opp], src[i]
+	srcTemp := make([]byte, len(src))
+	copy(srcTemp[:], src)
+	for i := len(srcTemp)/2 - 1; i >= 0; i-- {
+		opp := len(srcTemp) - 1 - i
+		srcTemp[i], srcTemp[opp] = srcTemp[opp], srcTemp[i]
 	}
-	return src
+	return srcTemp
 }
 
 func reverseString(s string) string {

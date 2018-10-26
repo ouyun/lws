@@ -31,7 +31,7 @@ var sendTxReqReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.
 	cliMap := CliMap{}
 	user := model.User{}
 	err := DecodePayload(payload, &s)
-	// log.Printf("SendTxPayload: %+v\n", s)
+	log.Printf("SendTxPayload: %+v\n", s)
 	if err != nil {
 		log.Printf("err: %+v\n", err)
 		return
@@ -47,6 +47,7 @@ var sendTxReqReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.
 	signed := crypto.SignWithApiKey(cliMap.ApiKey, payload[:len(payload)-20])
 	if bytes.Compare(signed, s.Signature) != 0 {
 		// 丢弃 内容
+		log.Printf("verify failed ！discard request！ ")
 		return
 	}
 	if err != nil {
@@ -143,6 +144,7 @@ func SendTxToCore(client *coreclient.Client, s *SendTxPayload) (resultMessage *l
 	params := &lws.SendTxArg{
 		Data: s.TxData,
 	}
+	log.Printf("SendTxArg data: %+v", hex.EncodeToString(s.TxData))
 	serializedParams, err := ptypes.MarshalAny(params)
 	if err != nil {
 		log.Fatal("could not serialize any field")
@@ -183,6 +185,7 @@ func getUtxoIndex(index *[]byte) []*model.Utxo {
 	utxos := make([]*model.Utxo, legnth)
 	log.Printf("index: %+v", index)
 	log.Printf("length : %+v", len(*index))
+	// TODO: array bound check
 	for i := 0; i < (len(*index) / 33); i++ {
 		log.Printf("i: %+v", i)
 		ut := &model.Utxo{}

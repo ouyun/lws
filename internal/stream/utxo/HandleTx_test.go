@@ -3,9 +3,12 @@ package utxo
 import (
 	"testing"
 
+	"bytes"
+	"github.com/FissionAndFusion/lws/internal/constant"
 	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/lws"
 	"github.com/FissionAndFusion/lws/internal/db"
 	utxoService "github.com/FissionAndFusion/lws/internal/db/service/utxo"
+	streamModel "github.com/FissionAndFusion/lws/internal/stream/model"
 	"github.com/FissionAndFusion/lws/test/helper"
 )
 
@@ -36,9 +39,30 @@ func TestInsertPoolTx(t *testing.T) {
 
 	dbtx := connection.Begin()
 
-	_, err := HandleTx(dbtx, tx, nil)
+	sender := []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}
+
+	streamTx := &streamModel.StreamTx{
+		Transaction: tx,
+		Sender:      sender,
+	}
+
+	utxoUpdates, err := HandleTx(dbtx, streamTx, nil)
 	if err != nil {
 		t.Fatalf("insert utxo by pool tx failed [%s]", err)
+	}
+
+	for _, list := range utxoUpdates {
+		for _, item := range list {
+			if item.OpType == constant.UTXO_UPDATE_TYPE_NEW {
+				if item.UTXO == nil {
+					t.Errorf("new utxo should has utxo, but nil")
+				}
+
+				if item.UTXO != nil && bytes.Compare(item.UTXO.Sender, sender) != 0 {
+					t.Errorf("utxo sender expect [%s], but [%s]", sender, item.UTXO.Sender)
+				}
+			}
+		}
 	}
 
 	_, err = utxoService.GetByTxHash(txHash, dbtx)
