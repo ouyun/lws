@@ -8,6 +8,7 @@ import (
 	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/lws"
 	"github.com/FissionAndFusion/lws/internal/db/model"
 	"github.com/FissionAndFusion/lws/internal/gateway/mqtt"
+	streamModel "github.com/FissionAndFusion/lws/internal/stream/model"
 	"github.com/FissionAndFusion/lws/internal/stream/utxo"
 	sqlbuilder "github.com/huandu/go-sqlbuilder"
 	"github.com/jinzhu/gorm"
@@ -221,8 +222,9 @@ func (h *BlockTxHandler) insertTxs(txs []*lws.Transaction, block *model.Block) (
 		"lock_until", "amount", "fee", "data", "sig", "sender")
 
 	for _, tx := range txs {
-		insertBuilderTxValue(ib, tx, block, h.mapTxToSender)
-		txUpdates, err := utxo.HandleTx(h.dbtx, tx, block)
+		streamTx := mapLwsTxToStreamTx(tx, h.mapTxToSender)
+		insertBuilderTxValue(ib, streamTx, block)
+		txUpdates, err := utxo.HandleTx(h.dbtx, streamTx, block)
 		if err != nil {
 			return nil, err
 		}
@@ -253,10 +255,17 @@ func (h *BlockTxHandler) insertTxs(txs []*lws.Transaction, block *model.Block) (
 	return updates, nil
 }
 
-func insertBuilderTxValue(ib *sqlbuilder.InsertBuilder, tx *lws.Transaction, block *model.Block, mapTxToSender map[[32]byte][]byte) {
+func mapLwsTxToStreamTx(lwsTx *lws.Transaction, mapTxToSender map[[32]byte][]byte) *streamModel.StreamTx {
+	sender := getSenderFromMap(lwsTx.Hash, mapTxToSender)
+	return &streamModel.StreamTx{
+		Transaction: lwsTx,
+		Sender:      sender,
+	}
+}
+
+func insertBuilderTxValue(ib *sqlbuilder.InsertBuilder, tx *streamModel.StreamTx, block *model.Block) {
 	inputs := calculateOrmTxInputs(tx.VInput)
 	sendTo := calculateOrmTxSendTo(tx.CDestination)
-	sender := getSenderFromMap(tx.Hash, mapTxToSender)
 
 	ib.Values(
 		sqlbuilder.Raw("now()"), //created_at
@@ -274,7 +283,7 @@ func insertBuilderTxValue(ib *sqlbuilder.InsertBuilder, tx *lws.Transaction, blo
 		tx.NTxFee,
 		tx.VchData,
 		tx.VchSig,
-		sender)
+		tx.Sender)
 }
 
 func getSenderFromMap(txHash []byte, mapTxToSender map[[32]byte][]byte) []byte {
