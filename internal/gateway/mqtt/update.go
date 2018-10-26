@@ -21,7 +21,8 @@ var cliProgram *Program
 // send UTXO update list
 func SendUTXOUpdate(u *[]UTXOUpdate, address []byte) {
 	log.Println("update utxoUpdate !")
-
+	log.Printf("UTXOUpdate list : %+v ! \n", *u)
+	log.Printf("address: %+v !", address)
 	updatePayload := UpdatePayload{}
 	user := model.User{}
 	cliMap := CliMap{}
@@ -95,6 +96,7 @@ func SendUTXOUpdate(u *[]UTXOUpdate, address []byte) {
 
 // send update message
 func SendUpdateMessage(client *mqtt.Client, redisConn *redis.Conn, uPayload *UpdatePayload, u []UTXOUpdate, cliMap *CliMap, end int, c chan int) {
+	log.Printf("UTXOUpdate u: %+v\n", u)
 	addressIdStr := strconv.FormatUint(uint64(cliMap.AddressId), 10)
 	cli := CliMap{}
 	value, err := redis.Values((*redisConn).Do("hgetall", addressIdStr))
@@ -133,7 +135,6 @@ func SendUpdateMessage(client *mqtt.Client, redisConn *redis.Conn, uPayload *Upd
 }
 
 func GetProgram() *Program {
-	// log.Printf("old local client: %+v", cliProgram)
 	if cliProgram == nil {
 		mu.Lock()
 		defer mu.Unlock()
@@ -143,7 +144,6 @@ func GetProgram() *Program {
 			if err := cliProgram.Start(); err != nil {
 				log.Printf("client start failed")
 			}
-			// log.Printf("new local client: %+v", cliProgram)
 		}
 	}
 	return cliProgram

@@ -22,12 +22,13 @@ var servicReplyHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.M
 
 func TestClient(t *testing.T) {
 	p := &Program{
-		Id:    "lws",
+		Id:    "lws01",
+		Topic: "lwsaaa",
 		IsLws: false,
 	}
 	err := ClientStart(p)
 	if err != nil {
-		t.Errorf("run client fail %v", err)
+		t.Errorf("run client failed %v", err)
 	}
 }
 
@@ -105,10 +106,6 @@ func TestSendTxReq(t *testing.T) {
 	}
 	cli.Stop()
 }
-
-// func TestResetD(t *testing.T) {
-
-// }
 
 // func TestMain(m *testing.M) {
 // 	helper.ResetDb()

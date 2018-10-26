@@ -34,7 +34,7 @@ var serviceReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Me
 	// 验证签名
 	if !VerifyAddress(&s, msg.Payload()) {
 		//丢弃请求
-		log.Printf("sign err ！discard data!\n")
+		log.Printf("sign err ！discard serviceReq data!\n")
 		return
 	}
 
@@ -47,7 +47,6 @@ var serviceReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Me
 
 	suportForkId := false
 	for index := 0; index < (len(s.ForkList) / 32); index++ {
-
 		if bytes.Compare(s.ForkList[(index*32):((index+1)*32)], forkId) == 0 {
 			suportForkId = true
 			forkBitmap = forkBitmap << uint(index)
@@ -93,7 +92,7 @@ var serviceReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Me
 		if err != nil {
 			// fail
 			transaction.Rollback()
-			log.Printf("err: %+v\n", err)
+			log.Printf("SaveUser get err: %+v\n", err)
 			ReplyServiceReq(&client, forkBitmap, 16, &s, &user, pubKey)
 			return
 		}
@@ -106,7 +105,7 @@ var serviceReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Me
 		// fail
 		RemoveRedis(&redisConn, &cliMap)
 		transaction.Rollback()
-		log.Printf("err: %+v\n", err)
+		log.Printf("SaveToRedis get err: %+v\n", err)
 		ReplyServiceReq(&client, forkBitmap, 16, &s, &user, pubKey)
 		return
 	}
@@ -140,27 +139,24 @@ func ReplyServiceReq(client *mqtt.Client, forkBitmap uint64, err int, s *Service
 // save to redis
 func SaveToRedis(conn *redis.Conn, cliMap *CliMap) (err error) {
 	// save struct
-	// log.Printf("cliMap: %+v", cliMap)
 	_, err = (*conn).Do("HMSET", redis.Args{}.Add(strconv.FormatUint(uint64(cliMap.AddressId), 10)).AddFlat(cliMap)...)
-	// log.Printf("err: %+v", err)
 	if err != nil {
 		return err
 	}
 	// save set
 	_, err = (*conn).Do("SET", hex.EncodeToString(cliMap.Address), cliMap.AddressId)
-	// log.Printf("err: %+v", err)
 	return err
 }
 
 func RemoveRedis(conn *redis.Conn, cliMap *CliMap) (err error) {
 	_, err = (*conn).Do("DEL", strconv.FormatUint(uint64(cliMap.AddressId), 10))
 	if err != nil {
-		log.Printf("del key failed")
+		log.Printf("delete key failed")
 	}
 	// delete key
 	_, err = (*conn).Do("DEL", hex.EncodeToString(cliMap.Address))
 	if err != nil {
-		log.Printf("del key failed")
+		log.Printf("delete key failed")
 	}
 	return err
 }

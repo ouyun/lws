@@ -14,16 +14,10 @@ import (
 
 func TestNewClient(t *testing.T) {
 	client := GetProgram()
-	// if err != nil {
-	// 	t.Errorf("new  client failed")
-	// }
 	if client == nil {
 		t.Errorf("new  client failed")
 	}
 	client2 := GetProgram()
-	// if err != nil {
-	// 	t.Errorf("new  client failed")
-	// }
 	if client2 == nil {
 		t.Errorf("new  client failed")
 	}
@@ -59,9 +53,4 @@ func TestGetUserByAddress(t *testing.T) {
 	}
 	log.Printf("get user : %+v", user)
 	log.Printf("get cliMap : %+v", cliMap)
-}
-
-func TestStructField(t *testing.T) {
-	var utxoList UTXO
-	log.Printf("utxoList : %+v", utxoList)
 }

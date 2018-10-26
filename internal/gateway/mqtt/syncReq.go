@@ -92,7 +92,7 @@ var syncReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Messa
 	utxoHash := UTXOHash(&UTXOs)
 	log.Printf("get UTXOs %+v\n", UTXOs)
 	if bytes.Compare(utxoHash, []byte(s.UTXOHash)) == 0 {
-		log.Printf("clinet hash equal local hash!")
+		log.Printf("client hash equals local hash!")
 		ReplySyncReq(&client, &s, &UTXOs, &cliMap, 0, 0)
 
 		updateRedis(&redisConn, &cliMap, "Nonce", s.Nonce)
@@ -143,7 +143,7 @@ var syncReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Messa
 
 // reply sync req
 func ReplySyncReq(client *mqtt.Client, s *SyncPayload, u *[]UTXO, cliMap *CliMap, err, end int) {
-	log.Printf("send update list !")
+	log.Printf("sending update list !")
 	reply := SyncReply{}
 	reply.Nonce = s.Nonce
 	reply.Error = uint8(err)
