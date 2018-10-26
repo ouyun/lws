@@ -113,34 +113,26 @@ func HandleTx(db *gorm.DB, tx *lws.Transaction, blockModel *model.Block) (map[[3
 	// check if inputs exists and delete them
 	// if not exists just throw error
 	// correctness depends on external flow
-	inputList, err := utxo.GetListByInputs(inputs, db)
+	inputListInDB, err := utxo.GetListByInputs(inputs, db)
 	if err != nil {
 		return nil, err
 	}
 
-	inputLengthInDB := len(inputList)
+	inputLengthInDB := len(inputListInDB)
 	// inputLengthInDB == 0 indicates the tx has been handled
 	if inputLengthInDB > 0 && inputLengthInDB != inputLength {
 		return nil, fmt.Errorf("utxo inputs (%d) in this tx does not match to utxos (%d) in database", inputLength, inputLengthInDB)
 	}
 
-	// remove utxos based on inputs
-	if err = utxo.RemoveInputs(inputList, db); err != nil {
-		return nil, err
-	}
+	// when has inputs in DB, means no utxo (same in opposite)
+	if inputLengthInDB == 0 {
+		var utxos []*model.Utxo
+		if utxos, err = utxo.GetByTxHash(tx.Hash, db); err != nil {
+			return nil, err
+		}
 
-	// mqtt.SendUTXOUpdate(mapRemovedUtxosToUpdates(inputList), inputList[0].Destination)
-	copy(dest[:], inputList[0].Destination)
-	updates[dest] = mapRemovedUtxosToUpdates(inputList)
-
-	var utxos []*model.Utxo
-	if utxos, err = utxo.GetByTxHash(tx.Hash, db); err != nil {
-		return nil, err
-	}
-
-	// check if the utxos are already exist (all exist or none)
-	// don't care where it from (txPool or block)
-	if len(utxos) != 0 {
+		// check if the utxos are already exist (all exist or none)
+		// don't care where it from (txPool or block)
 		for _, item := range utxos {
 			if item.BlockHeight == constant.BLOCK_HEIGHT_IN_POOL && blockModel != nil {
 				item.BlockHeight = blockHeight
@@ -162,6 +154,15 @@ func HandleTx(db *gorm.DB, tx *lws.Transaction, blockModel *model.Block) (map[[3
 		return updates, nil
 	}
 
+	// remove utxos based on inputs
+	if err = utxo.RemoveInputs(inputListInDB, db); err != nil {
+		return nil, err
+	}
+
+	// mqtt.SendUTXOUpdate(mapRemovedUtxosToUpdates(inputListInDB), inputListInDB[0].Destination)
+	copy(dest[:], inputListInDB[0].Destination)
+	updates[dest] = mapRemovedUtxosToUpdates(inputListInDB)
+
 	outputs = []*model.Utxo{
 		&model.Utxo{
 			TxHash:      tx.Hash,
@@ -174,7 +175,7 @@ func HandleTx(db *gorm.DB, tx *lws.Transaction, blockModel *model.Block) (map[[3
 
 	var inputSum int64
 
-	for _, item := range inputList {
+	for _, item := range inputListInDB {
 		inputSum += item.Amount
 	}
 	// when txFee is not 0, it's a normal tx. otherwise it is mint tx.
@@ -183,8 +184,8 @@ func HandleTx(db *gorm.DB, tx *lws.Transaction, blockModel *model.Block) (map[[3
 	if txFee != 0 && change > 0 {
 		outputs = append(outputs, &model.Utxo{
 			TxHash:      tx.Hash,
-			Destination: inputList[0].Destination, // get self change destination from last input
-			Amount:      change,                   // calculate change to self
+			Destination: inputListInDB[0].Destination, // get self change destination from last input
+			Amount:      change,                       // calculate change to self
 			BlockHeight: blockHeight,
 			Out:         1,
 		})
