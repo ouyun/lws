@@ -8,6 +8,7 @@ import (
 	"github.com/FissionAndFusion/lws/internal/db"
 	"github.com/FissionAndFusion/lws/internal/db/model"
 	"github.com/FissionAndFusion/lws/internal/gateway/mqtt"
+	streamModel "github.com/FissionAndFusion/lws/internal/stream/model"
 	"github.com/FissionAndFusion/lws/internal/stream/utxo"
 	"github.com/jinzhu/gorm"
 )
@@ -82,7 +83,11 @@ func insertTx(dbtx *gorm.DB, tx *lws.Transaction) (map[[33]byte][]mqtt.UTXOUpdat
 		return nil, res.Error
 	}
 
-	updates, err := utxo.HandleTx(dbtx, tx, nil)
+	streamTx := &streamModel.StreamTx{
+		Transaction: tx,
+		Sender:      sender,
+	}
+	updates, err := utxo.HandleTx(dbtx, streamTx, nil)
 	if err != nil {
 		return nil, err
 	}
