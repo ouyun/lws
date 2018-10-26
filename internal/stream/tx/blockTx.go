@@ -1,7 +1,6 @@
 package tx
 
 import (
-	// "encoding/hex"
 	"bytes"
 	"fmt"
 	"log"
@@ -82,12 +81,28 @@ func (h *BlockTxHandler) prepareSenders() error {
 	var prevTxs []interface{}
 	mapPrevTxToTx := make(map[[32]byte][]byte)
 	mapTxToSender := make(map[[32]byte][]byte)
+	// cache current txs sendto, incase tx3's input is tx2.
+	mapTxToSendto := make(map[[32]byte][]byte)
+
+	for _, tx := range h.txs {
+		var hash [32]byte
+		copy(hash[:], tx.Hash)
+		mapTxToSendto[hash] = calculateOrmTxSendTo(tx.CDestination)
+	}
+
 	for _, tx := range h.txs {
 		if len(tx.VInput) > 0 {
 			var prevTx [32]byte
 			copy(prevTx[:], tx.VInput[0].Hash)
-			prevTxs = append(prevTxs, prevTx[:])
-			mapPrevTxToTx[prevTx] = tx.Hash
+			// if prev tx in current txs
+			if sendto, ok := mapTxToSendto[prevTx]; ok {
+				var hash [32]byte
+				copy(hash[:], tx.Hash)
+				mapTxToSender[hash] = sendto
+			} else {
+				prevTxs = append(prevTxs, prevTx[:])
+				mapPrevTxToTx[prevTx] = tx.Hash
+			}
 		}
 	}
 
