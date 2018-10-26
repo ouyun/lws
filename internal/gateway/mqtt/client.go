@@ -88,7 +88,7 @@ func (p *Program) Start() error {
 
 // init client
 func (p *Program) Init() {
-	mqtt.DEBUG = log.New(os.Stdout, "", 20)
+	// mqtt.DEBUG = log.New(os.Stdout, "", 20)
 	// mqtt.ERROR = log.New(os.Stdout, "", 0)
 	opts := mqtt.NewClientOptions().AddBroker(os.Getenv("MQTT_URL")).SetClientID(p.Id)
 	opts.SetKeepAlive(10 * time.Second)
