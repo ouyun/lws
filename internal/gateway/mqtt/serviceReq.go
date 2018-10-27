@@ -177,11 +177,12 @@ func VerifyAddress(s *ServicePayload, payload []byte) bool {
 	}
 	log.Printf("VerifyAddress with address type = 2 \n")
 	// 验证 模版地址
+	log.Printf("ServSignature: %d", s.ServSignature)
 	templateDataLen := s.SignBytes - 96
 	templateData := s.ServSignature[:templateDataLen]
 	pubKey := s.ServSignature[templateDataLen:(templateDataLen + 32)]
 	signature := s.ServSignature[(templateDataLen + 32):]
-	hash := blake2b.Sum512(templateData)
+	hash := blake2b.Sum256(templateData)
 	if bytes.Compare(hash[:30], s.Address[3:]) != 0 {
 		return false
 	}
