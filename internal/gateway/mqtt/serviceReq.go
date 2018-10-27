@@ -181,7 +181,7 @@ func VerifyAddress(s *ServicePayload, payload []byte) bool {
 	templateData := s.ServSignature[:templateDataLen]
 	pubKey := s.ServSignature[templateDataLen:(templateDataLen + 32)]
 	signature := s.ServSignature[(templateDataLen + 32):]
-	hash := blake2b.Sum512(templateData)
+	hash := blake2b.Sum256(templateData)
 	if bytes.Compare(hash[:30], s.Address[3:]) != 0 {
 		return false
 	}

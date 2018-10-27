@@ -82,7 +82,7 @@ var syncReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Messa
 		"INNER JOIN tx "+
 		"ON utxo.tx_hash = tx.hash "+
 		"AND utxo.destination = ? "+
-		"ORDER BY utxo.amount ASC, utxo.out ASC ", cliMap.Address).Find(&UTXOs).Error
+		"ORDER BY utxo.tx_hash ASC, utxo.out ASC ", cliMap.Address).Find(&UTXOs).Error
 	if err != nil {
 		ReplySyncReq(&client, &s, &UTXOs, &cliMap, 16, 0)
 		return
