@@ -82,7 +82,7 @@ var syncReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Messa
 		"INNER JOIN tx "+
 		"ON utxo.tx_hash = tx.hash "+
 		"AND utxo.destination = ? "+
-		"ORDER BY utxo.tx_hash ASC, utxo.out ASC ", cliMap.Address).Find(&UTXOs).Error
+		"ORDER BY REVERSE(utxo.tx_hash) ASC, utxo.out ASC ", cliMap.Address).Find(&UTXOs).Error
 	if err != nil {
 		ReplySyncReq(&client, &s, &UTXOs, &cliMap, 16, 0)
 		return
@@ -149,17 +149,21 @@ func ReplySyncReq(client *mqtt.Client, s *SyncPayload, u *[]UTXO, cliMap *CliMap
 	reply.Error = uint8(err)
 	if err == 0 {
 		tailBlock := block.GetTailBlock()
-		reply.BlockHash = tailBlock.Hash
-		reply.BlockHeight = tailBlock.Height
-		reply.BlockTime = tailBlock.Tstamp
+		if tailBlock != nil {
+			reply.BlockHash = tailBlock.Hash
+			reply.BlockHeight = tailBlock.Height
+			reply.BlockTime = tailBlock.Tstamp
+		}
 		reply.UTXONum = uint16(0)
 		reply.Continue = uint8(end)
 	}
 	if err == 1 {
 		tailBlock := block.GetTailBlock()
-		reply.BlockHash = tailBlock.Hash
-		reply.BlockHeight = tailBlock.Height
-		reply.BlockTime = tailBlock.Tstamp
+		if tailBlock != nil {
+			reply.BlockHash = tailBlock.Hash
+			reply.BlockHeight = tailBlock.Height
+			reply.BlockTime = tailBlock.Tstamp
+		}
 		reply.UTXONum = uint16(len(*u))
 		byteList, _ := UTXOListToByte(u)
 		reply.UTXOList = byteList
