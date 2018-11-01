@@ -99,7 +99,7 @@ INSERT INTO block (created_at,updated_at,hash,version,block_type,prev,tstamp,mer
 	NULL
 );
 
-INSERT INTO tx (created_at,updated_at,hash,version,tx_type,block_hash,block_height,lock_until,amount,fee,send_to,data,sig,sender) VALUES (
+INSERT INTO tx (created_at,updated_at,hash,version,tx_type,block_hash,block_height,lock_until,amount,fee,send_to,data,sig,sender,`change`,inputs) VALUES (
 	'2018-09-06 07:08:24.000',
 	'2018-09-06 07:08:24.000',
 	0x0003000000000000000000000000000000000000000000000000000000000001,
@@ -113,7 +113,9 @@ INSERT INTO tx (created_at,updated_at,hash,version,tx_type,block_hash,block_heig
 	0x020000000000000000000000000000000000000000000000000000000000000002,
 	NULL,
 	NULL,
-	NULL
+	NULL,
+	0,
+	0x000200000000000000000000000000000000000000000000000000000000000100
 ), (
 	'2018-09-06 07:08:24.000',
 	'2018-09-06 07:08:24.000',
@@ -128,8 +130,12 @@ INSERT INTO tx (created_at,updated_at,hash,version,tx_type,block_hash,block_heig
 	0x020000000000000000000000000000000000000000000000000000000000000003,
 	NULL,
 	NULL,
-	0x020000000000000000000000000000000000000000000000000000000000000002
+	0x020000000000000000000000000000000000000000000000000000000000000002,
+	6999900,
+	NULL
 );
+
+DELETE from utxo where tx_hash = 0x0002000000000000000000000000000000000000000000000000000000000001 and utxo.out = 0;
 
 INSERT INTO utxo (created_at,updated_at,tx_hash,destination,amount,block_height,`out`) VALUES (
 	'2018-09-06 07:08:24.000',
