@@ -207,7 +207,7 @@ func (b *BlockFetcher) handle(blocks []*lws.Block) error {
 		if err != nil {
 			log.Printf("handle sync block error [%s]", err)
 		}
-		if bytes.Compare(block.Hash, b.TriggerBlock.Hash) == 0 {
+		if bytes.Compare(block.Hash, b.TriggerBlock.Hash) == 0 || block.NHeight > b.TriggerBlock.NHeight {
 			b.isTriggerBlockSynced = true
 		}
 	}
