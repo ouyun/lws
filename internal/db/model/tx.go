@@ -25,6 +25,8 @@ type Tx struct {
 	Inputs []byte `gorm:"type:blob;"`
 	// 输出金额
 	Amount int64
+	// 找零金额
+	Change int64
 	// 网络交易费
 	Fee int64
 	// 接收地址 1 字节前缀 + 32 字节地址

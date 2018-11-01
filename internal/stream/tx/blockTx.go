@@ -219,7 +219,7 @@ func (h *BlockTxHandler) insertTxs(txs []*lws.Transaction, block *model.Block) (
 	ib.Cols("created_at", "updated_at", "hash", "version", "tx_type",
 		"block_id", "block_hash", "block_height",
 		"inputs", "send_to",
-		"lock_until", "amount", "fee", "data", "sig", "sender")
+		"lock_until", "amount", "fee", "data", "sig", "sender", "`change`")
 
 	for _, tx := range txs {
 		streamTx := mapLwsTxToStreamTx(tx, h.mapTxToSender)
@@ -283,7 +283,8 @@ func insertBuilderTxValue(ib *sqlbuilder.InsertBuilder, tx *streamModel.StreamTx
 		tx.NTxFee,
 		tx.VchData,
 		tx.VchSig,
-		tx.Sender)
+		tx.Sender,
+		tx.NChange)
 }
 
 func getSenderFromMap(txHash []byte, mapTxToSender map[[32]byte][]byte) []byte {

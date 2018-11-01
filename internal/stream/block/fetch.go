@@ -11,6 +11,7 @@ import (
 	dbmodule "github.com/FissionAndFusion/lws/internal/db"
 	model "github.com/FissionAndFusion/lws/internal/db/model"
 	blockService "github.com/FissionAndFusion/lws/internal/db/service/block"
+	utxoService "github.com/FissionAndFusion/lws/internal/db/service/utxo"
 	"github.com/golang/protobuf/ptypes"
 
 	// "github.com/FissionAndFusion/lws/internal/db/model"
@@ -224,6 +225,13 @@ func checkBlockExistanceByHash(hash []byte) bool {
 
 func clearForkedChain(height uint32) error {
 	connection := dbmodule.GetConnection()
+
+	// recover used inputs
+	err := utxoService.RecoverUsedInputs(height, connection)
+	if err != nil {
+		log.Printf("recover used inputs error")
+		return err
+	}
 
 	// clear utxo
 	res := connection.Unscoped().Where("block_height >= ? and block_height != ?", height, TXPOOL_HEIGHT).Delete(&model.Utxo{})
