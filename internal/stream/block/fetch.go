@@ -3,6 +3,7 @@ package block
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
 	"log"
 
 	"github.com/FissionAndFusion/lws/internal/coreclient"
@@ -181,7 +182,7 @@ func (b *BlockFetcher) fetch(hash []byte, num int32) ([]*lws.Block, error) {
 	}
 
 	if result.Error != "" {
-		log.Printf("fetch block result error [%s]", result.Error)
+		err = fmt.Errorf("fetch block result error [%s]", result.Error)
 		return nil, err
 	}
 
