@@ -1,6 +1,37 @@
 Light Wallet Service (for FnFn)
 ==========
 
+Requirements
+----------
+
+LWS relies on a few other services to run (all services should be up before LWS which could connect to):
+
+* MySQL Database
+* Mqtt
+* RabbitMQ
+* Redis
+* Core wallet
+
+All these services could be configured in `.env` file (sample could be found in `.env.sample`).
+
+Deploy
+----------
+
+### Binary
+
+Download binary from [Github release](https://github.com/FissionAndFusion/lws/releases) page.
+
+Or build the binary from repository by yourself:
+
+~~~
+GOOS=linux GOARCH=amd64 go build -o "./gateway" cmd/gateway/main.go
+GOOS=linux GOARCH=amd64 go build -o "./stream" cmd/stream/main.go
+~~~
+
+`GOOS` and `GOARCH` could be specified by your target environment.
+
+Then just start service by execute the binary files with environment variables in `.env` file.
+
 Development
 ----------
 
