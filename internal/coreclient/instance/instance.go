@@ -1,4 +1,4 @@
-package cclient
+package instance
 
 import (
 	"log"
@@ -10,6 +10,9 @@ import (
 var primaryClient *coreclient.Client
 
 func StartCoreClient() *coreclient.Client {
+	if primaryClient != nil {
+		return primaryClient
+	}
 	addr := os.Getenv("CORECLIENT_URL")
 
 	log.Printf("Connect to core client [%s]", addr)

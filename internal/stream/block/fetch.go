@@ -16,7 +16,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 
 	// "github.com/FissionAndFusion/lws/internal/db/model"
-	cclientModule "github.com/FissionAndFusion/lws/internal/stream/cclient"
+	cclientModule "github.com/FissionAndFusion/lws/internal/coreclient/instance"
 )
 
 // type FetchRangeCalculator struct {
