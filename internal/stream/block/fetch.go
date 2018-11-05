@@ -3,6 +3,7 @@ package block
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
 	"log"
 
 	"github.com/FissionAndFusion/lws/internal/coreclient"
@@ -11,6 +12,7 @@ import (
 	dbmodule "github.com/FissionAndFusion/lws/internal/db"
 	model "github.com/FissionAndFusion/lws/internal/db/model"
 	blockService "github.com/FissionAndFusion/lws/internal/db/service/block"
+	utxoService "github.com/FissionAndFusion/lws/internal/db/service/utxo"
 	"github.com/golang/protobuf/ptypes"
 
 	// "github.com/FissionAndFusion/lws/internal/db/model"
@@ -181,7 +183,7 @@ func (b *BlockFetcher) fetch(hash []byte, num int32) ([]*lws.Block, error) {
 	}
 
 	if result.Error != "" {
-		log.Printf("fetch block result error [%s]", result.Error)
+		err = fmt.Errorf("fetch block result error [%s]", result.Error)
 		return nil, err
 	}
 
@@ -206,7 +208,7 @@ func (b *BlockFetcher) handle(blocks []*lws.Block) error {
 		if err != nil {
 			log.Printf("handle sync block error [%s]", err)
 		}
-		if bytes.Compare(block.Hash, b.TriggerBlock.Hash) == 0 {
+		if bytes.Compare(block.Hash, b.TriggerBlock.Hash) == 0 || block.NHeight > b.TriggerBlock.NHeight {
 			b.isTriggerBlockSynced = true
 		}
 	}
@@ -224,6 +226,13 @@ func checkBlockExistanceByHash(hash []byte) bool {
 
 func clearForkedChain(height uint32) error {
 	connection := dbmodule.GetConnection()
+
+	// recover used inputs
+	err := utxoService.RecoverUsedInputs(height, connection)
+	if err != nil {
+		log.Printf("recover used inputs error")
+		return err
+	}
 
 	// clear utxo
 	res := connection.Unscoped().Where("block_height >= ? and block_height != ?", height, TXPOOL_HEIGHT).Delete(&model.Utxo{})

@@ -94,6 +94,7 @@ CREATE TABLE `tx` (
   `lock_until` int(10) unsigned DEFAULT NULL,
   `inputs` blob,
   `amount` bigint(20) DEFAULT NULL,
+  `change` bigint(20) DEFAULT NULL,
   `fee` bigint(20) DEFAULT NULL,
   `send_to` varbinary(33) DEFAULT NULL,
   `sender` varbinary(33) DEFAULT NULL,

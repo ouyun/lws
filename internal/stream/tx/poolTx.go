@@ -109,5 +109,6 @@ func convertTxFromDbpToOrm(tx *lws.Transaction) *model.Tx {
 		Sig:       tx.VchSig,
 		Inputs:    inputs,
 		SendTo:    sendTo,
+		Change:    tx.NChange,
 	}
 }
