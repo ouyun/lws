@@ -7,8 +7,6 @@ import (
 	"encoding/hex"
 	"log"
 	"os"
-	"strconv"
-	"strings"
 	"testing"
 	"time"
 
@@ -19,20 +17,6 @@ import (
 	edwards25519 "golang.org/x/crypto/ed25519"
 )
 
-func TestAPISS(t *testing.T) {
-
-	code1 := "178 10 234 215 209 22 250 63 27 69 115 27 46 132 80 66 174 68 88 173 67 216 182 213 94 54 6 184 54 223 31 21 1 1 112 89 84 86 194 230 223 96 49 238 244 249 254 205 74 76 41 115 115 161 21 67 165 27 3 181 77 78 31 203 17 34 0 112 89 84 86 194 230 223 96 49 238 244 249 254 205 74 76 41 115 115 161 21 67 165 27 3 181 77 78 31 203 17 34"
-	codeArr1 := strings.Split(code1, " ")
-	log.Printf("len : %+v", len(codeArr1))
-	codeAdd1 := make([]byte, 99)
-	log.Printf("len : %+v", codeArr1)
-	for index := 0; index < len(codeArr1); index++ {
-		value, _ := strconv.Atoi(codeArr1[index])
-		codeAdd1[index] = byte(value)
-	}
-	log.Printf("codeAdd1 : %+v", hex.EncodeToString(codeAdd1))
-}
-
 func TestServiceReq(t *testing.T) {
 	cli := &Program{
 		Id:    "clilassss",
@@ -42,7 +26,6 @@ func TestServiceReq(t *testing.T) {
 	if err := cli.Start(); err != nil {
 		t.Errorf("client start failed")
 	}
-
 	// cli.Subscribe("wqweqwasasqw/fnfn/ServiceReply", 0, servicReplyHandler)
 	addr, _, signKey := crypto.GenerateKeyPair(nil)
 	// addr, _ := hex.DecodeString("6f937c2f5944f5da2a118cebb067cd2c9c92c75955ce05aa05158a1af28e1607")

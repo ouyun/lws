@@ -110,12 +110,16 @@ func TxDataToStruct(tx []byte, txData *TxData) (err error) {
 	log.Printf("TxDataToStruct get params:tx--%+v\n", tx)
 	var leftIndex uint64 = 0
 	var sizeLen uint64 = 0
+	totalLength := uint64(len(tx))
 	for i := 0; i < resultValue.NumField(); i++ {
 		// leng := resultType.Field(i).Tag.Get("len")
 		leng, err := strconv.Atoi(resultType.Field(i).Tag.Get("len"))
 		len64 := uint64(leng)
 		if err != nil {
 			return err
+		}
+		if (leftIndex + len64) > totalLength {
+			return errors.New("slice bounds out of range")
 		}
 		// log.Printf("txData : %+v\n", txData)
 		if resultValue.Field(i).CanSet() {

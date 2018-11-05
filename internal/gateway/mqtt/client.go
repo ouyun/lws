@@ -68,13 +68,6 @@ func Interrupt() {
 	msgChan <- os.Interrupt
 }
 
-// var connHandle mqtt.OnConnectHandler = func(client mqtt.Client) {
-// 	client.Subscribe("LWS/lws/ServiceReq", byte(0), serviceReqHandler)
-// 	client.Subscribe("LWS/lws/SyncReq", byte(1), syncReqHandler)
-// 	client.Subscribe("LWS/lws/UTXOAbort", byte(1), uTXOAbortReqHandler)
-// 	client.Subscribe("LWS/lws/SendTxReq", byte(1), sendTxReqReqHandler)
-// }
-
 // start client
 func (p *Program) Start() error {
 	if token := p.Client.Connect(); token.Wait() && token.Error() != nil {

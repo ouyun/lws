@@ -163,11 +163,10 @@ func RemoveRedis(conn *redis.Conn, cliMap *CliMap) (err error) {
 
 func VerifyAddress(s *ServicePayload, payload []byte) bool {
 	messageLen := uint16(len(payload)) - (s.SignBytes + 2)
-	log.Printf("messageLen: %d", messageLen)
-	log.Printf("pub Key: %+v", s.Address[1:])
+	log.Printf("pub Key: %+v", hex.EncodeToString(s.Address[1:]))
 	log.Printf("payload : %+v", payload[:messageLen])
 	if messageLen > uint16(len(payload)) {
-		log.Printf("VerifyAddress failed with err:slice bounds out of range")
+		log.Printf("VerifyAddress failed with err: slice bounds out of range")
 		return false
 	}
 	if uint8(s.Address[0]) == 1 {

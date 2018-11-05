@@ -139,7 +139,11 @@ func GetProgram() *Program {
 		mu.Lock()
 		defer mu.Unlock()
 		if cliProgram == nil {
-			cliProgram = &Program{Id: "update001", IsLws: false}
+			id := os.Getenv("LWS_ID")
+			if id == "" {
+				id = "lws-001"
+			}
+			cliProgram = &Program{Id: "update" + id, IsLws: false}
 			cliProgram.Init()
 			if err := cliProgram.Start(); err != nil {
 				log.Printf("client start failed")

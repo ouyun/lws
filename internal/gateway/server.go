@@ -7,11 +7,13 @@ import (
 
 type Server struct {
 	Status int
+	Id     string
 }
 
 func (s *Server) Start() {
 	s.Status = 1
-	p := &mqtt.Program{Id: "LWS000010", Topic: "LWS01", IsLws: true}
+
+	p := &mqtt.Program{Id: s.Id, Topic: s.Id, IsLws: true}
 	mqtt.Run(p)
 	fmt.Printf("gateway server started (status: %d)", 3)
 }
