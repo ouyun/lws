@@ -50,6 +50,9 @@ func UTXOListToByte(u *[]UTXO) (result []byte, err error) {
 	buf := bytes.NewBuffer([]byte{})
 	for index := 0; index < len(*u); index++ {
 		(*u)[index].DataSize = uint16(len((*u)[index].Data))
+		if len((*u)[index].Sender) == 0 {
+			(*u)[index].Sender = make([]byte, 33)
+		}
 		utxoByte, err := StructToBytes((*u)[index])
 		if err != nil {
 			log.Printf("StructToBytes err: %+v", err)
@@ -74,7 +77,11 @@ func UTXOUpdateListToByte(u *[]UTXOUpdate) (result []byte, err error) {
 			buf.Write(IntToBytes((*u)[index].BlockHeight))
 		case 3:
 			(*u)[index].UTXO.DataSize = uint16(len((*u)[index].UTXO.Data))
-			utxoByte, err := StructToBytes((*u)[index].UTXO)
+			log.Printf("utxo %d: %+v", index, *((*u)[index].UTXO))
+			if len((*u)[index].UTXO.Sender) == 0 {
+				(*u)[index].UTXO.Sender = make([]byte, 33)
+			}
+			utxoByte, err := StructToBytes(*((*u)[index].UTXO))
 			if err != nil {
 				log.Printf("StructToBytes err: %+v", err)
 				return result, err

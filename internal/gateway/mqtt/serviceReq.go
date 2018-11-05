@@ -25,9 +25,8 @@ var serviceReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Me
 	var forkBitmap uint64 = 1
 	err := DecodePayload(msg.Payload(), &s)
 	if err != nil {
-		log.Printf("err: %+v\n", err)
+		log.Printf("Discard req with decodePayload err: %+v\n", err)
 		//丢弃请求
-		// ReplyServiceReq(&client, forkBitmap, 16, &s, &user, pubKey)
 		return
 	}
 	pubKey = PayloadToUser(&newUser, &s)
@@ -35,7 +34,7 @@ var serviceReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Me
 	// 验证签名
 	if !VerifyAddress(&s, msg.Payload()) {
 		//丢弃请求
-		log.Printf("sign err ！discard data!\n")
+		log.Printf("sign err ！discard serviceReq data!\n")
 		return
 	}
 
@@ -55,7 +54,7 @@ var serviceReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Me
 		}
 	}
 	if !suportForkId {
-		ReplyServiceReq(&client, forkBitmap, 3, &s, &newUser, pubKey)
+		ReplyServiceReq(&client, forkBitmap, 2, &s, &newUser, pubKey)
 		return
 	}
 
@@ -93,7 +92,7 @@ var serviceReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Me
 		if err != nil {
 			// fail
 			transaction.Rollback()
-			log.Printf("err: %+v\n", err)
+			log.Printf("SaveUser get err: %+v\n", err)
 			ReplyServiceReq(&client, forkBitmap, 16, &s, &user, pubKey)
 			return
 		}
@@ -106,7 +105,7 @@ var serviceReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Me
 		// fail
 		RemoveRedis(&redisConn, &cliMap)
 		transaction.Rollback()
-		log.Printf("err: %+v\n", err)
+		log.Printf("SaveToRedis get err: %+v\n", err)
 		ReplyServiceReq(&client, forkBitmap, 16, &s, &user, pubKey)
 		return
 	}
@@ -140,47 +139,49 @@ func ReplyServiceReq(client *mqtt.Client, forkBitmap uint64, err int, s *Service
 // save to redis
 func SaveToRedis(conn *redis.Conn, cliMap *CliMap) (err error) {
 	// save struct
-	// log.Printf("cliMap: %+v", cliMap)
 	_, err = (*conn).Do("HMSET", redis.Args{}.Add(strconv.FormatUint(uint64(cliMap.AddressId), 10)).AddFlat(cliMap)...)
-	// log.Printf("err: %+v", err)
 	if err != nil {
 		return err
 	}
 	// save set
 	_, err = (*conn).Do("SET", hex.EncodeToString(cliMap.Address), cliMap.AddressId)
-	// log.Printf("err: %+v", err)
 	return err
 }
 
 func RemoveRedis(conn *redis.Conn, cliMap *CliMap) (err error) {
 	_, err = (*conn).Do("DEL", strconv.FormatUint(uint64(cliMap.AddressId), 10))
 	if err != nil {
-		log.Printf("del key failed")
+		log.Printf("delete key failed")
 	}
 	// delete key
 	_, err = (*conn).Do("DEL", hex.EncodeToString(cliMap.Address))
 	if err != nil {
-		log.Printf("del key failed")
+		log.Printf("delete key failed")
 	}
 	return err
 }
 
 func VerifyAddress(s *ServicePayload, payload []byte) bool {
 	messageLen := uint16(len(payload)) - (s.SignBytes + 2)
-	log.Printf("messageLen: %d", messageLen)
-	log.Printf("pub Key: %+v", s.Address[1:])
+	log.Printf("pub Key: %+v", hex.EncodeToString(s.Address[1:]))
 	log.Printf("payload : %+v", payload[:messageLen])
+	if messageLen > uint16(len(payload)) {
+		log.Printf("VerifyAddress failed with err: slice bounds out of range")
+		return false
+	}
 	if uint8(s.Address[0]) == 1 {
 		// 验证签名
-		log.Printf("address type = 1 \n")
+		log.Printf("VerifyAddress with address type = 1 \n")
 		return edwards25519.Verify(s.Address[1:], payload[:messageLen], s.ServSignature)
 	}
+	log.Printf("VerifyAddress with address type = 2 \n")
 	// 验证 模版地址
+	log.Printf("ServSignature: %d", s.ServSignature)
 	templateDataLen := s.SignBytes - 96
 	templateData := s.ServSignature[:templateDataLen]
 	pubKey := s.ServSignature[templateDataLen:(templateDataLen + 32)]
 	signature := s.ServSignature[(templateDataLen + 32):]
-	hash := blake2b.Sum512(templateData)
+	hash := blake2b.Sum256(templateData)
 	if bytes.Compare(hash[:30], s.Address[3:]) != 0 {
 		return false
 	}

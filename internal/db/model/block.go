@@ -24,5 +24,5 @@ type Block struct {
 	// 矿工打包费的 tx id
 	MintTXID []byte `gorm:"size:32;type:varbinary;"`
 	// 区块签名
-	Sig []byte
+	Sig []byte `gorm:"type:blob;"`
 }

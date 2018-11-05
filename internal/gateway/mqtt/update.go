@@ -16,28 +16,36 @@ import (
 )
 
 var mu sync.Mutex
-
-var cliMap *Program
+var cliProgram *Program
 
 // send UTXO update list
 func SendUTXOUpdate(u *[]UTXOUpdate, address []byte) {
 	log.Println("update utxoUpdate !")
+	log.Printf("UTXOUpdate list : %+v ! \n", *u)
+	log.Printf("address: %+v !", address)
+	updatePayload := UpdatePayload{}
+	user := model.User{}
+	cliMap := CliMap{}
+
+	pool := GetRedisPool()
+	redisConn := pool.Get()
+
+	defer redisConn.Close()
+	utxoUList := *u
+	c := make(chan int, 1)
+
+	// get user by address
+	connection := db.GetConnection()
+	err := GetUserByAddress(address, connection, &redisConn, &user, &cliMap)
+	if err != nil {
+		log.Printf("get user failed: %+v", err)
+		return
+	}
 	client := GetProgram()
 	if client.Client == nil {
 		log.Printf("new mqtt client err: client == nil")
 		return
 	}
-	updatePayload := UpdatePayload{}
-	user := model.User{}
-	cliMap := CliMap{}
-	pool := GetRedisPool()
-	utxoUList := *u
-	c := make(chan int, 1)
-
-	// get user by address
-	redisConn := pool.Get()
-	connection := db.GetConnection()
-	GetUserByAddress(address, connection, &redisConn, &user, &cliMap)
 	updatePayload.Nonce = cliMap.Nonce
 	updatePayload.AddressId = cliMap.AddressId
 	tailBlock := block.GetTailBlock()
@@ -48,6 +56,7 @@ func SendUTXOUpdate(u *[]UTXOUpdate, address []byte) {
 
 	updatePayload.BlockHash = tailBlock.Hash
 	updatePayload.Height = tailBlock.Height
+	updatePayload.BlockTime = tailBlock.Tstamp
 	forkId, err := hex.DecodeString(os.Getenv("FORK_ID"))
 	if err != nil {
 		log.Printf("Getenv FORK_ID err: %+v", err)
@@ -82,10 +91,12 @@ func SendUTXOUpdate(u *[]UTXOUpdate, address []byte) {
 		SendUpdateMessage(&(*client).Client, &redisConn, &updatePayload, utxoUList, &cliMap, 0, c)
 		<-c
 	}
+	log.Printf("--------------------------")
 }
 
 // send update message
 func SendUpdateMessage(client *mqtt.Client, redisConn *redis.Conn, uPayload *UpdatePayload, u []UTXOUpdate, cliMap *CliMap, end int, c chan int) {
+	log.Printf("UTXOUpdate u: %+v\n", u)
 	addressIdStr := strconv.FormatUint(uint64(cliMap.AddressId), 10)
 	cli := CliMap{}
 	value, err := redis.Values((*redisConn).Do("hgetall", addressIdStr))
@@ -124,18 +135,20 @@ func SendUpdateMessage(client *mqtt.Client, redisConn *redis.Conn, uPayload *Upd
 }
 
 func GetProgram() *Program {
-	// log.Printf("old local client: %+v", cliMap)
-	if cliMap == nil {
+	if cliProgram == nil {
 		mu.Lock()
 		defer mu.Unlock()
-		if cliMap == nil {
-			cliMap = &Program{Id: "update001", IsLws: false}
-			cliMap.Init()
-			if err := cliMap.Start(); err != nil {
+		if cliProgram == nil {
+			id := os.Getenv("LWS_ID")
+			if id == "" {
+				id = "lws-001"
+			}
+			cliProgram = &Program{Id: "update" + id, IsLws: false}
+			cliProgram.Init()
+			if err := cliProgram.Start(); err != nil {
 				log.Printf("client start failed")
 			}
-			// log.Printf("new local client: %+v", cliMap)
 		}
 	}
-	return cliMap
+	return cliProgram
 }

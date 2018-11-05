@@ -31,7 +31,7 @@ var sendTxReqReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.
 	cliMap := CliMap{}
 	user := model.User{}
 	err := DecodePayload(payload, &s)
-	// log.Printf("SendTxPayload: %+v\n", s)
+	log.Printf("SendTxPayload: %+v\n", s)
 	if err != nil {
 		log.Printf("err: %+v\n", err)
 		return
@@ -47,6 +47,7 @@ var sendTxReqReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.
 	signed := crypto.SignWithApiKey(cliMap.ApiKey, payload[:len(payload)-20])
 	if bytes.Compare(signed, s.Signature) != 0 {
 		// 丢弃 内容
+		log.Printf("verify failed ！discard request！ ")
 		return
 	}
 	if err != nil {
@@ -89,28 +90,35 @@ var sendTxReqReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.
 	balance := txData.NAmount - amount - txData.NTxFee
 	if balance < 0 {
 		// return fail
-		ReplySendTx(&client, &s, 1, 4, "", &cliMap)
+		ReplySendTx(&client, &s, 4, 0, "balance err", &cliMap)
+		log.Printf("balance do not enough")
 		return
 	}
 
 	// 验证打包费
 	txFee, err := strconv.ParseInt(os.Getenv("TX_FEE"), 10, 64)
 	if txData.NTxFee != txFee {
-		ReplySendTx(&client, &s, 1, 4, "", &cliMap)
+		ReplySendTx(&client, &s, 4, 0, "txFee err", &cliMap)
+		log.Printf("txFee do not enough")
 		return
 	}
 
 	// TODO：send tx
-	result, err := SendTxToCore(StartCoreClient(), &s)
+	coreClient := StartCoreClient()
+	defer coreClient.Stop()
+	result, err := SendTxToCore(coreClient, &s)
 	if err != nil {
 		ReplySendTx(&client, &s, 16, 0, "", &cliMap)
+		log.Printf("err : %+v", err)
 		return
 	}
 	if result.Result == "failed" {
 		ReplySendTx(&client, &s, 3, 0, result.Reason, &cliMap)
+		log.Printf("result : %+v", result)
 		return
 	}
 	ReplySendTx(&client, &s, 0, 0, "", &cliMap)
+	log.Printf("send tx success !")
 	return
 }
 
@@ -136,6 +144,7 @@ func SendTxToCore(client *coreclient.Client, s *SendTxPayload) (resultMessage *l
 	params := &lws.SendTxArg{
 		Data: s.TxData,
 	}
+	log.Printf("SendTxArg data: %+v", hex.EncodeToString(s.TxData))
 	serializedParams, err := ptypes.MarshalAny(params)
 	if err != nil {
 		log.Fatal("could not serialize any field")
@@ -172,10 +181,17 @@ func SendTxToCore(client *coreclient.Client, s *SendTxPayload) (resultMessage *l
 }
 
 func getUtxoIndex(index *[]byte) []*model.Utxo {
-	var utxos []*model.Utxo
+	legnth := (len(*index) / 33)
+	utxos := make([]*model.Utxo, legnth)
+	log.Printf("index: %+v", index)
+	log.Printf("length : %+v", len(*index))
+	// TODO: array bound check
 	for i := 0; i < (len(*index) / 33); i++ {
-		utxos[i].Out = uint8((*index)[(i * 33)])
-		utxos[i].TxHash = (*index)[((i * 33) + 1) : ((i+1)*33)-1]
+		log.Printf("i: %+v", i)
+		ut := &model.Utxo{}
+		ut.Out = uint8((*index)[(i * 33)])
+		ut.TxHash = (*index)[((i * 33) + 1) : ((i+1)*33)-1]
+		utxos[i] = ut
 	}
 	return utxos
 }

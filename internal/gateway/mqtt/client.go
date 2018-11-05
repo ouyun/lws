@@ -27,6 +27,7 @@ type Service interface {
 
 type Program struct {
 	Id     string
+	Topic  string
 	Client mqtt.Client
 	IsLws  bool
 	subs   []string
@@ -34,7 +35,6 @@ type Program struct {
 
 var clientHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
 	log.Printf("TOPIC: %s\n", msg.Topic())
-	// DecodePayload(msg.Payload())
 }
 
 var coreClient *coreclient.Client
@@ -68,55 +68,48 @@ func Interrupt() {
 	msgChan <- os.Interrupt
 }
 
-var connHandle mqtt.OnConnectHandler = func(client mqtt.Client) {
-	client.Subscribe("LWS/lws/ServiceReq", byte(0), serviceReqHandler)
-	client.Subscribe("LWS/lws/SyncReq", byte(1), syncReqHandler)
-	client.Subscribe("LWS/lws/UTXOAbort", byte(1), uTXOAbortReqHandler)
-	client.Subscribe("LWS/lws/SendTxReq", byte(1), sendTxReqReqHandler)
-}
-
 // start client
 func (p *Program) Start() error {
 	if token := p.Client.Connect(); token.Wait() && token.Error() != nil {
 		log.Printf("conn mqtt broker failed : %+v \n", token.Error())
-		err := errors.New("conn mqtt broker fail")
+		err := errors.New("conn mqtt broker failed")
 		return err
 	}
-	log.Printf("client start successed!")
+	log.Printf("client: %s started!", p.Id)
 	return nil
 }
 
 // init client
 func (p *Program) Init() {
-	// mqtt.DEBUG = log.New(os.Stdout, "", 20)
+	mqtt.DEBUG = log.New(os.Stdout, "", 20)
 	// mqtt.ERROR = log.New(os.Stdout, "", 0)
 	opts := mqtt.NewClientOptions().AddBroker(os.Getenv("MQTT_URL")).SetClientID(p.Id)
-	opts.SetKeepAlive(300 * time.Second)
+	opts.SetKeepAlive(10 * time.Second)
 	opts.SetAutoReconnect(true)
 	opts.SetCleanSession(false)
 	opts.SetDefaultPublishHandler(clientHandler)
 	if p.IsLws {
-		opts.SetOnConnectHandler(connHandle)
+		opts.SetOnConnectHandler(p.GetOnConnectHandler())
 	}
 	opts.SetConnectTimeout(30 * time.Second)
 	opts.SetPingTimeout(3 * time.Second)
 	p.Client = mqtt.NewClient(opts)
 }
 
-// Stop clients
+// stop client
 func (p *Program) Stop() error {
 	if p.Client.IsConnected() {
 		p.Client.Disconnect(250)
 		return nil
 	}
-	return errors.New("client did not conn broker")
+	return errors.New("client did not conn broker!")
 }
 
 // publish topic
 func (p *Program) Publish(topic string, qos byte, retained bool, msg []byte) error {
 	token := p.Client.Publish(topic, qos, retained, msg)
 	if token.Wait() && token.Error() != nil {
-		log.Printf("publish get err : %s", token.Error())
+		log.Printf("publish get err: %s \n", token.Error())
 	}
 	return token.Error()
 }
@@ -128,6 +121,18 @@ func (p *Program) Subscribe(topic string, qos byte, handler mqtt.MessageHandler)
 		log.Printf("subscribe err : %s", token.Error())
 	}
 	return token.Error()
+}
+
+func (p *Program) GetOnConnectHandler() mqtt.OnConnectHandler {
+	log.Printf("program %s", p.Topic)
+	var conn mqtt.OnConnectHandler = func(client mqtt.Client) {
+		// log.Printf("program %s", p.Topic)
+		client.Subscribe(p.Topic+"/lws/ServiceReq", byte(0), serviceReqHandler)
+		client.Subscribe(p.Topic+"/lws/SyncReq", byte(1), syncReqHandler)
+		client.Subscribe(p.Topic+"/lws/UTXOAbort", byte(1), uTXOAbortReqHandler)
+		client.Subscribe(p.Topic+"/lws/SendTxReq", byte(1), sendTxReqReqHandler)
+	}
+	return conn
 }
 
 // create user
@@ -209,11 +214,17 @@ func PayloadToUser(user *model.User, s *ServicePayload) []byte {
 	user.TimeStamp = s.TimeStamp
 	user.ReplyUTXON = s.ReplyUTXON
 
-	pubKey, privKey, _ := crypto.GenerateKeyPair(nil)
+	pubKey, privKey, privSignKey := crypto.GenerateKeyPair(nil)
+
 	var address crypto.PublicKey
-	copy(address[:], []byte(user.Address))
+
+	copy(address[:], user.Address[1:])
 	apiKey := crypto.GenerateApiKey(&privKey, &address)
 	user.ApiKey = apiKey[:]
+	log.Printf("pubKey: %+v", hex.EncodeToString(pubKey[:]))
+	log.Printf("privKey: %+v", hex.EncodeToString(privKey[:]))
+	log.Printf("privSignKey: %+v", hex.EncodeToString(privSignKey[:]))
+	log.Printf("apiKey: %+v", hex.EncodeToString(apiKey[:]))
 	return pubKey[:]
 }
 

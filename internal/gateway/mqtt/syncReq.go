@@ -82,16 +82,17 @@ var syncReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Messa
 		"INNER JOIN tx "+
 		"ON utxo.tx_hash = tx.hash "+
 		"AND utxo.destination = ? "+
-		"ORDER BY utxo.amount ASC, utxo.out ASC ", cliMap.Address).Find(&UTXOs).Error
+		"ORDER BY REVERSE(utxo.tx_hash) ASC, utxo.out ASC ", cliMap.Address).Find(&UTXOs).Error
 	if err != nil {
 		ReplySyncReq(&client, &s, &UTXOs, &cliMap, 16, 0)
 		return
 	}
+	log.Printf("utxos：%+v", UTXOs)
 	// 计算utxo hash
 	utxoHash := UTXOHash(&UTXOs)
 	log.Printf("get UTXOs %+v\n", UTXOs)
 	if bytes.Compare(utxoHash, []byte(s.UTXOHash)) == 0 {
-		log.Printf("clinet hash equal local hash!")
+		log.Printf("client hash equals local hash!")
 		ReplySyncReq(&client, &s, &UTXOs, &cliMap, 0, 0)
 
 		updateRedis(&redisConn, &cliMap, "Nonce", s.Nonce)
@@ -99,20 +100,10 @@ var syncReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Messa
 	}
 	// 计算utxo数量
 	// 如果utxo 数量超过replyUtxo长度，分多次发送list
-	// 如果replyUtxo = 0 ， 计算长度是否超过256
-	if cliMap.ReplyUTXON == 0 {
-		maxLen := 256 * 1024
-		totalLen := len(UTXOs) + 42
-		if maxLen < totalLen {
-			// TODO：分包 发送
-		} else {
-			// 一次发送
-			ReplySyncReq(&client, &s, &UTXOs, &cliMap, 1, 0)
-		}
-	} else if cliMap.ReplyUTXON < uint16(len(UTXOs)) {
+	if cliMap.ReplyUTXON < uint16(len(UTXOs)) && cliMap.ReplyUTXON != 0 {
 		// 多次发送
-		// 发送次数
 		c := make(chan int, 1)
+		// 发送次数
 		times := int(math.Ceil(float64(uint16(len(UTXOs)) / cliMap.ReplyUTXON)))
 		for index := 0; index < times; index++ {
 			log.Printf("total：%+v, send utxo in data pack %d\n", times, index)
@@ -137,26 +128,35 @@ var syncReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Messa
 		ReplySyncReq(&client, &s, &UTXOs, &cliMap, 1, 0)
 	}
 	// save nonce
-	updateRedis(&redisConn, &cliMap, "Nonce", s.Nonce)
+	err = updateRedis(&redisConn, &cliMap, "Nonce", s.Nonce)
+	if err != nil {
+		log.Printf("save nonce err: %+v\n", err)
+	}
 }
 
 // reply sync req
 func ReplySyncReq(client *mqtt.Client, s *SyncPayload, u *[]UTXO, cliMap *CliMap, err, end int) {
-	log.Printf("send update list !")
+	log.Printf("sending update list !")
 	reply := SyncReply{}
 	reply.Nonce = s.Nonce
 	reply.Error = uint8(err)
 	if err == 0 {
 		tailBlock := block.GetTailBlock()
-		reply.BlockHash = tailBlock.Hash
-		reply.BlockHeight = tailBlock.Height
+		if tailBlock != nil {
+			reply.BlockHash = tailBlock.Hash
+			reply.BlockHeight = tailBlock.Height
+			reply.BlockTime = tailBlock.Tstamp
+		}
 		reply.UTXONum = uint16(0)
 		reply.Continue = uint8(end)
 	}
 	if err == 1 {
 		tailBlock := block.GetTailBlock()
-		reply.BlockHash = tailBlock.Hash
-		reply.BlockHeight = tailBlock.Height
+		if tailBlock != nil {
+			reply.BlockHash = tailBlock.Hash
+			reply.BlockHeight = tailBlock.Height
+			reply.BlockTime = tailBlock.Tstamp
+		}
 		reply.UTXONum = uint16(len(*u))
 		byteList, _ := UTXOListToByte(u)
 		reply.UTXOList = byteList
@@ -167,7 +167,6 @@ func ReplySyncReq(client *mqtt.Client, s *SyncPayload, u *[]UTXO, cliMap *CliMap
 		log.Printf("err: %+v\n", err)
 	}
 	t := cliMap.TopicPrefix + "/fnfn/SyncReply"
-	// TODO
 	token := (*client).Publish(t, 1, false, result)
 	if token.Wait() {
 		log.Printf("publish err: %+v", token.Error())
@@ -184,6 +183,7 @@ func ReplySyncReqWithChan(client *mqtt.Client, s *SyncPayload, u []UTXO, cliMap 
 		tailBlock := block.GetTailBlock()
 		reply.BlockHash = tailBlock.Hash
 		reply.BlockHeight = tailBlock.Height
+		reply.BlockTime = tailBlock.Tstamp
 		reply.UTXONum = uint16(len(u))
 		byteList, _ := UTXOListToByte(&u)
 		reply.UTXOList = byteList

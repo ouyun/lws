@@ -49,6 +49,7 @@ type SyncReply struct {
 	Error       uint8  `len:"1" type:"SyncReply"`
 	BlockHash   []byte `len:"32"`
 	BlockHeight uint32 `len:"4"`
+	BlockTime   uint32 `len:"4"`
 	UTXONum     uint16 `len:"2"`
 	UTXOList    []byte `len:"0"`
 	Continue    uint8  `len:"1"`
@@ -60,6 +61,7 @@ type UpdatePayload struct {
 	ForkId     []byte `len:"32"`
 	BlockHash  []byte `len:"32"`
 	Height     uint32 `len:"4"`
+	BlockTime  uint32 `len:"4"`
 	UpdateNum  uint16 `len:"2"`
 	UpdateList []byte `len:"0"`
 	Continue   uint8  `len:"1"`
@@ -105,9 +107,10 @@ func TxDataToStruct(tx []byte, txData *TxData) (err error) {
 
 	resultType := reflect.TypeOf(txData).Elem()
 
-	// log.Printf("resultType : %+v\n", resultType.NumField())
+	log.Printf("TxDataToStruct get params:tx--%+v\n", tx)
 	var leftIndex uint64 = 0
 	var sizeLen uint64 = 0
+	totalLength := uint64(len(tx))
 	for i := 0; i < resultValue.NumField(); i++ {
 		// leng := resultType.Field(i).Tag.Get("len")
 		leng, err := strconv.Atoi(resultType.Field(i).Tag.Get("len"))
@@ -115,14 +118,16 @@ func TxDataToStruct(tx []byte, txData *TxData) (err error) {
 		if err != nil {
 			return err
 		}
-		log.Printf("txData : %+v\n", txData)
+		if (leftIndex + len64) > totalLength {
+			return errors.New("slice bounds out of range")
+		}
+		// log.Printf("txData : %+v\n", txData)
 		if resultValue.Field(i).CanSet() {
 			switch resultValue.Field(i).Type().Kind() {
 			case reflect.Slice:
 				if leng > 0 {
 					resultValue.Field(i).SetBytes(reverseBytes(tx[leftIndex:(leftIndex + len64)]))
 				} else if resultType.Field(i).Name == "UtxoIndex" {
-					log.Printf("tx : %+v\n", tx[leftIndex:])
 					resultValue.Field(i).SetBytes(reverseBytes(tx[leftIndex:(uint64(leftIndex) + (sizeLen * 33))]))
 					len64 = sizeLen * 33
 				}
@@ -139,8 +144,6 @@ func TxDataToStruct(tx []byte, txData *TxData) (err error) {
 				resultValue.Field(i).Set(
 					reflect.ValueOf(int64(BytesToInt(tx[leftIndex:(leftIndex + len64)]).(uint64))))
 			case reflect.Uint64:
-				log.Printf("leftIndex : %d", leftIndex)
-				log.Printf("len64 : %d", len64)
 				if resultType.Field(i).Name == "Size" {
 					num := BytesToInt(tx[leftIndex:(leftIndex + 1)]).(uint8)
 					if num < 253 {
@@ -170,12 +173,13 @@ func TxDataToStruct(tx []byte, txData *TxData) (err error) {
 		}
 		leftIndex += len64
 	}
+	log.Printf("TxDataToStruct get result : %+v\n", txData)
 	return err
 }
 
 func StructToBytes(s interface{}) (result []byte, err error) {
 	buf := bytes.NewBuffer([]byte{})
-
+	log.Printf("StructToBytes get param:struct-- %+v\n", s)
 	value := reflect.ValueOf(s)
 	valueType := reflect.TypeOf(s)
 	for i := 0; i < value.NumField(); i++ {
@@ -226,8 +230,8 @@ func StructToBytes(s interface{}) (result []byte, err error) {
 		}
 	}
 	result = buf.Bytes()
-	log.Printf("by struct: %+v\n", s)
-	log.Printf("generate payload by struct: %+v\n", result)
+	// log.Printf("struct to bytes by struct: %+v\n", s)
+	log.Printf("struct to bytes generate payload: %+v\n", result)
 	return result, err
 }
 
@@ -251,6 +255,10 @@ func IntToBytes(i interface{}) []byte {
 	case uint64:
 		var buf = make([]byte, 8)
 		binary.LittleEndian.PutUint64(buf, v)
+		return buf
+	case int64:
+		var buf = make([]byte, 8)
+		binary.LittleEndian.PutUint64(buf, uint64(v))
 		return buf
 	case uint8:
 		buf := []byte{byte(uint8(v))}
@@ -294,8 +302,8 @@ func DecodePayload(payload []byte, result interface{}) (err error) {
 	resultValue := reflect.ValueOf(result).Elem()
 	resultType := reflect.TypeOf(result).Elem()
 	totalLength := len(payload)
-
-	log.Printf("payload bytes : %+v\n", payload)
+	log.Printf("DecodePayload params: payload bytes length : %d\n", len(payload))
+	log.Printf("DecodePayload params: payload bytes : %+v\n", payload)
 	leftIndex := 0
 	forkNum := 0
 	for i := 0; i < resultValue.NumField(); i++ {
@@ -405,7 +413,7 @@ func DecodePayload(payload []byte, result interface{}) (err error) {
 		}
 		leftIndex = (leftIndex + leng)
 	}
-	log.Printf("decode payload get result : %+v\n", result)
+	log.Printf("DecodePayload get result : %+v\n", result)
 	return err
 }
 
@@ -430,9 +438,24 @@ func Sign(key ed25519.PrivateKey, message []byte) []byte {
 
 // reverse Bytes
 func reverseBytes(src []byte) []byte {
-	for i := len(src)/2 - 1; i >= 0; i-- {
-		opp := len(src) - 1 - i
-		src[i], src[opp] = src[opp], src[i]
+	srcTemp := make([]byte, len(src))
+	copy(srcTemp[:], src)
+	for i := len(srcTemp)/2 - 1; i >= 0; i-- {
+		opp := len(srcTemp) - 1 - i
+		srcTemp[i], srcTemp[opp] = srcTemp[opp], srcTemp[i]
 	}
-	return src
+	return srcTemp
+}
+
+func reverseString(s string) string {
+	runes := []rune(s)
+
+	// runes := []rune(s)
+	for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
+		runes[i], runes[j] = runes[j], runes[i]
+	}
+	for i := 0; i < len(s); i += 2 {
+		runes[i], runes[i+1] = runes[i+1], runes[i]
+	}
+	return string(runes)
 }

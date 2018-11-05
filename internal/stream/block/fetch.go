@@ -25,7 +25,7 @@ import (
 // }
 
 const (
-	FETCH_NUMBER  = 100
+	FETCH_NUMBER  = 10
 	TXPOOL_HEIGHT = 0xFFFFFFFF
 )
 
