@@ -78,7 +78,7 @@ func validateBlock(block *lws.Block, shouldRecover bool) (error, bool, bool) {
 		}
 
 		err := fmt.Errorf("trigger recovery")
-		return err, false, false
+		return err, true, false
 	}
 
 	// 3B. 一致则为校验通过
@@ -134,7 +134,7 @@ func writeBlock(block *lws.Block) error {
 	dbtx.Commit()
 
 	for destination, item := range updates {
-		mqtt.SendUTXOUpdate(&item, destination[:])
+		go mqtt.SendUTXOUpdate(&item, destination[:])
 	}
 
 	return nil

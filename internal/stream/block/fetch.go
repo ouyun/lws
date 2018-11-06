@@ -25,7 +25,7 @@ import (
 // }
 
 const (
-	FETCH_NUMBER  = 10
+	FETCH_NUMBER  = 100
 	TXPOOL_HEIGHT = 0xFFFFFFFF
 )
 
@@ -204,6 +204,7 @@ func (b *BlockFetcher) fetch(hash []byte, num int32) ([]*lws.Block, error) {
 
 func (b *BlockFetcher) handle(blocks []*lws.Block) error {
 	for _, block := range blocks {
+		log.Printf("fetch handle Block hash v [%s] type[%d] (#%d)", hex.EncodeToString(block.Hash), block.NType, block.NHeight)
 		err, _ := handleSyncBlock(block, true)
 		if err != nil {
 			log.Printf("handle sync block error [%s]", err)
