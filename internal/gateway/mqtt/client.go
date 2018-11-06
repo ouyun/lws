@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/FissionAndFusion/lws/internal/coreclient"
+	cclientModule "github.com/FissionAndFusion/lws/internal/coreclient/instance"
 	"github.com/FissionAndFusion/lws/internal/db/model"
 	"github.com/FissionAndFusion/lws/internal/gateway/crypto"
 	"github.com/eclipse/paho.mqtt.golang"
@@ -37,21 +38,10 @@ var clientHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Messag
 	log.Printf("TOPIC: %s\n", msg.Topic())
 }
 
-var coreClient *coreclient.Client
-
 var msgChan = make(chan os.Signal, 1)
 
 func StartCoreClient() *coreclient.Client {
-	if coreClient != nil {
-		return coreClient
-	}
-	addr := os.Getenv("CORECLIENT_URL")
-
-	log.Printf("Connect to core client [%s]", addr)
-	client := coreclient.NewTCPClient(addr)
-
-	client.Start()
-	return client
+	return cclientModule.StartCoreClient()
 }
 
 func Run(service Service) error {

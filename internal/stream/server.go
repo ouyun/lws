@@ -6,9 +6,9 @@ import (
 	"os"
 	"os/signal"
 
+	cclientModule "github.com/FissionAndFusion/lws/internal/coreclient/instance"
 	"github.com/FissionAndFusion/lws/internal/db"
 	"github.com/FissionAndFusion/lws/internal/stream/block"
-	cclientModule "github.com/FissionAndFusion/lws/internal/stream/cclient"
 	"github.com/FissionAndFusion/lws/internal/stream/tx"
 )
 
