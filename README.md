@@ -1,21 +1,46 @@
 Light Wallet Service (for FnFn)
 ==========
 
+Requirements
+----------
+
+LWS relies on a few other services to run (all services should be up before LWS which could connect to):
+
+* MySQL Database
+* Mqtt
+* RabbitMQ
+* Redis
+* Core wallet
+
+All these services could be configured in `.env` file (sample could be found in `.env.sample`).
+
+Deploy
+----------
+
+### Binary
+
+Download binary from [Github release](https://github.com/FissionAndFusion/lws/releases) page.
+
+Or build the binary from repository by yourself:
+
+~~~
+GOOS=linux GOARCH=amd64 go build -o "./gateway" cmd/gateway/main.go
+GOOS=linux GOARCH=amd64 go build -o "./stream" cmd/stream/main.go
+~~~
+
+`GOOS` and `GOARCH` could be specified by your target environment.
+
+Then just start service by execute the binary files with environment variables in `.env` file.
+
 Development
 ----------
 
 ### Package management
 
-Since Go hasn't a best package management solution until v1.11 (2018-08-31), we use [**dep**](https://golang.github.io/dep) (officially supported) for managing packages simply and temporarily.
+Use go module (>= 1.11) to manage packages.
 
 ~~~bash
-brew install dep # install dep tool
-
-dep init # migrate depedencies from `vendor/` by other tools
-
-dep ensure # sync and install all dependencies into `vender/`
-
-dep ensure -add github.com/user/xxx-repo # something like `go get` but fetch package into `vendor/` and update Gopkg.toml/Gopkg.lock file
+go mod donwload # download all dependencies
 ~~~
 
 ### Related 3rd-party Services
