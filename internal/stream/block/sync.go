@@ -21,15 +21,9 @@ func handleSyncBlock(block *lws.Block, shouldRecover bool) (error, bool) {
 	// log.Printf("Receive Block hash [%s]", block.Hash)
 	log.Printf("Receive Block hash v [%s] type[%d] (#%d)", hex.EncodeToString(block.Hash), block.NType, block.NHeight)
 
-	// 1. 判断是否为子块
-	isSubBlock := uint16(block.NType) == constant.BLOCK_TYPE_EXTENDED
 	var skip bool
 	var write bool
-	if isSubBlock {
-		err, skip, write = validateSubBlock(block)
-	} else {
-		err, skip, write = validateBlock(block, shouldRecover)
-	}
+	err, skip, write = validateBlock(block, shouldRecover)
 
 	// recovery
 	if err != nil {
@@ -41,21 +35,6 @@ func handleSyncBlock(block *lws.Block, shouldRecover bool) (error, bool) {
 	}
 
 	return err, skip
-}
-
-// error, skip
-func validateSubBlock(block *lws.Block) (error, bool, bool) {
-	// 1. 判断子块是否在链上
-	if ok := isBlockExisted(block.NHeight, block.Hash, true); ok {
-		log.Printf("subBlock hash [%s] is already existed", hex.EncodeToString(block.Hash))
-		return nil, true, false
-	}
-	// 2. 判断所连的主块是否在链上
-	if ok := isBlockExisted(block.NHeight, block.HashPrev, false); !ok {
-		log.Printf("subBlock HashPrev [%s](#%d) is not existed, skip the sub block [%s]", hex.EncodeToString(block.HashPrev), block.NHeight, block)
-		return nil, true, false
-	}
-	return nil, false, true
 }
 
 // error, skip
@@ -94,8 +73,15 @@ func isTailOrOrigin(block *lws.Block) bool {
 
 	tail := blockService.GetTailBlock()
 	if tail != nil {
-		// log.Printf("tail [%s](%d), block [%s](%d) prev[%s]", tail.Hash, tail.Height, block.Hash, block.Height, block.HashPrev)
-		if bytes.Compare(tail.Hash, block.HashPrev) == 0 && block.NHeight == tail.Height+1 {
+		// log.Printf("tail [%s](%d), block [%s](%d) prev[%s]", tail.Hash, tail.Height, block.Hash, block.NHeight, block.HashPrev)
+		// new primary block
+		isRightHeight := block.NHeight == tail.Height+1
+		if uint16(block.NType) == constant.BLOCK_TYPE_EXTENDED {
+			// new extent block
+			isRightHeight = block.NHeight == tail.Height
+		}
+
+		if bytes.Compare(tail.Hash, block.HashPrev) == 0 && isRightHeight {
 			return true
 		}
 	}
