@@ -25,8 +25,9 @@ import (
 // }
 
 const (
-	FETCH_NUMBER  = 10
-	TXPOOL_HEIGHT = 0xFFFFFFFF
+	FETCH_NUMBER              = 10
+	TXPOOL_HEIGHT             = 0xFFFFFFFF
+	STALE_BLOCK_HEIGHT_OFFSET = 10
 )
 
 type BlockFetcher struct {
@@ -74,6 +75,14 @@ func (b *BlockFetcher) startFetchBlocks(triggerBlock *lws.Block) {
 		}
 
 		b.fetchAndHandleBlocks(hash)
+	}
+
+	// clear stable blocks need to create anther new rabbitmq connection
+	// so only if height offset larger than HEIGHT_OFFSET, we will clear stale blocks
+	if tail != nil && (tail.Height-triggerBlock.NHeight > STALE_BLOCK_HEIGHT_OFFSET) {
+		log.Printf("clear stale blocks start with tail[#%d] trigger[#%d]", tail.Height, triggerBlock.NHeight)
+		clearStaleBlocksInQueue(tail.Height)
+		log.Printf("clear stale blocks done")
 	}
 }
 
@@ -203,6 +212,12 @@ func (b *BlockFetcher) fetch(hash []byte, num int32) ([]*lws.Block, error) {
 }
 
 func (b *BlockFetcher) handle(blocks []*lws.Block) error {
+	log.Printf("DEBUG fetch list start")
+	for _, block := range blocks {
+		log.Printf("fetch Block hash [%s] type[%d] (#%d)", hex.EncodeToString(block.Hash), block.NType, block.NHeight)
+	}
+	log.Printf("DEBUG fetch list done")
+
 	for _, block := range blocks {
 		err, _ := handleSyncBlock(block, true)
 		if err != nil {

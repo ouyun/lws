@@ -78,7 +78,8 @@ func validateBlock(block *lws.Block, shouldRecover bool) (error, bool, bool) {
 		}
 
 		err := fmt.Errorf("trigger recovery")
-		return err, false, false
+		// skip current trigger-block (fetchBlocks will handle it)
+		return err, true, false
 	}
 
 	// 3B. 一致则为校验通过
