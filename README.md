@@ -40,7 +40,7 @@ Development
 Use go module (>= 1.11) to manage packages.
 
 ~~~bash
-go mod donwload # download all dependencies
+go mod download # download all dependencies
 ~~~
 
 ### Related 3rd-party Services
