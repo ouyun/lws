@@ -97,7 +97,7 @@ var sendTxReqReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.
 
 	// 验证打包费
 	txFee, err := strconv.ParseInt(os.Getenv("TX_FEE"), 10, 64)
-	if txData.NTxFee != txFee {
+	if txData.NTxFee < txFee {
 		ReplySendTx(&client, &s, 4, 0, "txFee err", &cliMap)
 		log.Printf("txFee do not enough")
 		return
