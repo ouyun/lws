@@ -105,7 +105,7 @@ var sendTxReqReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.
 
 	// TODO：send tx
 	coreClient := StartCoreClient()
-	defer coreClient.Stop()
+	// defer coreClient.Stop()
 	result, err := SendTxToCore(coreClient, &s)
 	if err != nil {
 		ReplySendTx(&client, &s, 16, 0, "", &cliMap)
