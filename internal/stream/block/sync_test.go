@@ -219,8 +219,8 @@ func TestHandleSyncBlockExtendWrongHeightRecovery(t *testing.T) {
 		t.Errorf("should got recovery error but [%s]", err)
 	}
 
-	if skip {
-		t.Errorf("should not skip the trigger-block")
+	if !skip {
+		t.Errorf("should skip the trigger-block")
 	}
 
 	tail := blockService.GetTailBlock()

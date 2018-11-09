@@ -1,6 +1,7 @@
 package block
 
 import (
+	"context"
 	"log"
 
 	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/dbp"
@@ -18,12 +19,14 @@ func handleConsumer(body []byte) bool {
 	added := &dbp.Added{}
 	if err = proto.Unmarshal(body, added); err != nil {
 		log.Println("unkonwn message received", body, err)
+		return true
 	}
 
 	block := &lws.Block{}
 	err = ptypes.UnmarshalAny(added.Object, block)
 	if err != nil {
 		log.Println("unpack Object failed", err)
+		return true
 	}
 
 	err, skip := handleSyncBlock(block, true)
@@ -37,5 +40,48 @@ func NewBlockConsumer() *pubsub.Consumer {
 		QueueName:          QUEUE_NAME,
 		HandleConsumer:     handleConsumer,
 		IsBlockingChecking: true,
+	}
+}
+
+func clearStaleBlocksInQueue(height uint32) {
+	ctx, cancel := context.WithCancel(context.Background())
+	handler := createClearHandler(cancel, height)
+	consumer := &pubsub.Consumer{
+		ExchangeName:       EXCHANGE_NAME,
+		QueueName:          QUEUE_NAME,
+		HandleConsumer:     handler,
+		IsBlockingChecking: true,
+	}
+
+	go pubsub.ListenConsumer(ctx, consumer)
+
+	<-ctx.Done()
+}
+
+func createClearHandler(cancel context.CancelFunc, height uint32) func(body []byte) bool {
+	return func(body []byte) bool {
+		var err error
+
+		added := &dbp.Added{}
+		if err = proto.Unmarshal(body, added); err != nil {
+			log.Println("unkonwn message received", body, err)
+			return true
+		}
+
+		block := &lws.Block{}
+		err = ptypes.UnmarshalAny(added.Object, block)
+		if err != nil {
+			log.Println("unpack Object failed", err)
+			return true
+		}
+
+		if block.NHeight >= height {
+			log.Printf("detect block height [#%d], clearing done", block.NHeight)
+			cancel()
+			return false
+		}
+
+		log.Printf("delete block[#%d] from consumer queue", block.NHeight)
+		return true
 	}
 }
