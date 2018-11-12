@@ -172,7 +172,8 @@ func VerifyAddress(s *ServicePayload, payload []byte) bool {
 	if uint8(s.Address[0]) == 1 {
 		// 验证签名
 		log.Printf("VerifyAddress with address type = 1 \n")
-		return edwards25519.Verify(s.Address[1:], payload[:messageLen], s.ServSignature)
+		signatureHash := blake2b.Sum256(payload[:messageLen])
+		return edwards25519.Verify(s.Address[1:], signatureHash[:], s.ServSignature)
 	}
 	log.Printf("VerifyAddress with address type = 2 \n")
 	// 验证 模版地址
