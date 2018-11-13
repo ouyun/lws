@@ -52,6 +52,7 @@ var sendTxReqReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.
 	}
 	if err != nil {
 		ReplySendTx(&client, &s, 16, 0, "", &cliMap)
+		log.Printf("sendReq16 internal error SignApiKey: [%s]", err)
 		return
 	}
 	// 无效addressId
@@ -76,6 +77,7 @@ var sendTxReqReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.
 	if err != nil {
 		// fail
 		ReplySendTx(&client, &s, 16, 0, "", &cliMap)
+		log.Printf("sendReq16 internal error TxDataToStruct: [%s]", err)
 		return
 	}
 
@@ -83,6 +85,7 @@ var sendTxReqReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.
 	amount, _, err := utxo.GetSummary(getUtxoIndex(&txData.UtxoIndex), connection)
 	if err != nil {
 		ReplySendTx(&client, &s, 16, 0, "", &cliMap)
+		log.Printf("sendReq16 internal error GetSummary: [%s]", err)
 		return
 	}
 
@@ -109,6 +112,7 @@ var sendTxReqReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.
 	result, err := SendTxToCore(coreClient, &s)
 	if err != nil {
 		ReplySendTx(&client, &s, 16, 0, "", &cliMap)
+		log.Printf("sendReq16 internal error SendTxToCore: [%s]", err)
 		log.Printf("err : %+v", err)
 		return
 	}
