@@ -56,6 +56,14 @@ docker-compose up -d
 docker-compose down
 ~~~
 
+
+### Schema sql
+~~~shell
+# execute `./test/data/schema.sql`
+# if you are using the docker-compose to set up mysql service
+mysql --host=127.0.0.1 --port=13307 -u root lws < ./test/data/schema.sql
+~~~
+
 ### Environment Variables
 
 We are using [godotenv](https://github.com/joho/godotenv) to manange variables in `.env` file (no required). To install the command-line tool:
