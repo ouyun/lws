@@ -139,11 +139,11 @@ func GetProgram() *Program {
 		mu.Lock()
 		defer mu.Unlock()
 		if cliProgram == nil {
-			id := os.Getenv("LWS_ID")
+			id := os.Getenv("MQTT_STREAM_CLIENT_ID")
 			if id == "" {
-				id = "lws-001"
+				id = "lws-001-update"
 			}
-			cliProgram = &Program{Id: "update" + id, IsLws: false}
+			cliProgram = &Program{Id: id, IsLws: false}
 			cliProgram.Init()
 			if err := cliProgram.Start(); err != nil {
 				log.Printf("client start failed")
