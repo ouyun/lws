@@ -29,7 +29,7 @@ func TestIsBlockExistedTrue(t *testing.T) {
 	TestHandleSyncBlockGenesis(t)
 	hash := []byte("0000000000000000000000000001")
 
-	isExisted := isBlockExisted(0, hash, false)
+	isExisted := isBlockExisted(0, hash)
 	if !isExisted {
 		t.Error("expect existed, but non-existed")
 	}
@@ -39,7 +39,7 @@ func TestIsBlockExistedFalse(t *testing.T) {
 	helper.ResetDb()
 	hash := []byte("0000000000000000000000000001")
 
-	isExisted := isBlockExisted(0, hash, false)
+	isExisted := isBlockExisted(0, hash)
 	if isExisted {
 		t.Error("expect existed, but non-existed")
 	}

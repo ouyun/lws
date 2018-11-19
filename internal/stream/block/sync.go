@@ -40,7 +40,7 @@ func handleSyncBlock(block *lws.Block, shouldRecover bool) (error, bool) {
 // error, skip
 func validateBlock(block *lws.Block, shouldRecover bool) (error, bool, bool) {
 	// 1. 根据高度快速查找该区块是否已经在链上, 在链上则跳过本次操作
-	if ok := isBlockExisted(block.NHeight, block.Hash, false); ok {
+	if ok := isBlockExisted(block.NHeight, block.Hash); ok {
 		log.Printf("Block hash [%s](#%d) is already existed", hex.EncodeToString(block.Hash), block.NHeight)
 		return nil, true, false
 	}
@@ -140,16 +140,11 @@ func convertBlockFromDbpToOrm(block *lws.Block) *model.Block {
 	return ormBlock
 }
 
-func isBlockExisted(height uint32, hash []byte, isSubBlock bool) bool {
+func isBlockExisted(height uint32, hash []byte) bool {
 	connection := db.GetConnection()
 	var count int
 
 	tx := connection.Model(&model.Block{}).Where("height = ? AND hash = ?", height, hash)
-	if isSubBlock {
-		tx = tx.Where("block_type = ?", constant.BLOCK_TYPE_EXTENDED)
-	} else {
-		tx = tx.Where("block_type != ?", constant.BLOCK_TYPE_EXTENDED)
-	}
 
 	res := tx.Count(&count)
 	if res.Error != nil {
