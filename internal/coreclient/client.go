@@ -738,7 +738,7 @@ func clientReader(c *Client, r io.Reader, pendingRequests map[string]*AsyncResul
 		case dbp.Msg_PING:
 			ping, ok := wr.Response.(*dbp.Ping)
 			if ok {
-				c.LogDebug("coreclient: ping id [%s] received, send pong back", wr.ID)
+				// c.LogDebug("[DEBUG] coreclient: ping id [%s] received, send pong back", wr.ID)
 				c.callAsync(&dbp.Pong{Id: ping.Id}, true, true)
 			}
 			wr.ID = ""

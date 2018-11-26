@@ -24,14 +24,18 @@ type UTXOIndex struct {
 	Out  uint8  `len:"1"`
 }
 
+// var sendTxReqReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
+// 	go sendTxReqReqHandlerDo(client, msg)
+// }
+
 var sendTxReqReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
-	log.Println("Received sendTxReq !")
+	log.Println("[DEBUG] Received sendTxReq !")
 	s := SendTxPayload{}
 	payload := msg.Payload()
 	cliMap := CliMap{}
 	user := model.User{}
 	err := DecodePayload(payload, &s)
-	log.Printf("SendTxPayload: %+v\n", s)
+	log.Printf("[DEBUG] SendTxPayload addressId [%d] ", s.AddressId)
 	if err != nil {
 		log.Printf("err: %+v\n", err)
 		return
@@ -47,7 +51,7 @@ var sendTxReqReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.
 	signed := crypto.SignWithApiKey(cliMap.ApiKey, payload[:len(payload)-20])
 	if bytes.Compare(signed, s.Signature) != 0 {
 		// 丢弃 内容
-		log.Printf("verify failed ！discard request！ ")
+		log.Printf("[ERROR] verify failed ！discard request！ ")
 		return
 	}
 	if err != nil {
@@ -63,7 +67,7 @@ var sendTxReqReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.
 	// 验证分支
 	forkId, err := hex.DecodeString(os.Getenv("FORK_ID"))
 	if err != nil {
-		log.Printf("err: %+v", err)
+		log.Printf("[ERROR] decode fork id err: %+v", err)
 	}
 	if bytes.Compare(forkId, s.ForkID) != 0 {
 		ReplySendTx(&client, &s, 2, 0, "", &cliMap)
@@ -75,23 +79,27 @@ var sendTxReqReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.
 	err = TxDataToStruct(s.TxData, &txData)
 	if err != nil {
 		// fail
+		log.Printf("[ERROR] invalid txdata struct [%s]", err)
 		ReplySendTx(&client, &s, 16, 0, "", &cliMap)
 		return
 	}
 
+	log.Printf("[DEBUG] addressId[%d] get utxo summery start", s.AddressId)
 	// get amount
 	amount, _, err := utxo.GetSummary(getUtxoIndex(&txData.UtxoIndex), connection)
 	if err != nil {
+		log.Printf("[INFO] get utxo summary failed [%s]", err)
 		ReplySendTx(&client, &s, 16, 0, "", &cliMap)
 		return
 	}
+	log.Printf("[DEBUG] addressId[%d] get utxo summery [%d]", s.AddressId, amount)
 
 	//校验 tx amount
 	balance := txData.NAmount - amount - txData.NTxFee
 	if balance < 0 {
 		// return fail
 		ReplySendTx(&client, &s, 4, 0, "balance err", &cliMap)
-		log.Printf("balance do not enough")
+		log.Printf("[INFO] balance do not enough")
 		return
 	}
 
@@ -99,9 +107,11 @@ var sendTxReqReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.
 	txFee, err := strconv.ParseInt(os.Getenv("TX_FEE"), 10, 64)
 	if txData.NTxFee < txFee {
 		ReplySendTx(&client, &s, 4, 0, "txFee err", &cliMap)
-		log.Printf("txFee do not enough")
+		log.Printf("[INFO] txFee do not enough")
 		return
 	}
+
+	log.Printf("[DEBUG] send tx to core wallet addressId[%d]", s.AddressId)
 
 	// TODO：send tx
 	coreClient := StartCoreClient()
@@ -109,16 +119,16 @@ var sendTxReqReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.
 	result, err := SendTxToCore(coreClient, &s)
 	if err != nil {
 		ReplySendTx(&client, &s, 16, 0, "", &cliMap)
-		log.Printf("err : %+v", err)
+		log.Printf("[INFO] send to corewallet err : %+v", err)
 		return
 	}
 	if result.Result == "failed" {
 		ReplySendTx(&client, &s, 3, 0, result.Reason, &cliMap)
-		log.Printf("result : %+v", result)
+		log.Printf("[INFO] sendtx corewallet error : %+v", result)
 		return
 	}
 	ReplySendTx(&client, &s, 0, 0, "", &cliMap)
-	log.Printf("send tx success !")
+	log.Printf("[DEBUG] send tx success addressId[%d]!", s.AddressId)
 	return
 }
 
@@ -144,10 +154,10 @@ func SendTxToCore(client *coreclient.Client, s *SendTxPayload) (resultMessage *l
 	params := &lws.SendTxArg{
 		Data: s.TxData,
 	}
-	log.Printf("SendTxArg data: %+v", hex.EncodeToString(s.TxData))
+	// log.Printf("SendTxArg data: %+v", hex.EncodeToString(s.TxData))
 	serializedParams, err := ptypes.MarshalAny(params)
 	if err != nil {
-		log.Fatal("could not serialize any field")
+		log.Fatal("[ERROR] could not serialize any field")
 		return nil, err
 	}
 
@@ -160,12 +170,12 @@ func SendTxToCore(client *coreclient.Client, s *SendTxPayload) (resultMessage *l
 	}
 	response, err := client.Call(method)
 	if err != nil {
-		log.Printf("sendTx failed, get err: %+v \n", err)
+		log.Printf("[ERROR] sendTx failed, get err: %+v \n", err)
 		return nil, err
 	}
 	result, ok := response.(*dbp.Result)
 	if !ok {
-		log.Println("unsuport dbp type")
+		log.Println("[ERROR] unsuport dbp type")
 		err = errors.New("response did not match dbp type")
 		return nil, err
 	}
@@ -173,7 +183,7 @@ func SendTxToCore(client *coreclient.Client, s *SendTxPayload) (resultMessage *l
 	sendTxResponse := &lws.SendTxRet{}
 	err = ptypes.UnmarshalAny(result.GetResult()[0], sendTxResponse)
 	if err != nil {
-		log.Printf("unmashall result error [%s] \n", err)
+		log.Printf("[ERROR] unmashall result error [%s] \n", err)
 		return nil, err
 	}
 
@@ -183,14 +193,14 @@ func SendTxToCore(client *coreclient.Client, s *SendTxPayload) (resultMessage *l
 func getUtxoIndex(index *[]byte) []*model.Utxo {
 	legnth := (len(*index) / 33)
 	utxos := make([]*model.Utxo, legnth)
-	log.Printf("index: %+v", index)
-	log.Printf("length : %+v", len(*index))
+	log.Printf("[DEBUG] utxo index: %+v", index)
+	log.Printf("[DEBUG] utxo length : %+v", len(*index))
 	// TODO: array bound check
 	for i := 0; i < (len(*index) / 33); i++ {
-		log.Printf("i: %+v", i)
 		ut := &model.Utxo{}
 		ut.Out = uint8((*index)[(i * 33)])
 		ut.TxHash = (*index)[((i * 33) + 1) : ((i+1)*33)-1]
+		log.Printf("[DEBUG] : utxo hash [%s] out[%d]", hex.EncodeToString(ut.TxHash), ut.Out)
 		utxos[i] = ut
 	}
 	return utxos

@@ -71,8 +71,8 @@ func (p *Program) Start() error {
 
 // init client
 func (p *Program) Init() {
-	mqtt.DEBUG = log.New(os.Stdout, "", 20)
-	// mqtt.ERROR = log.New(os.Stdout, "", 0)
+	// mqtt.DEBUG = log.New(os.Stdout, "", 20)
+	mqtt.ERROR = log.New(os.Stdout, "", 0)
 	opts := mqtt.NewClientOptions().AddBroker(os.Getenv("MQTT_URL")).SetClientID(p.Id)
 
 	username := os.Getenv("MQTT_USERNAME")
@@ -222,10 +222,10 @@ func PayloadToUser(user *model.User, s *ServicePayload) []byte {
 	copy(address[:], user.Address[1:])
 	apiKey := crypto.GenerateApiKey(&privKey, &address)
 	user.ApiKey = apiKey[:]
-	log.Printf("pubKey: %+v", hex.EncodeToString(pubKey[:]))
-	log.Printf("privKey: %+v", hex.EncodeToString(privKey[:]))
-	log.Printf("privSignKey: %+v", hex.EncodeToString(privSignKey[:]))
-	log.Printf("apiKey: %+v", hex.EncodeToString(apiKey[:]))
+	log.Printf("[DEBUG] pubKey: %+v", hex.EncodeToString(pubKey[:]))
+	log.Printf("[DEBUG] privKey: %+v", hex.EncodeToString(privKey[:]))
+	log.Printf("[DEBUG] privSignKey: %+v", hex.EncodeToString(privSignKey[:]))
+	log.Printf("[DEBUG] apiKey: %+v", hex.EncodeToString(apiKey[:]))
 	return pubKey[:]
 }
 

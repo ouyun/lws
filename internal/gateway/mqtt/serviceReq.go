@@ -16,7 +16,7 @@ import (
 )
 
 var serviceReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
-	log.Println("Received serviceReq !")
+	log.Println("[DEBUG] Received serviceReq")
 	s := ServicePayload{}
 	cliMap := CliMap{}
 	user := model.User{}
@@ -25,16 +25,18 @@ var serviceReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Me
 	var forkBitmap uint64 = 1
 	err := DecodePayload(msg.Payload(), &s)
 	if err != nil {
-		log.Printf("Discard req with decodePayload err: %+v\n", err)
+		log.Printf("[ERROR] Discard req with decodePayload err: %+v\n", err)
 		//丢弃请求
 		return
 	}
+
+	log.Printf("[DEBUG] Received serviceReq topicPrefix[%s] Nounce[%d]", s.TopicPrefix, s.Nonce)
 	pubKey = PayloadToUser(&newUser, &s)
 
 	// 验证签名
 	if !VerifyAddress(&s, msg.Payload()) {
 		//丢弃请求
-		log.Printf("sign err ！discard serviceReq data!\n")
+		log.Printf("[ERROR] sign err ！discard serviceReq data!\n")
 		return
 	}
 
@@ -65,7 +67,7 @@ var serviceReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Me
 	connection := db.GetConnection()
 	transaction := connection.Begin()
 	if err != nil {
-		log.Printf("err: %+v\n", err)
+		log.Printf("[ERROR] err: %+v\n", err)
 		ReplyServiceReq(&client, forkBitmap, 16, &s, &newUser, pubKey)
 	}
 
@@ -78,26 +80,26 @@ var serviceReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Me
 		err = transaction.Save(&user).Error // update user
 		if err != nil {
 			// fail
-			log.Printf("err: %+v\n", err)
+			log.Printf("[ERROR] update user err: %+v\n", err)
 			transaction.Rollback()
 			ReplyServiceReq(&client, forkBitmap, 16, &s, &user, pubKey)
 			return
 		}
-		log.Printf("user: %+v\n", user)
+		log.Printf("[DEBUG] user: %+v\n", user)
 		copyUserToCliMap(&user, &cliMap)
-		log.Println("update user !")
+		log.Println("[DEBUG] update user done")
 	} else {
 		// save user
 		err = SaveUser(transaction, &user)
 		if err != nil {
 			// fail
 			transaction.Rollback()
-			log.Printf("SaveUser get err: %+v\n", err)
+			log.Printf("[ERROR] SaveUser get err: %+v\n", err)
 			ReplyServiceReq(&client, forkBitmap, 16, &s, &user, pubKey)
 			return
 		}
 		copyUserToCliMap(&user, &cliMap)
-		log.Printf("saved User! \n")
+		log.Printf("[DEBUG] saved User! \n")
 	}
 	// 保存到 redis
 	err = SaveToRedis(&redisConn, &cliMap)
@@ -105,7 +107,7 @@ var serviceReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Me
 		// fail
 		RemoveRedis(&redisConn, &cliMap)
 		transaction.Rollback()
-		log.Printf("SaveToRedis get err: %+v\n", err)
+		log.Printf("[ERROR] SaveToRedis get err: %+v\n", err)
 		ReplyServiceReq(&client, forkBitmap, 16, &s, &user, pubKey)
 		return
 	}
@@ -151,33 +153,33 @@ func SaveToRedis(conn *redis.Conn, cliMap *CliMap) (err error) {
 func RemoveRedis(conn *redis.Conn, cliMap *CliMap) (err error) {
 	_, err = (*conn).Do("DEL", strconv.FormatUint(uint64(cliMap.AddressId), 10))
 	if err != nil {
-		log.Printf("delete key failed")
+		log.Printf("[DEBUG] redis delete key failed [%s]", err)
 	}
 	// delete key
 	_, err = (*conn).Do("DEL", hex.EncodeToString(cliMap.Address))
 	if err != nil {
-		log.Printf("delete key failed")
+		log.Printf("[DEBUG] redis delete key failed [%s]", err)
 	}
 	return err
 }
 
 func VerifyAddress(s *ServicePayload, payload []byte) bool {
 	messageLen := uint16(len(payload)) - (s.SignBytes + 2)
-	log.Printf("pub Key: %+v", hex.EncodeToString(s.Address[1:]))
-	log.Printf("payload : %+v", payload[:messageLen])
+	log.Printf("[DEBUG] pub Key: %+v", hex.EncodeToString(s.Address[1:]))
+	log.Printf("[DEBUG] payload : %+v", payload[:messageLen])
 	if messageLen > uint16(len(payload)) {
-		log.Printf("VerifyAddress failed with err: slice bounds out of range")
+		log.Printf("[ERROR] VerifyAddress failed with err: slice bounds out of range")
 		return false
 	}
 	if uint8(s.Address[0]) == 1 {
 		// 验证签名
-		log.Printf("VerifyAddress with address type = 1 \n")
+		log.Printf("[DEBUG] VerifyAddress with address type = 1 \n")
 		signatureHash := blake2b.Sum256(payload[:messageLen])
 		return edwards25519.Verify(s.Address[1:], signatureHash[:], s.ServSignature)
 	}
-	log.Printf("VerifyAddress with address type = 2 \n")
+	log.Printf("[DEBUG] VerifyAddress with address type = 2 \n")
 	// 验证 模版地址
-	log.Printf("ServSignature: %d", s.ServSignature)
+	// log.Printf("ServSignature: %d", s.ServSignature)
 	templateDataLen := s.SignBytes - 96
 	templateData := s.ServSignature[:templateDataLen]
 	pubKey := s.ServSignature[templateDataLen:(templateDataLen + 32)]

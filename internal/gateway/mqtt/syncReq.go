@@ -16,7 +16,7 @@ import (
 
 var syncReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
 	// TODO ：
-	log.Println("Received syncReq !")
+	log.Println("[DEBUG] Received syncReq !")
 	var UTXOs []UTXO
 	s := SyncPayload{}
 	cliMap := CliMap{}
@@ -88,6 +88,10 @@ var syncReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Messa
 		return
 	}
 	log.Printf("utxos：%+v", UTXOs)
+
+	for idx, item := range UTXOs {
+		log.Printf("[DEBUG] utxo[%d] hash[%s] out[%d]", idx, hex.EncodeToString(item.TXID), item.Out)
+	}
 	// 计算utxo hash
 	utxoHash := UTXOHash(&UTXOs)
 	log.Printf("get UTXOs %+v\n", UTXOs)

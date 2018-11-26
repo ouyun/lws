@@ -19,7 +19,7 @@ import (
 func handleSyncBlock(block *lws.Block, shouldRecover bool) (error, bool) {
 	var err error
 	// log.Printf("Receive Block hash [%s]", block.Hash)
-	log.Printf("Receive Block hash v [%s] type[%d] (#%d)", hex.EncodeToString(block.Hash), block.NType, block.NHeight)
+	log.Printf("[INFO] Receive Block hash v [%s] type[%d] (#%d)", hex.EncodeToString(block.Hash), block.NType, block.NHeight)
 
 	var skip bool
 	var write bool
@@ -41,7 +41,7 @@ func handleSyncBlock(block *lws.Block, shouldRecover bool) (error, bool) {
 func validateBlock(block *lws.Block, shouldRecover bool) (error, bool, bool) {
 	// 1. 根据高度快速查找该区块是否已经在链上, 在链上则跳过本次操作
 	if ok := isBlockExisted(block.NHeight, block.Hash); ok {
-		log.Printf("Block hash [%s](#%d) is already existed", hex.EncodeToString(block.Hash), block.NHeight)
+		log.Printf("[DEBUG] Block hash [%s](#%d) is already existed", hex.EncodeToString(block.Hash), block.NHeight)
 		return nil, true, false
 	}
 
@@ -49,11 +49,11 @@ func validateBlock(block *lws.Block, shouldRecover bool) (error, bool, bool) {
 	if ok := isTailOrOrigin(block); !ok {
 		// 3A. 不一致则启动错误恢复流程
 		hashStr := hex.EncodeToString(block.Hash)
-		log.Printf("Block hash [%s], prev[%s] trigger recovery", hashStr, hex.EncodeToString(block.HashPrev))
+		log.Printf("[INFO] Block hash [%s], prev[%s] trigger recovery", hashStr, hex.EncodeToString(block.HashPrev))
 		// start recovery
 		if shouldRecover {
 			FetchBlocks(block)
-			log.Printf("Block hash [%s] recovery done", hashStr)
+			log.Printf("[INFO] Block hash [%s] recovery done", hashStr)
 		}
 
 		err := fmt.Errorf("trigger recovery")
@@ -96,7 +96,7 @@ func writeBlock(block *lws.Block) error {
 	// dbtx := connection
 
 	res := dbtx.Create(ormBlock)
-	log.Printf("write block (#%d) done", ormBlock.Height)
+	log.Printf("[INFO] write block (#%d) done", ormBlock.Height)
 	if res.Error != nil {
 		dbtx.Rollback()
 		return res.Error
@@ -110,7 +110,7 @@ func writeBlock(block *lws.Block) error {
 	if block.TxMint != nil {
 		txs = append(txs, block.TxMint)
 	} else {
-		log.Printf("block [%s](#%d) has no tx mint field", hex.EncodeToString(block.Hash), block.NHeight)
+		log.Printf("[INFO] block [%s](#%d) has no tx mint field", hex.EncodeToString(block.Hash), block.NHeight)
 	}
 	updates, err := tx.StartBlockTxHandler(dbtx, txs, ormBlock)
 	if err != nil {
@@ -148,7 +148,7 @@ func isBlockExisted(height uint32, hash []byte) bool {
 
 	res := tx.Count(&count)
 	if res.Error != nil {
-		log.Println("isBlockExisted failed", res.Error)
+		log.Println("[ERROR] isBlockExisted failed", res.Error)
 		return false
 	}
 	return count == 1

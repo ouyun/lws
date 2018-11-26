@@ -107,7 +107,7 @@ func TxDataToStruct(tx []byte, txData *TxData) (err error) {
 
 	resultType := reflect.TypeOf(txData).Elem()
 
-	log.Printf("TxDataToStruct get params:tx--%+v\n", tx)
+	// log.Printf("TxDataToStruct get params:tx--%+v\n", tx)
 	var leftIndex uint64 = 0
 	var sizeLen uint64 = 0
 	totalLength := uint64(len(tx))
@@ -173,13 +173,13 @@ func TxDataToStruct(tx []byte, txData *TxData) (err error) {
 		}
 		leftIndex += len64
 	}
-	log.Printf("TxDataToStruct get result : %+v\n", txData)
+	// log.Printf("TxDataToStruct get result : %+v\n", txData)
 	return err
 }
 
 func StructToBytes(s interface{}) (result []byte, err error) {
 	buf := bytes.NewBuffer([]byte{})
-	log.Printf("StructToBytes get param:struct-- %+v\n", s)
+	// log.Printf("StructToBytes get param:struct-- %+v\n", s)
 	value := reflect.ValueOf(s)
 	valueType := reflect.TypeOf(s)
 	for i := 0; i < value.NumField(); i++ {
@@ -231,7 +231,7 @@ func StructToBytes(s interface{}) (result []byte, err error) {
 	}
 	result = buf.Bytes()
 	// log.Printf("struct to bytes by struct: %+v\n", s)
-	log.Printf("struct to bytes generate payload: %+v\n", result)
+	// log.Printf("struct to bytes generate payload: %+v\n", result)
 	return result, err
 }
 
@@ -281,7 +281,7 @@ func BytesToInt(buf []byte) interface{} {
 		b := bytes.NewReader(buf)
 		err := binary.Read(b, binary.LittleEndian, &value)
 		if err != nil {
-			log.Println("binary.Write failed:", err)
+			log.Println("[ERROR] binary.Write failed:", err)
 		}
 		return value
 	}
@@ -302,8 +302,8 @@ func DecodePayload(payload []byte, result interface{}) (err error) {
 	resultValue := reflect.ValueOf(result).Elem()
 	resultType := reflect.TypeOf(result).Elem()
 	totalLength := len(payload)
-	log.Printf("DecodePayload params: payload bytes length : %d\n", len(payload))
-	log.Printf("DecodePayload params: payload bytes : %+v\n", payload)
+	// log.Printf("DecodePayload params: payload bytes length : %d\n", len(payload))
+	// log.Printf("DecodePayload params: payload bytes : %+v\n", payload)
 	leftIndex := 0
 	forkNum := 0
 	for i := 0; i < resultValue.NumField(); i++ {
@@ -312,7 +312,7 @@ func DecodePayload(payload []byte, result interface{}) (err error) {
 		if err != nil {
 			return err
 		}
-		log.Printf("result get : %+v\n", result)
+		// log.Printf("result get : %+v\n", result)
 		if resultValue.Field(i).CanSet() {
 			switch resultValue.Field(i).Type().Kind() {
 			case reflect.String:

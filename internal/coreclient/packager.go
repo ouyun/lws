@@ -17,7 +17,7 @@ func PackMsg(msg proto.Message, id string) ([]byte, error) {
 	var msgType dbp.Msg
 	switch interface{}(msg).(type) {
 	case *dbp.Connect:
-		fmt.Println("dbp.connect detect")
+		fmt.Println("[INFO] dbp.connect detect")
 		msgType = dbp.Msg_CONNECT
 	case *dbp.Connected:
 		msgType = dbp.Msg_CONNECTED
@@ -53,7 +53,7 @@ func PackMsg(msg proto.Message, id string) ([]byte, error) {
 	}
 
 	if msgType == UNKNOWN_MSG_TYPE {
-		log.Println("can not match msgType", msg)
+		log.Println("[WARN] can not match msgType", msg)
 		return nil, errors.New("can not match msgType")
 	}
 
@@ -64,7 +64,7 @@ func PackMsg(msg proto.Message, id string) ([]byte, error) {
 
 	serializedObject, err := ptypes.MarshalAny(msg)
 	if err != nil {
-		log.Fatal("could not serialize any field")
+		log.Fatal("[ERROR] could not serialize any field")
 	}
 
 	baseMsg := &dbp.Base{
@@ -74,11 +74,10 @@ func PackMsg(msg proto.Message, id string) ([]byte, error) {
 
 	serializedBaseMsg, err := proto.Marshal(baseMsg)
 	if err != nil {
-		log.Fatal("could not serialize msg")
+		log.Fatal("[ERROR] could not serialize msg")
 	}
 
-	log.Printf("pack baseMsg.Msg = %+v\n", baseMsg.Msg)
-	// fmt.Printf("serializedBaseMsg = %+v\n", serializedBaseMsg)
+	// log.Printf("pack baseMsg.Msg = %+v\n", baseMsg.Msg)
 
 	return serializedBaseMsg, nil
 }
@@ -107,7 +106,7 @@ func Unpack(bytes []byte) (dbp.Msg, proto.Message) {
 	baseMsg := &dbp.Base{}
 
 	if err = proto.Unmarshal(bytes, baseMsg); err != nil {
-		log.Fatal("unkonwn message received", bytes, err)
+		log.Fatal("[ERROR] unkonwn message received", bytes, err)
 	}
 
 	var object proto.Message
@@ -145,11 +144,11 @@ func Unpack(bytes []byte) (dbp.Msg, proto.Message) {
 		object = &dbp.Error{}
 	}
 
-	log.Println("received baseMsg: ", baseMsg.Msg)
+	// log.Println("[DEBUG] received baseMsg: ", baseMsg.Msg)
 
 	err = ptypes.UnmarshalAny(baseMsg.Object, object)
 	if err != nil {
-		log.Println("packager: unpack Object failed", err)
+		log.Println("[ERROR] packager: unpack Object failed", err)
 	}
 	return baseMsg.Msg, object
 }

@@ -63,7 +63,7 @@ func isSyncDone(tail *model.Block, triggerBlock *lws.Block) bool {
 
 func (b *BlockFetcher) startFetchBlocks(triggerBlock *lws.Block) {
 	// cclient := stream.GetPrimaryClient()
-	log.Println("start Fetch blocks")
+	log.Println("[DEBUG] start Fetch blocks")
 
 	// 1. if the fork chain is detected, remove the bad-chain data
 	tail := b.checkForkedChain()
@@ -80,9 +80,9 @@ func (b *BlockFetcher) startFetchBlocks(triggerBlock *lws.Block) {
 	// clear stable blocks need to create anther new rabbitmq connection
 	// so only if height offset larger than HEIGHT_OFFSET, we will clear stale blocks
 	if tail != nil && (tail.Height-triggerBlock.NHeight > STALE_BLOCK_HEIGHT_OFFSET) {
-		log.Printf("clear stale blocks start with tail[#%d] trigger[#%d]", tail.Height, triggerBlock.NHeight)
+		log.Printf("[INFO] clear stale blocks start with tail[#%d] trigger[#%d]", tail.Height, triggerBlock.NHeight)
 		clearStaleBlocksInQueue(tail.Height)
-		log.Printf("clear stale blocks done")
+		log.Printf("[DEBUG] clear stale blocks done")
 	}
 }
 
@@ -102,15 +102,15 @@ func (b *BlockFetcher) checkForkedChain() *model.Block {
 		return tail
 	}
 
-	log.Printf("forked block[%s](#%d) is detected", hex.EncodeToString(tail.Hash), tail.Height)
+	log.Printf("[INFO] forked block[%s](#%d) is detected", hex.EncodeToString(tail.Hash), tail.Height)
 	// forked block is detected
 	// find the initial forked block
 	forkedBlock := b.findForkedBlock()
 	if forkedBlock != nil {
-		log.Printf("found pre-forked block [%s](#%d)", hex.EncodeToString(forkedBlock.Hash), forkedBlock.NHeight)
+		log.Printf("[INFO] found pre-forked block [%s](#%d)", hex.EncodeToString(forkedBlock.Hash), forkedBlock.NHeight)
 		err := clearForkedChain(forkedBlock.NHeight)
 		if err != nil {
-			log.Printf("clear forked chain failed: [%s]", err)
+			log.Printf("[ERROR] clear forked chain failed: [%s]", err)
 		}
 	}
 
@@ -126,7 +126,7 @@ func (b *BlockFetcher) findForkedBlock() *lws.Block {
 		blocks, err := b.fetch(prevHash, 1)
 		if err != nil {
 			// the situation couldn't happed
-			log.Fatalf("reverse fetch failed [%s]", err)
+			log.Fatalf("[ERROR] reverse fetch failed [%s]", err)
 		}
 
 		block := blocks[0]
@@ -143,12 +143,12 @@ func (b *BlockFetcher) findForkedBlock() *lws.Block {
 func (b *BlockFetcher) fetchAndHandleBlocks(hash []byte) error {
 	blocks, err := b.fetch(hash, FETCH_NUMBER)
 	if err != nil {
-		log.Fatalf("block fetch err[%s]", err)
+		log.Fatalf("[ERROR] block fetch err[%s]", err)
 	}
 
 	err = b.handle(blocks)
 	if err != nil {
-		log.Fatalf("block fetch handle err[%s]", err)
+		log.Fatalf("[ERROR] block fetch handle err[%s]", err)
 	}
 	return err
 }
@@ -164,11 +164,11 @@ func (b *BlockFetcher) fetch(hash []byte, num int32) ([]*lws.Block, error) {
 		Number: num,
 	}
 
-	log.Printf("fetch [%d] blocks start hash [%s]", params.Number, hashStr)
+	log.Printf("[INFO] fetch [%d] blocks start hash [%s]", params.Number, hashStr)
 
 	serializedParams, err := ptypes.MarshalAny(params)
 	if err != nil {
-		log.Fatal("could not serialize any field")
+		log.Fatal("[ERROR] could not serialize any field")
 	}
 
 	method := &dbp.Method{
@@ -177,22 +177,22 @@ func (b *BlockFetcher) fetch(hash []byte, num int32) ([]*lws.Block, error) {
 	}
 	response, err = cclient.Call(method)
 	for ; coreclient.IsClientTimeoutError(err); response, err = cclient.Call(method) {
-		log.Printf("fetch block [%s] timeout, retry.", hashStr)
+		log.Printf("[INFO] fetch block [%s] timeout, retry.", hashStr)
 	}
 
 	if err != nil {
-		log.Printf("fetch block err [%s]", err)
+		log.Printf("[ERROR] fetch block err [%s]", err)
 		return nil, err
 	}
 
 	result, ok := response.(*dbp.Result)
 	if !ok {
-		log.Printf("fetch block non-result response [%s]", response)
+		log.Printf("[ERROR] fetch block non-result response [%s]", response)
 		return nil, err
 	}
 
 	if result.Error != "" {
-		err = fmt.Errorf("fetch block result error [%s]", result.Error)
+		err = fmt.Errorf("[ERROR] fetch block result error [%s]", result.Error)
 		return nil, err
 	}
 
@@ -203,7 +203,7 @@ func (b *BlockFetcher) fetch(hash []byte, num int32) ([]*lws.Block, error) {
 		blocks[idx] = &lws.Block{}
 		err = ptypes.UnmarshalAny(serializedAny, blocks[idx])
 		if err != nil {
-			log.Printf("unmashall result error [%s]", err)
+			log.Printf("[ERROR] unmashall result error [%s]", err)
 			return nil, err
 		}
 	}
@@ -212,16 +212,16 @@ func (b *BlockFetcher) fetch(hash []byte, num int32) ([]*lws.Block, error) {
 }
 
 func (b *BlockFetcher) handle(blocks []*lws.Block) error {
-	log.Printf("DEBUG fetch list start")
+	log.Printf("[DEBUG] fetch list start")
 	for _, block := range blocks {
-		log.Printf("fetch Block hash [%s] type[%d] (#%d)", hex.EncodeToString(block.Hash), block.NType, block.NHeight)
+		log.Printf("[DEBUG] fetch Block hash [%s] type[%d] (#%d)", hex.EncodeToString(block.Hash), block.NType, block.NHeight)
 	}
-	log.Printf("DEBUG fetch list done")
+	log.Printf("[DEBUG] fetch list done")
 
 	for _, block := range blocks {
 		err, _ := handleSyncBlock(block, true)
 		if err != nil {
-			log.Printf("handle sync block error [%s]", err)
+			log.Printf("[ERROR] handle sync block error [%s]", err)
 		}
 		if bytes.Compare(block.Hash, b.TriggerBlock.Hash) == 0 || block.NHeight > b.TriggerBlock.NHeight {
 			b.isTriggerBlockSynced = true
@@ -245,28 +245,28 @@ func clearForkedChain(height uint32) error {
 	// recover used inputs
 	err := utxoService.RecoverUsedInputs(height, connection)
 	if err != nil {
-		log.Printf("recover used inputs error")
+		log.Printf("[ERROR] recover used inputs error")
 		return err
 	}
 
 	// clear utxo
 	res := connection.Unscoped().Where("block_height >= ? and block_height != ?", height, TXPOOL_HEIGHT).Delete(&model.Utxo{})
 	if res.Error != nil {
-		log.Printf("delete [%d] forked utxo", res.RowsAffected)
+		log.Printf("[ERROR] delete [%d] forked utxo", res.RowsAffected)
 		return res.Error
 	}
 
 	// clear tx
 	res = connection.Unscoped().Where("block_height >= ? and block_height != ?", height, TXPOOL_HEIGHT).Delete(&model.Tx{})
 	if res.Error != nil {
-		log.Printf("delete [%d] forked block", res.RowsAffected)
+		log.Printf("[ERROR] delete [%d] forked block", res.RowsAffected)
 		return res.Error
 	}
 
 	// clear block
 	res = connection.Unscoped().Where("height >= ?", height).Delete(&model.Block{})
 	if res.Error != nil {
-		log.Printf("delete [%d] forked block", res.RowsAffected)
+		log.Printf("[ERROR] delete [%d] forked block", res.RowsAffected)
 		return res.Error
 	}
 

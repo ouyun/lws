@@ -2,7 +2,7 @@ package pubsub
 
 import (
 	"context"
-	"fmt"
+	// "fmt"
 	"log"
 	"os"
 	"time"
@@ -111,7 +111,7 @@ func (c *Consumer) Consume(ctx context.Context, ch *amqp.Channel) error {
 			// 	log.Println("check blocking chan done")
 			// }
 
-			fmt.Println("New message:", msg.Body)
+			// fmt.Println("New message:", msg.Body)
 			shouldAck := c.HandleConsumer(msg.Body)
 
 			if shouldAck {

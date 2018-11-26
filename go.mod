@@ -11,6 +11,7 @@ require (
 	github.com/golang/protobuf v1.2.0
 	github.com/gomodule/redigo v2.0.0+incompatible
 	github.com/google/go-cmp v0.2.0 // indirect
+	github.com/hashicorp/logutils v1.0.0
 	github.com/huandu/go-sqlbuilder v1.0.0
 	github.com/jinzhu/gorm v0.0.0-20180818231433-32455088f24d
 	github.com/jinzhu/inflection v0.0.0-20180308033659-04140366298a // indirect

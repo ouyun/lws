@@ -45,7 +45,7 @@ func (enc *messageEncoder) WriteMsg(wr *wireRequest) error {
 	}
 	msgBuf, err := enc.PackMsg(msg, wr.ID)
 	if err != nil {
-		log.Println("pack msg error", err)
+		log.Println("[ERROR] pack msg error", err)
 		return err
 	}
 
@@ -88,17 +88,17 @@ func (dec *messageDecoder) ReadMsg(wr *wireResponse) error {
 	lenBuf := make([]byte, 4)
 	_, err = dec.Read(lenBuf)
 	if err != nil {
-		log.Println("decoder ReadMsg failed", err)
+		log.Println("[ERROR] decoder ReadMsg failed", err)
 		return err
 	}
 
 	msgLen := binary.BigEndian.Uint32(lenBuf)
-	log.Printf("received buf len [%d]", msgLen)
+	// log.Printf("[DEBUG] received buf len [%d]", msgLen)
 
 	buf := make([]byte, msgLen)
 	_, err = io.ReadFull(dec, buf)
 	if err != nil {
-		log.Println("read full bytes error", err)
+		log.Println("[ERROR] read full bytes error", err)
 		return err
 	}
 
