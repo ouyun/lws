@@ -74,10 +74,20 @@ func (p *Program) Init() {
 	mqtt.DEBUG = log.New(os.Stdout, "", 20)
 	// mqtt.ERROR = log.New(os.Stdout, "", 0)
 	opts := mqtt.NewClientOptions().AddBroker(os.Getenv("MQTT_URL")).SetClientID(p.Id)
+
+	username := os.Getenv("MQTT_USERNAME")
+	if username != "" {
+		opts.SetUsername(username)
+	}
+	password := os.Getenv("MQTT_PASSWORD")
+	if password != "" {
+		opts.SetPassword(password)
+	}
+
 	opts.SetKeepAlive(10 * time.Second)
 	opts.SetAutoReconnect(true)
 	opts.SetCleanSession(false)
-	opts.SetDefaultPublishHandler(clientHandler)
+	// opts.SetDefaultPublishHandler(clientHandler)
 	if p.IsLws {
 		opts.SetOnConnectHandler(p.GetOnConnectHandler())
 	}
@@ -117,10 +127,11 @@ func (p *Program) GetOnConnectHandler() mqtt.OnConnectHandler {
 	log.Printf("program %s", p.Topic)
 	var conn mqtt.OnConnectHandler = func(client mqtt.Client) {
 		// log.Printf("program %s", p.Topic)
-		client.Subscribe(p.Topic+"/lws/ServiceReq", byte(0), serviceReqHandler)
-		client.Subscribe(p.Topic+"/lws/SyncReq", byte(1), syncReqHandler)
-		client.Subscribe(p.Topic+"/lws/UTXOAbort", byte(1), uTXOAbortReqHandler)
-		client.Subscribe(p.Topic+"/lws/SendTxReq", byte(1), sendTxReqReqHandler)
+		topicSuffix := os.Getenv("MQTT_LWS_TOPIC_SUFFIX")
+		client.Subscribe(p.Topic+"/lws/ServiceReq"+topicSuffix, byte(0), serviceReqHandler)
+		client.Subscribe(p.Topic+"/lws/SyncReq"+topicSuffix, byte(1), syncReqHandler)
+		client.Subscribe(p.Topic+"/lws/UTXOAbort"+topicSuffix, byte(1), uTXOAbortReqHandler)
+		client.Subscribe(p.Topic+"/lws/SendTxReq"+topicSuffix, byte(1), sendTxReqReqHandler)
 	}
 	return conn
 }
