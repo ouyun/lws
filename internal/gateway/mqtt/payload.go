@@ -128,7 +128,7 @@ func TxDataToStruct(tx []byte, txData *TxData) (err error) {
 				if leng > 0 {
 					resultValue.Field(i).SetBytes(reverseBytes(tx[leftIndex:(leftIndex + len64)]))
 				} else if resultType.Field(i).Name == "UtxoIndex" {
-					resultValue.Field(i).SetBytes(reverseBytes(tx[leftIndex:(uint64(leftIndex) + (sizeLen * 33))]))
+					resultValue.Field(i).SetBytes(tx[leftIndex:(uint64(leftIndex) + (sizeLen * 33))])
 					len64 = sizeLen * 33
 				}
 			case reflect.Uint8:

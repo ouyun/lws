@@ -24,10 +24,6 @@ type UTXOIndex struct {
 	Out  uint8  `len:"1"`
 }
 
-// var sendTxReqReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
-// 	go sendTxReqReqHandlerDo(client, msg)
-// }
-
 var sendTxReqReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
 	log.Println("[DEBUG] Received sendTxReq !")
 	s := SendTxPayload{}
@@ -86,16 +82,17 @@ var sendTxReqReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.
 
 	log.Printf("[DEBUG] addressId[%d] get utxo summery start", s.AddressId)
 	// get amount
-	amount, _, err := utxo.GetSummary(getUtxoIndex(&txData.UtxoIndex), connection)
+	amount, cnt, err := utxo.GetSummary(getUtxoIndex(&txData.UtxoIndex), connection)
 	if err != nil {
 		log.Printf("[INFO] get utxo summary failed [%s]", err)
 		ReplySendTx(&client, &s, 16, 0, "", &cliMap)
 		return
 	}
-	log.Printf("[DEBUG] addressId[%d] get utxo summery [%d]", s.AddressId, amount)
+	log.Printf("[DEBUG] addressId[%d] get utxo summary [%d] utxocnt[%d]", s.AddressId, amount, cnt)
+	log.Printf("[DEBUG] addressId[%d] NAmount [%d] NTxFee[%d]", s.AddressId, txData.NAmount, txData.NTxFee)
 
 	//校验 tx amount
-	balance := txData.NAmount - amount - txData.NTxFee
+	balance := amount - txData.NAmount - txData.NTxFee
 	if balance < 0 {
 		// return fail
 		ReplySendTx(&client, &s, 4, 0, "balance err", &cliMap)
@@ -198,9 +195,10 @@ func getUtxoIndex(index *[]byte) []*model.Utxo {
 	// TODO: array bound check
 	for i := 0; i < (len(*index) / 33); i++ {
 		ut := &model.Utxo{}
-		ut.Out = uint8((*index)[(i * 33)])
-		ut.TxHash = (*index)[((i * 33) + 1) : ((i+1)*33)-1]
+		ut.Out = uint8((*index)[(i*33)+32])
+		ut.TxHash = (*index)[(i * 33) : (i*33)+32]
 		log.Printf("[DEBUG] : utxo hash [%s] out[%d]", hex.EncodeToString(ut.TxHash), ut.Out)
+		log.Printf("[DEBUG] : utxo hash [%v]", ut.TxHash)
 		utxos[i] = ut
 	}
 	return utxos
