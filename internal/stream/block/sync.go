@@ -13,10 +13,13 @@ import (
 	blockService "github.com/FissionAndFusion/lws/internal/db/service/block"
 	"github.com/FissionAndFusion/lws/internal/gateway/mqtt"
 	"github.com/FissionAndFusion/lws/internal/stream/tx"
+	"github.com/FissionAndFusion/lws/test/helper"
 )
 
 // return error and bool skiped
 func handleSyncBlock(block *lws.Block, shouldRecover bool) (error, bool) {
+	defer helper.MeasureTime(helper.MeasureTitle("handle block [%s](#%d)", hex.EncodeToString(block.Hash), block.NHeight))
+
 	var err error
 	// log.Printf("Receive Block hash [%s]", block.Hash)
 	log.Printf("[INFO] Receive Block hash v [%s] type[%d] (#%d)", hex.EncodeToString(block.Hash), block.NType, block.NHeight)

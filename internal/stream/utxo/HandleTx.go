@@ -61,7 +61,7 @@ func HandleTx(db *gorm.DB, tx *streamModel.StreamTx, blockModel *model.Block) (m
 	var outputs []*model.Utxo
 
 	if inputLength == 0 {
-		log.Printf("add utxo in mint tx")
+		log.Printf("[DEBUG] add utxo in mint tx")
 		var mintUtxo model.Utxo
 		result := db.FirstOrCreate(&mintUtxo, model.Utxo{
 			TxHash:      hash,
@@ -110,7 +110,7 @@ func HandleTx(db *gorm.DB, tx *streamModel.StreamTx, blockModel *model.Block) (m
 
 		return updates, nil
 	}
-	log.Printf("start handling utxo in tx: [%s] (%v inputs)", hex.EncodeToString(tx.Hash), inputLength)
+	log.Printf("[DEBUG] start handling utxo in tx: [%s] (%v inputs)", hex.EncodeToString(tx.Hash), inputLength)
 
 	inputs := util.MapPBTxToUtxo(tx.Transaction, blockHeight)
 	// check if inputs exists and delete them

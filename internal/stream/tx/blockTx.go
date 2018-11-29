@@ -239,19 +239,19 @@ func (h *BlockTxHandler) insertTxs(txs []*lws.Transaction, block *model.Block) (
 	}
 
 	sql, args := ib.Build()
-	log.Println(sql, args)
+	// log.Printf("[DEBUG] sql %v , args %v", sql, args)
 	results, err := h.dbtx.CommonDB().Exec(sql, args...)
 	if err != nil {
-		log.Printf("bulk tx insertion failed: [%s]", err)
+		log.Printf("[ERROR] bulk tx insertion failed: [%s]", err)
 		return nil, err
 	}
 	if cnt, err := results.RowsAffected(); int(cnt) != len(txs) {
 		if err != nil {
-			log.Printf("can not get inserted cnt error [%s]", err)
+			log.Printf("[ERROR] can not get inserted cnt error [%s]", err)
 			return nil, err
 		}
-		err = fmt.Errorf("try to insert [%d] tx, but [%d] success", len(txs), cnt)
-		log.Printf("insert cnt error [%s]", err)
+		err = fmt.Errorf("[INFO] try to insert [%d] tx, but [%d] success", len(txs), cnt)
+		log.Printf("[ERROR] insert cnt error [%s]", err)
 		return nil, err
 	}
 	return updates, nil

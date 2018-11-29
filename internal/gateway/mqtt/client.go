@@ -176,35 +176,29 @@ func CheckAddressId(addressId uint32, conn *gorm.DB, redisConn *redis.Conn, user
 	}
 }
 
-func GetUserByAddress(address []byte, conn *gorm.DB, redisConn *redis.Conn, user *model.User, cliMap *CliMap) error {
+func GetUserByAddress(address []byte, redisConn *redis.Conn) (*CliMap, error) {
+	cliMap := &CliMap{}
 	addressStr := hex.EncodeToString(address)
 	exists, err := redis.Bool((*redisConn).Do("EXISTS", addressStr))
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if exists {
 		addrId, err := redis.Uint64((*redisConn).Do("GET", addressStr))
 		if err != nil {
-			return err
+			return nil, err
 		}
 		addressIdStr := strconv.FormatUint(uint64(addrId), 10)
 		value, err := redis.Values((*redisConn).Do("hgetall", addressIdStr))
 		if err != nil {
-			return err
+			return nil, err
 		}
 		err = redis.ScanStruct(value, cliMap)
 		if err != nil {
-			return err
+			return nil, err
 		}
-	} else {
-		// get from db
-		found := (*conn).Where("address = ?", address).First(&user).RecordNotFound()
-		if found {
-			return errors.New("user not found")
-		}
-		copyUserToCliMap(user, cliMap)
 	}
-	return err
+	return cliMap, nil
 }
 
 func PayloadToUser(user *model.User, s *ServicePayload) []byte {
