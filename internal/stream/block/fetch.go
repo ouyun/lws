@@ -242,6 +242,8 @@ func checkBlockExistanceByHash(hash []byte) bool {
 func clearForkedChain(height uint32) error {
 	connection := dbmodule.GetConnection()
 
+	log.Printf("[INFO] clear forked chan from height [%d]", height)
+
 	// recover used inputs
 	err := utxoService.RecoverUsedInputs(height, connection)
 	if err != nil {
@@ -249,8 +251,20 @@ func clearForkedChain(height uint32) error {
 		return err
 	}
 
+	var removedUtxos []model.Utxo
+	res := connection.Where("block_height >= ?", height).Find(&removedUtxos)
+	if res.Error != nil {
+		return res.Error
+	}
+
+	log.Printf("[INFO] removed utxo list: ")
+	for idx, item := range removedUtxos {
+		log.Printf("[INFO] removed %d: hash[%s] out[%d] height[%d] dest[%s]", idx, hex.EncodeToString(item.TxHash), item.Out, item.BlockHeight, hex.EncodeToString(item.Destination))
+	}
+
 	// clear utxo
-	res := connection.Unscoped().Where("block_height >= ? and block_height != ?", height, TXPOOL_HEIGHT).Delete(&model.Utxo{})
+	// res := connection.Unscoped().Where("block_height >= ? and block_height != ?", height, TXPOOL_HEIGHT).Delete(&model.Utxo{})
+	res = connection.Unscoped().Where("block_height >= ?", height).Delete(&model.Utxo{})
 	if res.Error != nil {
 		log.Printf("[ERROR] delete [%d] forked utxo", res.RowsAffected)
 		return res.Error

@@ -1,8 +1,10 @@
 package utxo
 
 import (
+	"encoding/hex"
 	"log"
 
+	// "github.com/FissionAndFusion/lws/internal/constant"
 	model "github.com/FissionAndFusion/lws/internal/db/model"
 	sqlbuilder "github.com/huandu/go-sqlbuilder"
 	"github.com/jinzhu/gorm"
@@ -30,23 +32,17 @@ func RecoverUsedInputs(height uint32, connection *gorm.DB) error {
 				N:    tx.Inputs[i+32],
 			}
 			inputs = append(inputs, input)
+			log.Printf("[DEBUG] input hash[%s] out[%d] tx[%s] tx-height[%d]", hex.EncodeToString(input.Hash), input.N, hex.EncodeToString(tx.Hash), tx.BlockHeight)
 		}
 	}
-
-	// hash --> n
-	inputOutMap := make(map[[32]byte]uint8)
 
 	// get inputs txs (ignore height >= n)
 	txHashList := make([][]byte, len(inputs))
 	for i, input := range inputs {
-		var hashArr [32]byte
 		txHashList[i] = input.Hash
-		copy(hashArr[:], input.Hash)
-		inputOutMap[hashArr] = input.N
-		// log.Printf("map hash [%v] out [%d]", input.Hash, input.N)
 	}
 
-	log.Printf("recover: inputs query done [%d]", len(inputs))
+	log.Printf("[DEBUG] recover: inputs query done [%d]", len(inputs))
 
 	var inputTxs []model.Tx
 	results = connection.Where("hash in (?) and block_height < ?", txHashList, height).Find(&inputTxs)
@@ -54,14 +50,28 @@ func RecoverUsedInputs(height uint32, connection *gorm.DB) error {
 		return results.Error
 	}
 
-	utxos := make([]*model.Utxo, len(inputTxs))
-	// genereate utxo from inputs-txs
-	for i, inputTx := range inputTxs {
+	// map hash -> modelTx
+	txMap := make(map[[32]byte]*model.Tx)
+
+	for idx, inputTx := range inputTxs {
 		var hashArr [32]byte
 		copy(hashArr[:], inputTx.Hash)
-		out, ok := inputOutMap[hashArr]
+		txMap[hashArr] = &inputTxs[idx]
+		// log.Printf("[DEBUG] txMap hash[%s] txHash[%s]", hex.EncodeToString(hashArr[:]), hex.EncodeToString(txMap[hashArr].Hash))
+	}
+
+	// utxos := make([]*model.Utxo, len(inputTxs))
+	var utxos []*model.Utxo
+	// genereate utxo from inputs-txs
+	var utxoIdx int
+	for _, input := range inputs {
+		var hashArr [32]byte
+		copy(hashArr[:], input.Hash)
+		out := input.N
+
+		inputTx, ok := txMap[hashArr]
 		if !ok {
-			log.Printf("should not happen: recovery tx-hash[%s] not found", inputTx.Hash)
+			log.Printf("[DEBUG] ignore inputs %v", input)
 			continue
 		}
 
@@ -82,16 +92,18 @@ func RecoverUsedInputs(height uint32, connection *gorm.DB) error {
 			BlockHeight: inputTx.BlockHeight,
 			Out:         out,
 		}
-		// log.Printf("insert utxo#%d: [%v]", i, utxo)
-		utxos[i] = utxo
+		utxoIdx += 1
+		log.Printf("[DEBUG] insert utxo#%d: hash[%s] out[%d] amount[%d] height[%d] dest[%s]", utxoIdx, hex.EncodeToString(utxo.TxHash), utxo.Out, utxo.Amount, utxo.BlockHeight, hex.EncodeToString(dest))
+		// utxos[i] = utxo
+		utxos = append(utxos, utxo)
 	}
 
 	if len(utxos) <= 0 {
-		log.Printf("no utxo should be recovered")
+		log.Printf("[DEBUG] no utxo should be recovered")
 		return nil
 	}
 
-	log.Printf("prepare bulk insert [%d]", len(utxos))
+	log.Printf("[DEBUG] prepare bulk insert [%d]", len(utxos))
 	// bulk create recover utxos
 	ib := sqlbuilder.NewInsertBuilder()
 	ib.InsertInto("utxo")
