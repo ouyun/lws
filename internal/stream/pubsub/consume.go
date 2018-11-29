@@ -2,6 +2,7 @@ package pubsub
 
 import (
 	"context"
+	"sync"
 	// "fmt"
 	"log"
 	"os"
@@ -17,6 +18,7 @@ type Consumer struct {
 	QueueName          string
 	HandleConsumer     func([]byte) bool
 	IsBlockingChecking bool
+	HandleMutex        *sync.Mutex
 }
 
 // Declare implement rabbitroutine.Consumer.(Declare) interface method.
@@ -112,7 +114,13 @@ func (c *Consumer) Consume(ctx context.Context, ch *amqp.Channel) error {
 			// }
 
 			// fmt.Println("New message:", msg.Body)
+			if c.HandleMutex != nil {
+				c.HandleMutex.Lock()
+			}
 			shouldAck := c.HandleConsumer(msg.Body)
+			if c.HandleMutex != nil {
+				c.HandleMutex.Unlock()
+			}
 
 			if shouldAck {
 				err := msg.Ack(false)

@@ -118,6 +118,7 @@ func HandleTx(db *gorm.DB, tx *streamModel.StreamTx, blockModel *model.Block) (m
 	// correctness depends on external flow
 	inputListInDB, err := utxo.GetListByInputs(inputs, db)
 	if err != nil {
+		log.Printf("[ERROR] get list by inputs failed %s", err)
 		return nil, err
 	}
 
@@ -159,6 +160,7 @@ func HandleTx(db *gorm.DB, tx *streamModel.StreamTx, blockModel *model.Block) (m
 
 	// remove utxos based on inputs
 	if err = utxo.RemoveInputs(inputListInDB, db); err != nil {
+		log.Printf("[ERROR] remove utxos base on inputs failed")
 		return nil, err
 	}
 
@@ -198,6 +200,7 @@ func HandleTx(db *gorm.DB, tx *streamModel.StreamTx, blockModel *model.Block) (m
 	ib.InsertInto("utxo")
 	ib.Cols("created_at", "updated_at", "tx_hash", "destination", "amount", "block_height", "`out`")
 
+	log.Printf("[DEBUG] utxo in tx [%s] height[%d]", hex.EncodeToString(tx.Hash), blockHeight)
 	for _, item := range outputs {
 		ib.Values(
 			sqlbuilder.Raw("now()"),
@@ -208,6 +211,7 @@ func HandleTx(db *gorm.DB, tx *streamModel.StreamTx, blockModel *model.Block) (m
 			item.BlockHeight,
 			item.Out,
 		)
+		log.Printf("[DEBUG] utxo new [%s] out[%d] height[%d] dest[%s]", hex.EncodeToString(item.TxHash), item.Out, item.BlockHeight, hex.EncodeToString(item.Destination))
 	}
 
 	sql, args := ib.Build()

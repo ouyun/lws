@@ -114,6 +114,7 @@ func writeBlock(block *lws.Block) error {
 	}
 	updates, err := tx.StartBlockTxHandler(dbtx, txs, ormBlock)
 	if err != nil {
+		log.Printf("[DEBUG] sync rollback block [%s](#%d)", hex.EncodeToString(block.Hash), block.NHeight)
 		dbtx.Rollback()
 		return err
 	}

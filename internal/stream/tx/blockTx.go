@@ -2,6 +2,7 @@ package tx
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"log"
 
@@ -226,6 +227,7 @@ func (h *BlockTxHandler) insertTxs(txs []*lws.Transaction, block *model.Block) (
 		insertBuilderTxValue(ib, streamTx, block)
 		txUpdates, err := utxo.HandleTx(h.dbtx, streamTx, block)
 		if err != nil {
+			log.Printf("[ERROR] handle tx failed [%s], tx hash[%s]", err, hex.EncodeToString(streamTx.Hash))
 			return nil, err
 		}
 		for destination, items := range txUpdates {

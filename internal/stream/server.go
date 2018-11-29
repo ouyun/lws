@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"sync"
 
 	cclientModule "github.com/FissionAndFusion/lws/internal/coreclient/instance"
 	"github.com/FissionAndFusion/lws/internal/db"
@@ -32,9 +33,11 @@ func (s *Server) Start() {
 	// start rabbitMQ connection
 	// start redis connection
 
+	writeMutex := &sync.Mutex{}
+
 	// start sync-consumer
-	go block.Start(ctx, cclient)
-	go tx.Start(ctx, cclient)
+	go block.Start(ctx, cclient, writeMutex)
+	go tx.Start(ctx, cclient, writeMutex)
 
 	signal.Notify(msgChan, os.Interrupt, os.Kill)
 	<-msgChan

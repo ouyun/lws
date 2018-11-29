@@ -27,20 +27,20 @@ func StartPoolTxHandler(tx *lws.Transaction) error {
 	var count int
 	res := dbtx.Model(&model.Tx{}).Where("hash = ?", tx.Hash).Count(&count)
 	if res.Error != nil {
-		log.Printf("error check pool tx existance failed [%s]", res.Error)
+		log.Printf("[ERROR] error check pool tx existance failed [%s]", res.Error)
 		dbtx.Rollback()
 		return res.Error
 	}
 
 	if count != 0 {
-		log.Printf("pool tx[%s] already exists, skip", hex.EncodeToString(tx.Hash))
+		log.Printf("[DEBUG] pool tx[%s] already exists, skip", hex.EncodeToString(tx.Hash))
 		dbtx.Rollback()
 		return nil
 	}
 
 	updates, err := insertTx(dbtx, tx)
 	if err != nil {
-		log.Println("pool tx handler rollback")
+		log.Println("[ERROR] pool tx handler rollback")
 		dbtx.Rollback()
 		return err
 	}
@@ -63,7 +63,7 @@ func getSingleTxSender(dbtx *gorm.DB, tx *model.Tx) ([]byte, error) {
 
 	res := dbtx.Select("send_to").Where("hash = ?", prevHash).Take(&prevTx)
 	if res.Error != nil {
-		log.Printf("error query tx sender failed [%s]", res.Error)
+		log.Printf("[ERROR] error query tx sender failed [%s]", res.Error)
 		return nil, res.Error
 	}
 	return prevTx.SendTo, nil
