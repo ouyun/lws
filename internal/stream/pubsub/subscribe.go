@@ -144,7 +144,7 @@ func newPublisher(ctx context.Context) rabbitroutine.Publisher {
 	go func() {
 		err := conn.Dial(ctx, amqpUrl)
 		if err != nil {
-			log.Println("failed to establish RabbitMQ connection:", err)
+			log.Println("[ERROR] failed to establish RabbitMQ connection:", err)
 		}
 	}()
 
