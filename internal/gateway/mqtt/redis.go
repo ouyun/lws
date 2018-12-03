@@ -1,6 +1,7 @@
 package mqtt
 
 import (
+	"log"
 	"os"
 	"strconv"
 	"time"
@@ -21,7 +22,7 @@ var redisPool *redis.Pool
 
 func NewRedisPool() *redis.Pool {
 	address := os.Getenv("REDIS_URL")
-	dbOption := redis.DialDatabase(0)
+	// dbOption := redis.DialDatabase(0)
 	// pwOption := redis.DialPassword()
 	REDIS_MAXIDLE, _ := strconv.Atoi(os.Getenv("REDIS_MAXIDLE"))
 	REDIS_MAXACTIVE, _ := strconv.Atoi(os.Getenv("REDIS_MAXACTIVE"))
@@ -31,8 +32,10 @@ func NewRedisPool() *redis.Pool {
 		Wait:        true,
 		IdleTimeout: 240 * time.Second,
 		Dial: func() (redis.Conn, error) {
-			c, err := redis.Dial("tcp", address, dbOption)
+			// c, err := redis.Dial("tcp", address, dbOption)
+			c, err := redis.DialURL(address)
 			if err != nil {
+				log.Printf("[ERROR] connect redis [%s] failed: [%s]", address, err)
 				return nil, err
 			}
 			return c, nil
