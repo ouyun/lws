@@ -26,6 +26,12 @@ type UTXOUpdate struct {
 	UTXO        *UTXO  `len:"0"`
 }
 
+type UTXOUpdateQueueItem struct {
+	updatePayload *UpdatePayload
+	updateList    []UTXOUpdate
+	replySize     int
+}
+
 // get utxo hash
 func UTXOHash(u *[]UTXO) []byte {
 	buf := bytes.NewBuffer([]byte{})
