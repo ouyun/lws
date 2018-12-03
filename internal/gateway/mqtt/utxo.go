@@ -33,8 +33,8 @@ func UTXOHash(u *[]UTXO) []byte {
 		buf.Write(GetIndex(&value))
 		buf.Write(IntToBytes(value.BlockHeight))
 	}
-	hash := blake2b.Sum512(buf.Bytes())
-	return hash[:31]
+	hash := blake2b.Sum256(buf.Bytes())
+	return hash[:32]
 }
 
 // get utxo index bytes
