@@ -1,6 +1,9 @@
 package mqtt
 
 import (
+	"bytes"
+	"context"
+	"encoding/gob"
 	"encoding/hex"
 	"log"
 	"math"
@@ -8,6 +11,7 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/FissionAndFusion/lws/internal/config"
 	"github.com/FissionAndFusion/lws/internal/db/service/block"
 	"github.com/eclipse/paho.mqtt.golang"
 	"github.com/gomodule/redigo/redis"
@@ -16,15 +20,117 @@ import (
 var mu sync.Mutex
 var cliProgram *Program
 
-// send UTXO update list
-func SendUTXOUpdate(u *[]UTXOUpdate, address []byte) {
-	utxoUList := *u
+type RedisPublisher struct {
+	conn redis.Conn
+}
 
-	log.Printf("[DEBUG] send utxo update cnt[%d] address: %+v !", len(utxoUList), address)
+var redisPublisher *RedisPublisher
+
+func (this *RedisPublisher) CloseConn() {
+	if this.conn != nil {
+		this.conn.Close()
+		this.conn = nil
+	}
+}
+
+func (this *RedisPublisher) GetConn() redis.Conn {
+	if this.conn != nil {
+		return this.conn
+	}
+	redisConn := this.NewConn()
+	return redisConn
+}
+
+func (this *RedisPublisher) NewConn() redis.Conn {
+	redisPool := GetRedisPool()
+	return redisPool.Get()
+}
+
+func InitPubInstance(ctx context.Context) *RedisPublisher {
+	redisPublisher = &RedisPublisher{}
+	redisPublisher.NewConn()
+
+	go func() {
+		defer redisPublisher.CloseConn()
+		<-ctx.Done()
+	}()
+	return redisPublisher
+}
+
+func NewUTXOUpdate(utxoUpdateList []UTXOUpdate, address []byte) {
+	// check should-write via reddis
+	redisPool := GetRedisPool()
+	redisConn := redisPool.Get()
+	defer redisConn.Close()
+	cliMap, err := GetUserByAddress(address, &redisConn)
+	if err != nil {
+		log.Printf("[ERROR] getUserByAddress failed: %+v", err)
+		return
+	}
+
+	if cliMap == nil {
+		// log.Printf("[ERROR] address not found")
+		return
+	}
+
+	client := GetProgram()
+	if client.Client == nil {
+		log.Printf("[ERROR] new mqtt client err: client == nil")
+		return
+	}
+
 	updatePayload := UpdatePayload{}
+	updatePayload.Nonce = cliMap.Nonce
+	updatePayload.AddressId = cliMap.AddressId
+	tailBlock := block.GetTailBlock()
+	if tailBlock == nil {
+		log.Printf("[ERROR] tailBlock get nil")
+		return
+	}
+
+	updatePayload.BlockHash = tailBlock.Hash
+	updatePayload.Height = tailBlock.Height
+	updatePayload.BlockTime = tailBlock.Tstamp
+	forkId, err := hex.DecodeString(os.Getenv("FORK_ID"))
+	if err != nil {
+		log.Printf("[ERROR] Getenv FORK_ID err: %+v", err)
+		return
+	}
+	updatePayload.ForkId = forkId
+
+	replyUTXON := cliMap.ReplyUTXON
+
+	queueItem := UTXOUpdateQueueItem{
+		UpdatePayload: updatePayload,
+		UpdateList:    utxoUpdateList,
+		ReplyUTXON:    replyUTXON,
+		Address:       address,
+	}
+
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+	err = enc.Encode(queueItem)
+	if err != nil {
+		log.Printf("[ERROR] encode utxoUpdate error: %s, item: %v", err, queueItem)
+	}
+	msg := buf.Bytes()
+	// publish utxo update list to mq
+
+	topic := config.Config.UTXO_UPDATE_QUEUE_NAME + "lwsid"
+	redisPublisher.GetConn().Do("PUBLISH", topic, msg)
+}
+
+// send UTXO update list
+func SendUTXOUpdate(item *UTXOUpdateQueueItem) {
+	utxoUList := item.UpdateList
+	log.Printf("[DEBUG] send utxo update cnt[%d] address: %+v !", len(utxoUList), item.Address)
 
 	pool := GetRedisPool()
 	redisConn := pool.Get()
+
+	address := item.Address
+	updatePayload := item.UpdatePayload
+	replyUTXON := item.ReplyUTXON
 
 	defer redisConn.Close()
 	c := make(chan int, 1)
@@ -46,40 +152,21 @@ func SendUTXOUpdate(u *[]UTXOUpdate, address []byte) {
 		log.Printf("[ERROR] new mqtt client err: client == nil")
 		return
 	}
-	updatePayload.Nonce = cliMap.Nonce
-	updatePayload.AddressId = cliMap.AddressId
-	tailBlock := block.GetTailBlock()
-	if tailBlock == nil {
-		log.Printf("[ERROR] tailBlock get nil")
-		return
-	}
-
-	updatePayload.BlockHash = tailBlock.Hash
-	updatePayload.Height = tailBlock.Height
-	updatePayload.BlockTime = tailBlock.Tstamp
-	forkId, err := hex.DecodeString(os.Getenv("FORK_ID"))
-	if err != nil {
-		log.Printf("[ERROR] Getenv FORK_ID err: %+v", err)
-		return
-	}
-	updatePayload.ForkId = forkId
-
-	replyUTXON := cliMap.ReplyUTXON
 
 	// send
-	if replyUTXON < uint16(len(*(u))) && replyUTXON != 0 {
+	if replyUTXON < uint16(len(utxoUList)) && replyUTXON != 0 {
 		// 多次发送
 
 		// 发送次数
-		times := int(math.Ceil(float64(uint16(len(*u)) / replyUTXON)))
+		times := int(math.Ceil(float64(uint16(len(utxoUList)) / replyUTXON)))
 		for index := 0; index < times; index++ {
 			if index != (times - 1) {
 				// TODO: sync
 				var rightIndex uint16
-				if (replyUTXON * uint16(index+1)) <= uint16(len(*u)) {
+				if (replyUTXON * uint16(index+1)) <= uint16(len(utxoUList)) {
 					rightIndex = (replyUTXON * uint16(index+1)) - 1
 				} else {
-					rightIndex = uint16(len(*u)) - 1
+					rightIndex = uint16(len(utxoUList)) - 1
 				}
 				SendUpdateMessage(&(*client).Client, &redisConn, &updatePayload, utxoUList[replyUTXON*uint16(index):rightIndex], cliMap, 1, c)
 				<-c
@@ -151,4 +238,51 @@ func GetProgram() *Program {
 		}
 	}
 	return cliProgram
+}
+
+func ConsumerUTXOUpdate(channel string, message []byte) {
+	dec := gob.NewDecoder(bytes.NewBuffer(message))
+	var item UTXOUpdateQueueItem
+	err := dec.Decode(&item)
+	if err != nil {
+		log.Printf("[ERROR] decode error %s", err)
+		return
+	}
+	SendUTXOUpdate(&item)
+}
+
+func StartUTXOSenderConsumer(ctx context.Context) error {
+	pool := GetRedisPool()
+	redisConn := pool.Get()
+	defer redisConn.Close()
+
+	psc := redis.PubSubConn{Conn: redisConn}
+
+	topic := config.Config.UTXO_UPDATE_QUEUE_NAME + "lwsid"
+
+	if err := psc.Subscribe(redis.Args{}.AddFlat(topic)...); err != nil {
+		log.Printf("[ERROR] subscribe [%s] failed", topic)
+		return err
+	}
+
+	go (func() {
+
+		for {
+			select {
+			case <-ctx.Done():
+				log.Printf("[INFO] unsubscribe utxo udpate listener")
+				psc.Unsubscribe()
+			default:
+				switch n := psc.Receive().(type) {
+				case error:
+					log.Printf("[ERROR] redis subscribe received error %s", n)
+					return
+				case redis.Message:
+					ConsumerUTXOUpdate(n.Channel, n.Data)
+				}
+			}
+		}
+
+	})()
+	return nil
 }

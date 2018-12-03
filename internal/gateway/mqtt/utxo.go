@@ -27,9 +27,10 @@ type UTXOUpdate struct {
 }
 
 type UTXOUpdateQueueItem struct {
-	updatePayload *UpdatePayload
-	updateList    []UTXOUpdate
-	replySize     int
+	UpdatePayload UpdatePayload
+	UpdateList    []UTXOUpdate
+	ReplyUTXON    uint16
+	Address       []byte
 }
 
 // get utxo hash

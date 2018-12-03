@@ -125,7 +125,7 @@ func writeBlock(block *lws.Block) error {
 	dbtx.Commit()
 
 	for destination, item := range updates {
-		mqtt.SendUTXOUpdate(&item, destination[:])
+		mqtt.NewUTXOUpdate(item, destination[:])
 	}
 
 	return nil

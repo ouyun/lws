@@ -1,96 +1,114 @@
 package utxo
 
-import (
-	"context"
-	"encoding/gob"
-	"log"
+// import (
+// 	"bytes"
+// 	"context"
+// 	"encoding/gob"
+// 	"encoding/hex"
+// 	"log"
+// 	"os"
 
-	"github.com/FissionAndFusion/lws/internal/gateway/mqtt"
-	"github.com/furdarius/rabbitroutine"
-	"github.com/gomodule/redigo/redis"
-)
+// 	"github.com/FissionAndFusion/lws/internal/config"
+// 	"github.com/FissionAndFusion/lws/internal/db/service/block"
+// 	"github.com/FissionAndFusion/lws/internal/gateway/mqtt"
+// 	"github.com/gomodule/redigo/redis"
+// )
 
-var pubInstance rabbitroutine.Publisher
-var redisConn redis.Conn
+// type RedisPublisher struct {
+// 	conn redis.Conn
+// }
 
-func InitPubInstance(ctx context.Context) {
-	amqpUrl := os.Getenv("AMQP_URL")
-	conn := rabbitroutine.NewConnector(rabbitroutine.Config{
-		// Max reconnect attempts
-		ReconnectAttempts: 0,
-		// How long wait between reconnect
-		Wait: 30 * time.Second,
-	})
+// var redisPublisher *RedisPublisher
 
-	pool := rabbitroutine.NewPool(conn)
-	ensurePub := rabbitroutine.NewEnsurePublisher(pool)
-	pub := rabbitroutine.NewRetryPublisher(ensurePub)
+// func (this *RedisPublisher) CloseConn() {
+// 	if this.conn != nil {
+// 		this.conn.Close()
+// 		this.conn = nil
+// 	}
+// }
 
-	pubInstance = pub
+// func (this *RedisPublisher) GetConn() redis.Conn {
+// 	if this.conn != nil {
+// 		return this.conn
+// 	}
+// 	redisConn := this.NewConn()
+// 	return redisConn
+// }
 
-	redisPool := GetRedisPool()
-	redisConn = redisPool.Get()
+// func (this *RedisPublisher) NewConn() redis.Conn {
+// 	redisPool := mqtt.GetRedisPool()
+// 	return redisPool.Get()
+// }
 
-	go func() {
-		defer redisConn.Close()
-		err := conn.Dial(ctx, amqpUrl)
-		if err != nil {
-			log.Println("[ERROR] failed to establish RabbitMQ connection:", err)
-		}
+// func InitPubInstance(ctx context.Context) *RedisPublisher {
+// 	redisPublisher = &RedisPublisher{}
+// 	redisPublisher.NewConn()
 
-		<-ctx.Done()
-	}()
-}
+// 	go func() {
+// 		defer redisPublisher.CloseConn()
+// 		<-ctx.Done()
+// 	}()
+// 	return redisPublisher
+// }
 
-func GetPubInstance() rabbitroutine.Publisher {
-	return pubInstance
-}
+// func NewUtxoUpdate(utxoUpdateList []mqtt.UTXOUpdate, address []byte) {
+// 	// check should-write via reddis
+// 	redisPool := mqtt.GetRedisPool()
+// 	redisConn := redisPool.Get()
+// 	defer redisConn.Close()
+// 	cliMap, err := mqtt.GetUserByAddress(address, &redisConn)
+// 	if err != nil {
+// 		log.Printf("[ERROR] getUserByAddress failed: %+v", err)
+// 		return
+// 	}
 
-func NewUtxoUpdate(utxoUpdateList []mqtt.UTXOUpdate, address []byte) {
-	// check should-write via reddis
-	cliMap, err := GetUserByAddress(address, &redisConn)
-	if err != nil {
-		log.Printf("[ERROR] getUserByAddress failed: %+v", err)
-		return
-	}
+// 	if cliMap == nil {
+// 		// log.Printf("[ERROR] address not found")
+// 		return
+// 	}
 
-	if cliMap == nil {
-		// log.Printf("[ERROR] address not found")
-		return
-	}
+// 	client := mqtt.GetProgram()
+// 	if client.Client == nil {
+// 		log.Printf("[ERROR] new mqtt client err: client == nil")
+// 		return
+// 	}
 
-	client := GetProgram()
-	if client.Client == nil {
-		log.Printf("[ERROR] new mqtt client err: client == nil")
-		return
-	}
+// 	updatePayload := mqtt.UpdatePayload{}
+// 	updatePayload.Nonce = cliMap.Nonce
+// 	updatePayload.AddressId = cliMap.AddressId
+// 	tailBlock := block.GetTailBlock()
+// 	if tailBlock == nil {
+// 		log.Printf("[ERROR] tailBlock get nil")
+// 		return
+// 	}
 
-	updatePayload := UpdatePayload{}
-	updatePayload.Nonce = cliMap.Nonce
-	updatePayload.AddressId = cliMap.AddressId
-	tailBlock := block.GetTailBlock()
-	if tailBlock == nil {
-		log.Printf("[ERROR] tailBlock get nil")
-		return
-	}
+// 	updatePayload.BlockHash = tailBlock.Hash
+// 	updatePayload.Height = tailBlock.Height
+// 	updatePayload.BlockTime = tailBlock.Tstamp
+// 	forkId, err := hex.DecodeString(os.Getenv("FORK_ID"))
+// 	if err != nil {
+// 		log.Printf("[ERROR] Getenv FORK_ID err: %+v", err)
+// 		return
+// 	}
+// 	updatePayload.ForkId = forkId
 
-	updatePayload.BlockHash = tailBlock.Hash
-	updatePayload.Height = tailBlock.Height
-	updatePayload.BlockTime = tailBlock.Tstamp
-	forkId, err := hex.DecodeString(os.Getenv("FORK_ID"))
-	if err != nil {
-		log.Printf("[ERROR] Getenv FORK_ID err: %+v", err)
-		return
-	}
-	updatePayload.ForkId = forkId
+// 	replyUTXON := cliMap.ReplyUTXON
 
-	replyUTXON := cliMap.ReplyUTXON
+// 	queueItem := mqtt.UTXOUpdateQueueItem{
+// 		UpdatePayload: &updatePayload,
+// 		UpdateList:    utxoUpdateList,
+// 		ReplySize:     replyUTXON,
+// 	}
 
-	queueItem := UTXOUpdateQueueItem{
-		updatePayload: &updatePayload,
-		updateList:    utxoUpdateList,
-		replySize:     replyUTXON,
-	}
+// 	var buf bytes.Buffer
+// 	enc := gob.NewEncoder(&buf)
+// 	err = enc.Encode(queueItem)
+// 	if err != nil {
+// 		log.Printf("[ERROR] encode utxoUpdate error: %s, item: %v", err, queueItem)
+// 	}
+// 	msg := buf.Bytes()
+// 	// publish utxo update list to mq
 
-	// publish utxo update list to mq
-}
+// 	topic := config.Config.UTXO_UPDATE_QUEUE_NAME + "lwsid"
+// 	redisPublisher.GetConn().Do("PUBLISH", topic, msg)
+// }
