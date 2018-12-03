@@ -2,6 +2,7 @@ package tx
 
 import (
 	"log"
+	"os"
 	"sync"
 
 	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/dbp"
@@ -11,10 +12,10 @@ import (
 	"github.com/golang/protobuf/ptypes"
 )
 
-const (
-	EXCHANGE_NAME = "all-tx"
-	QUEUE_NAME    = "all-tx-q"
-)
+// const (
+// 	EXCHANGE_NAME = "all-tx"
+// 	QUEUE_NAME    = "all-tx-q"
+// )
 
 func handleConsumer(body []byte) bool {
 	log.Println("[DEBUG] tx pool handleConsumer")
@@ -36,9 +37,11 @@ func handleConsumer(body []byte) bool {
 }
 
 func NewTxConsumer(handleMutex *sync.Mutex) *pubsub.Consumer {
+	suffix := os.Getenv("INSTANCE_SUFFIX")
+
 	return &pubsub.Consumer{
-		ExchangeName:   EXCHANGE_NAME,
-		QueueName:      QUEUE_NAME,
+		ExchangeName:   EXCHANGE_NAME + suffix,
+		QueueName:      QUEUE_NAME + suffix,
 		HandleConsumer: handleConsumer,
 		HandleMutex:    handleMutex,
 	}
