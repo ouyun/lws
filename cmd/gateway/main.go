@@ -27,5 +27,5 @@ func main() {
 	server := gateway.Server{
 		Id: lwsId,
 	}
-	defer server.Start()
+	server.Start()
 }

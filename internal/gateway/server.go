@@ -40,6 +40,7 @@ func (s *Server) Start() {
 	signal.Notify(msgChan, os.Interrupt, os.Kill)
 	<-msgChan
 	log.Printf("[INFO] received kill/interrupt signal")
+	p.Stop()
 	cancel()
 	log.Print("[INFO] gateway server exit")
 }

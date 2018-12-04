@@ -5,7 +5,7 @@ import (
 	"errors"
 	"log"
 	"os"
-	"os/signal"
+	// "os/signal"
 	"strconv"
 	"time"
 
@@ -49,14 +49,15 @@ func Run(service Service) error {
 	if err := service.Start(); err != nil {
 		return err
 	}
-	signal.Notify(msgChan, os.Interrupt, os.Kill)
-	<-msgChan
-	return service.Stop()
+	return nil
+	// signal.Notify(msgChan, os.Interrupt, os.Kill)
+	// <-msgChan
+	// return service.Stop()
 }
 
-func Interrupt() {
-	msgChan <- os.Interrupt
-}
+// func Interrupt() {
+// 	msgChan <- os.Interrupt
+// }
 
 // start client
 func (p *Program) Start() error {
