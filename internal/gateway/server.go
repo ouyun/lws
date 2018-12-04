@@ -1,9 +1,13 @@
 package gateway
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"os"
+	"os/signal"
 
+	"github.com/FissionAndFusion/lws/internal/config"
 	cclientModule "github.com/FissionAndFusion/lws/internal/coreclient/instance"
 	mqtt "github.com/FissionAndFusion/lws/internal/gateway/mqtt"
 )
@@ -14,7 +18,11 @@ type Server struct {
 }
 
 func (s *Server) Start() {
+	ctx, cancel := context.WithCancel(context.Background())
+	var msgChan = make(chan os.Signal, 1)
 	s.Status = 1
+
+	config.InitConfigs()
 
 	topic := os.Getenv("LWS_TOPIC")
 	if topic == "" {
@@ -24,5 +32,14 @@ func (s *Server) Start() {
 	p := &mqtt.Program{Id: s.Id, Topic: topic, IsLws: true}
 	mqtt.Run(p)
 	cclientModule.StartCoreClient()
-	fmt.Printf("gateway server started (status: %d)", 3)
+
+	go mqtt.ListenUTXOUpdateConsumer(ctx)
+
+	fmt.Printf("[INFO] gateway server started (status: %d)", 3)
+
+	signal.Notify(msgChan, os.Interrupt, os.Kill)
+	<-msgChan
+	log.Printf("[INFO] received kill/interrupt signal")
+	cancel()
+	log.Print("[INFO] gateway server exit")
 }

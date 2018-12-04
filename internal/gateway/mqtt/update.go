@@ -58,6 +58,7 @@ func InitPubInstance(ctx context.Context) *RedisPublisher {
 }
 
 func NewUTXOUpdate(utxoUpdateList []UTXOUpdate, address []byte) {
+	log.Printf("[DEBUG] new utxo update")
 	// check should-write via reddis
 	redisPool := GetRedisPool()
 	redisConn := redisPool.Get()
@@ -73,11 +74,11 @@ func NewUTXOUpdate(utxoUpdateList []UTXOUpdate, address []byte) {
 		return
 	}
 
-	client := GetProgram()
-	if client.Client == nil {
-		log.Printf("[ERROR] new mqtt client err: client == nil")
-		return
-	}
+	// client := GetProgram()
+	// if client.Client == nil {
+	// 	log.Printf("[ERROR] new mqtt client err: client == nil")
+	// 	return
+	// }
 
 	updatePayload := UpdatePayload{}
 	updatePayload.Nonce = cliMap.Nonce
@@ -116,7 +117,9 @@ func NewUTXOUpdate(utxoUpdateList []UTXOUpdate, address []byte) {
 	msg := buf.Bytes()
 	// publish utxo update list to mq
 
-	topic := config.Config.UTXO_UPDATE_QUEUE_NAME + "lwsid"
+	conf := config.GetConfig()
+	log.Printf("[DEBUG] conf %v", conf)
+	topic := conf.UTXO_UPDATE_QUEUE_NAME + "lwsid"
 	redisPublisher.GetConn().Do("PUBLISH", topic, msg)
 }
 
@@ -241,6 +244,7 @@ func GetProgram() *Program {
 }
 
 func ConsumerUTXOUpdate(channel string, message []byte) {
+	log.Printf("[DEBUG] Consumer utxo update channel [%s]", channel)
 	dec := gob.NewDecoder(bytes.NewBuffer(message))
 	var item UTXOUpdateQueueItem
 	err := dec.Decode(&item)
@@ -251,38 +255,56 @@ func ConsumerUTXOUpdate(channel string, message []byte) {
 	SendUTXOUpdate(&item)
 }
 
-func StartUTXOSenderConsumer(ctx context.Context) error {
-	pool := GetRedisPool()
-	redisConn := pool.Get()
-	defer redisConn.Close()
+func ListenUTXOUpdateConsumer(ctx context.Context) error {
+	// pool := GetRedisPool()
+	// redisConn := pool.Get()
+
+	redisConn, err := redis.DialURL(os.Getenv("REDIS_URL"))
+	if err != nil {
+		log.Printf("[ERROR] connect redis pubsub conn failed %s", err)
+		return err
+	}
+
+	// redisConn.Ping("haha")
 
 	psc := redis.PubSubConn{Conn: redisConn}
 
-	topic := config.Config.UTXO_UPDATE_QUEUE_NAME + "lwsid"
+	conf := config.GetConfig()
+	log.Printf("[DEBUG] conf %v", conf)
+	topic := conf.UTXO_UPDATE_QUEUE_NAME + "lwsid"
 
 	if err := psc.Subscribe(redis.Args{}.AddFlat(topic)...); err != nil {
 		log.Printf("[ERROR] subscribe [%s] failed", topic)
 		return err
 	}
 
-	go (func() {
+	done := make(chan struct{}, 1)
+
+	go (func(done chan struct{}) {
 
 		for {
-			select {
-			case <-ctx.Done():
-				log.Printf("[INFO] unsubscribe utxo udpate listener")
-				psc.Unsubscribe()
-			default:
-				switch n := psc.Receive().(type) {
-				case error:
-					log.Printf("[ERROR] redis subscribe received error %s", n)
-					return
-				case redis.Message:
-					ConsumerUTXOUpdate(n.Channel, n.Data)
+			switch n := psc.Receive().(type) {
+			case error:
+				log.Printf("[ERROR] redis subscribe received error %s", n)
+				close(done)
+			case redis.Message:
+				ConsumerUTXOUpdate(n.Channel, n.Data)
+			case redis.Subscription:
+				if n.Count == 0 {
+					close(done)
 				}
 			}
 		}
 
-	})()
+	})(done)
+
+	select {
+	case <-ctx.Done():
+	case <-done:
+	}
+	log.Printf("[INFO] unsubscribe utxo udpate listener")
+	psc.Unsubscribe()
+	redisConn.Close()
+
 	return nil
 }
