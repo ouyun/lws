@@ -11,6 +11,7 @@ import (
 	"github.com/FissionAndFusion/lws/internal/gateway/mqtt"
 	streamModel "github.com/FissionAndFusion/lws/internal/stream/model"
 	"github.com/FissionAndFusion/lws/internal/stream/utxo"
+	"github.com/FissionAndFusion/lws/test/helper"
 	sqlbuilder "github.com/huandu/go-sqlbuilder"
 	"github.com/jinzhu/gorm"
 )
@@ -25,6 +26,7 @@ type BlockTxHandler struct {
 }
 
 func StartBlockTxHandler(db *gorm.DB, txs []*lws.Transaction, blockModel *model.Block) (map[[33]byte][]mqtt.UTXOUpdate, error) {
+	defer helper.MeasureTime(helper.MeasureTitle("StartBlockTxHandler len txs %d", len(txs)))
 	log.Printf("StartBlockTxHandler len txs [%d]", len(txs))
 
 	var updates map[[33]byte][]mqtt.UTXOUpdate

@@ -3,6 +3,7 @@ package tx
 import (
 	"encoding/hex"
 	"log"
+	"sync"
 
 	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/lws"
 	"github.com/FissionAndFusion/lws/internal/db"
@@ -47,9 +48,12 @@ func StartPoolTxHandler(tx *lws.Transaction) error {
 
 	dbtx.Commit()
 
+	var wg sync.WaitGroup
 	for destination, item := range updates {
-		mqtt.NewUTXOUpdate(item, destination[:])
+		wg.Add(1)
+		go mqtt.NewUTXOUpdate(item, destination[:], &wg)
 	}
+	wg.Wait()
 
 	return nil
 }

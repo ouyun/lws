@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+	"sync"
 
 	"github.com/FissionAndFusion/lws/internal/constant"
 	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/lws"
@@ -124,9 +125,13 @@ func writeBlock(block *lws.Block) error {
 
 	dbtx.Commit()
 
+	defer helper.MeasureTime(helper.MeasureTitle("block send utxo update [%s](#%d)", hex.EncodeToString(block.Hash), block.NHeight))
+	var wg sync.WaitGroup
 	for destination, item := range updates {
-		mqtt.NewUTXOUpdate(item, destination[:])
+		wg.Add(1)
+		go mqtt.NewUTXOUpdate(item, destination[:], &wg)
 	}
+	wg.Wait()
 
 	return nil
 }

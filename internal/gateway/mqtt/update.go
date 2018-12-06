@@ -9,6 +9,7 @@ import (
 	"math"
 	"os"
 	"strconv"
+	"sync"
 
 	"github.com/FissionAndFusion/lws/internal/config"
 	"github.com/FissionAndFusion/lws/internal/db/service/block"
@@ -54,8 +55,11 @@ func InitPubInstance(ctx context.Context) *RedisPublisher {
 	return redisPublisher
 }
 
-func NewUTXOUpdate(utxoUpdateList []UTXOUpdate, address []byte) {
+func NewUTXOUpdate(utxoUpdateList []UTXOUpdate, address []byte, wg *sync.WaitGroup) {
 	defer helper.MeasureTime(helper.MeasureTitle("queue utxo"))
+	if wg != nil {
+		defer wg.Done()
+	}
 	log.Printf("[DEBUG] new utxo update")
 	// check should-write via reddis
 	redisPool := GetRedisPool()
