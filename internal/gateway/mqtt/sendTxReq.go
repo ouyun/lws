@@ -15,6 +15,7 @@ import (
 	"github.com/FissionAndFusion/lws/internal/db/model"
 	"github.com/FissionAndFusion/lws/internal/db/service/utxo"
 	"github.com/FissionAndFusion/lws/internal/gateway/crypto"
+	"github.com/FissionAndFusion/lws/test/helper"
 	"github.com/eclipse/paho.mqtt.golang"
 	"github.com/golang/protobuf/ptypes"
 )
@@ -25,6 +26,11 @@ type UTXOIndex struct {
 }
 
 var sendTxReqReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
+	go sendTxReqReqHandlerDo(client, msg)
+}
+
+var sendTxReqReqHandlerDo mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
+	defer helper.MeasureTime(helper.MeasureTitle("handle send tx"))
 	log.Println("[DEBUG] Received sendTxReq !")
 	s := SendTxPayload{}
 	payload := msg.Payload()
@@ -148,6 +154,7 @@ func ReplySendTx(client *mqtt.Client, s *SendTxPayload, err int, errCode int, er
 }
 
 func SendTxToCore(client *coreclient.Client, s *SendTxPayload) (resultMessage *lws.SendTxRet, err error) {
+	defer helper.MeasureTime(helper.MeasureTitle("handle send tx to core"))
 	params := &lws.SendTxArg{
 		Data: s.TxData,
 	}

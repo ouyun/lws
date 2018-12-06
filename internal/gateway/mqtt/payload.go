@@ -413,7 +413,7 @@ func DecodePayload(payload []byte, result interface{}) (err error) {
 		}
 		leftIndex = (leftIndex + leng)
 	}
-	log.Printf("DecodePayload get result : %+v\n", result)
+	// log.Printf("DecodePayload get result : %+v\n", result)
 	return err
 }
 

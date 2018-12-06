@@ -9,16 +9,13 @@ import (
 	"math"
 	"os"
 	"strconv"
-	"sync"
 
 	"github.com/FissionAndFusion/lws/internal/config"
 	"github.com/FissionAndFusion/lws/internal/db/service/block"
+	"github.com/FissionAndFusion/lws/test/helper"
 	"github.com/eclipse/paho.mqtt.golang"
 	"github.com/gomodule/redigo/redis"
 )
-
-var mu sync.Mutex
-var cliProgram *Program
 
 type RedisPublisher struct {
 	conn redis.Conn
@@ -58,6 +55,7 @@ func InitPubInstance(ctx context.Context) *RedisPublisher {
 }
 
 func NewUTXOUpdate(utxoUpdateList []UTXOUpdate, address []byte) {
+	defer helper.MeasureTime(helper.MeasureTitle("queue utxo"))
 	log.Printf("[DEBUG] new utxo update")
 	// check should-write via reddis
 	redisPool := GetRedisPool()
@@ -71,6 +69,10 @@ func NewUTXOUpdate(utxoUpdateList []UTXOUpdate, address []byte) {
 
 	if cliMap == nil {
 		// log.Printf("[ERROR] address not found")
+		return
+	}
+
+	if cliMap.Nonce == 0 {
 		return
 	}
 
@@ -151,7 +153,7 @@ func SendUTXOUpdate(item *UTXOUpdateQueueItem) {
 	}
 
 	client := GetProgram()
-	if client.Client == nil {
+	if client == nil || client.Client == nil {
 		log.Printf("[ERROR] new mqtt client err: client == nil")
 		return
 	}
@@ -187,6 +189,7 @@ func SendUTXOUpdate(item *UTXOUpdateQueueItem) {
 
 // send update message
 func SendUpdateMessage(client *mqtt.Client, redisConn *redis.Conn, uPayload *UpdatePayload, u []UTXOUpdate, cliMap *CliMap, end int, c chan int) {
+	defer helper.MeasureTime(helper.MeasureTitle("send utxo update message"))
 	log.Printf("[DEBUG] UTXOUpdate addressId[%d] cnt[%d] continue[%d]:", cliMap.AddressId, len(u), end)
 	addressIdStr := strconv.FormatUint(uint64(cliMap.AddressId), 10)
 	cli := CliMap{}
@@ -222,25 +225,6 @@ func SendUpdateMessage(client *mqtt.Client, redisConn *redis.Conn, uPayload *Upd
 		log.Printf("[ERROR] publish [%s] err: %v", t, err)
 	}
 	c <- 1
-}
-
-func GetProgram() *Program {
-	if cliProgram == nil {
-		mu.Lock()
-		defer mu.Unlock()
-		if cliProgram == nil {
-			id := os.Getenv("MQTT_STREAM_CLIENT_ID")
-			if id == "" {
-				id = "lws-001-update"
-			}
-			cliProgram = &Program{Id: id, IsLws: false}
-			cliProgram.Init()
-			if err := cliProgram.Start(); err != nil {
-				log.Printf("[ERROR] client start failed: %s", err)
-			}
-		}
-	}
-	return cliProgram
 }
 
 func ConsumerUTXOUpdate(channel string, message []byte) {

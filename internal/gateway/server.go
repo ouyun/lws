@@ -19,6 +19,7 @@ type Server struct {
 
 func (s *Server) Start() {
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	var msgChan = make(chan os.Signal, 1)
 	s.Status = 1
 
@@ -31,6 +32,7 @@ func (s *Server) Start() {
 
 	p := &mqtt.Program{Id: s.Id, Topic: topic, IsLws: true}
 	mqtt.Run(p)
+	defer p.Stop()
 	cclientModule.StartCoreClient()
 
 	go mqtt.ListenUTXOUpdateConsumer(ctx)
@@ -40,7 +42,7 @@ func (s *Server) Start() {
 	signal.Notify(msgChan, os.Interrupt, os.Kill)
 	<-msgChan
 	log.Printf("[INFO] received kill/interrupt signal")
-	p.Stop()
-	cancel()
+	// p.Stop()
+	// cancel()
 	log.Print("[INFO] gateway server exit")
 }

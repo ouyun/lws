@@ -34,6 +34,8 @@ type Program struct {
 	subs   []string
 }
 
+var programInstance *Program
+
 var clientHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
 	log.Printf("TOPIC: %s\n", msg.Topic())
 }
@@ -44,20 +46,18 @@ func StartCoreClient() *coreclient.Client {
 	return cclientModule.StartCoreClient()
 }
 
-func Run(service Service) error {
+func Run(service *Program) error {
 	service.Init()
 	if err := service.Start(); err != nil {
 		return err
 	}
+	programInstance = service
 	return nil
-	// signal.Notify(msgChan, os.Interrupt, os.Kill)
-	// <-msgChan
-	// return service.Stop()
 }
 
-// func Interrupt() {
-// 	msgChan <- os.Interrupt
-// }
+func GetProgram() *Program {
+	return programInstance
+}
 
 // start client
 func (p *Program) Start() error {
@@ -66,13 +66,13 @@ func (p *Program) Start() error {
 		err := errors.New("conn mqtt broker failed")
 		return err
 	}
-	log.Printf("client: %s started!", p.Id)
+	log.Printf("[INFO] mqtt client: %s started!", p.Id)
 	return nil
 }
 
 // init client
 func (p *Program) Init() {
-	// mqtt.DEBUG = log.New(os.Stdout, "", 20)
+	mqtt.DEBUG = log.New(os.Stdout, "", 20)
 	mqtt.ERROR = log.New(os.Stdout, "", 0)
 	opts := mqtt.NewClientOptions().AddBroker(os.Getenv("MQTT_URL")).SetClientID(p.Id)
 
@@ -125,7 +125,7 @@ func (p *Program) Subscribe(topic string, qos byte, handler mqtt.MessageHandler)
 }
 
 func (p *Program) GetOnConnectHandler() mqtt.OnConnectHandler {
-	log.Printf("program %s", p.Topic)
+	log.Printf("[INFO] mqtt connect handler %s", p.Topic)
 	var conn mqtt.OnConnectHandler = func(client mqtt.Client) {
 		// log.Printf("program %s", p.Topic)
 		topicSuffix := os.Getenv("MQTT_LWS_TOPIC_SUFFIX")
