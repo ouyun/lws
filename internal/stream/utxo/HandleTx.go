@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"github.com/FissionAndFusion/lws/internal/constant"
+	"github.com/FissionAndFusion/lws/test/helper"
 	// "github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/lws"
 	"github.com/FissionAndFusion/lws/internal/db/model"
 	"github.com/FissionAndFusion/lws/internal/db/service/utxo"
@@ -44,6 +45,7 @@ func mapUtxoWithTxToUpdate(utxo *model.Utxo, tx *streamModel.StreamTx) *mqtt.UTX
 
 // entry for handling utxos in a single tx
 func HandleTx(db *gorm.DB, tx *streamModel.StreamTx, blockModel *model.Block) (map[[33]byte][]mqtt.UTXOUpdate, error) {
+	defer helper.MeasureTime(helper.MeasureTitle("handle utxo.handleTx"))
 	inputLength := len(tx.VInput)
 	hash := tx.Hash
 	txFee := tx.NTxFee

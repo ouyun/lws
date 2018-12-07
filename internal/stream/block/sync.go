@@ -127,11 +127,15 @@ func writeBlock(block *lws.Block) error {
 
 	defer helper.MeasureTime(helper.MeasureTitle("block send utxo update [%s](#%d)", hex.EncodeToString(block.Hash), block.NHeight))
 	var wg sync.WaitGroup
+	wg.Add(len(updates))
 	for destination, item := range updates {
-		wg.Add(1)
-		go mqtt.NewUTXOUpdate(item, destination[:], &wg)
+		var addr [33]byte
+		copy(addr[:], destination[:])
+		go mqtt.NewUTXOUpdate(item, addr[:], &wg)
 	}
+	log.Printf("[DEBUG] wait NEW UTXO Update len [%d]", len(updates))
 	wg.Wait()
+	log.Printf("[DEBUG] done wait NEW UTXO Update")
 
 	return nil
 }

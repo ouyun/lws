@@ -57,10 +57,9 @@ func InitPubInstance(ctx context.Context) *RedisPublisher {
 
 func NewUTXOUpdate(utxoUpdateList []UTXOUpdate, address []byte, wg *sync.WaitGroup) {
 	defer helper.MeasureTime(helper.MeasureTitle("queue utxo"))
-	if wg != nil {
-		defer wg.Done()
-	}
-	log.Printf("[DEBUG] new utxo update")
+	defer wg.Done()
+	defer log.Printf("[DEBUG] wg done")
+	log.Printf("[DEBUG] new utxo update [%s]", hex.EncodeToString(address))
 	// check should-write via reddis
 	redisPool := GetRedisPool()
 	redisConn := redisPool.Get()
@@ -72,13 +71,16 @@ func NewUTXOUpdate(utxoUpdateList []UTXOUpdate, address []byte, wg *sync.WaitGro
 	}
 
 	if cliMap == nil {
-		// log.Printf("[ERROR] address not found")
+		log.Printf("[DEBUG] can not found climap address [%s]", hex.EncodeToString(address))
 		return
 	}
 
 	if cliMap.Nonce == 0 {
+		log.Printf("[DEBUG] can not found climap address [%s] topic[%s] nonce 0", hex.EncodeToString(address), cliMap.TopicPrefix)
 		return
 	}
+
+	log.Printf("[DEBUG] queue utxo update to %s: addr[%s]", cliMap.TopicPrefix, hex.EncodeToString(address))
 
 	// client := GetProgram()
 	// if client.Client == nil {
@@ -124,9 +126,16 @@ func NewUTXOUpdate(utxoUpdateList []UTXOUpdate, address []byte, wg *sync.WaitGro
 	// publish utxo update list to mq
 
 	conf := config.GetConfig()
-	log.Printf("[DEBUG] conf %v", conf)
 	topic := conf.UTXO_UPDATE_QUEUE_NAME + "lwsid"
-	redisPublisher.GetConn().Do("PUBLISH", topic, msg)
+	log.Printf("[DEBUG] redis topic %s", topic)
+	pubRedisConn := redisPool.Get()
+	defer pubRedisConn.Close()
+	redisConn.Do("PUBLISH", topic, msg)
+	// _, err = redis.DoWithTimeout(redisPublisher.GetConn(), 5*time.Second, "PUBLISH", topic, msg)
+	// if err != nil {
+	// 	log.Printf("[ERROR] send redis failed [%s]", err)
+	// }
+	log.Printf("[DEBUG] New utxo update done")
 }
 
 // send UTXO update list
@@ -155,6 +164,13 @@ func SendUTXOUpdate(item *UTXOUpdateQueueItem) {
 		// log.Printf("[ERROR] address not found")
 		return
 	}
+
+	if cliMap.Nonce == 0 {
+		// sync is not subscribed
+		return
+	}
+
+	log.Printf("[DEBUG] send utxo update to %s", cliMap.TopicPrefix)
 
 	client := GetProgram()
 	if client == nil || client.Client == nil {
@@ -279,6 +295,7 @@ func ListenUTXOUpdateConsumer(ctx context.Context) error {
 				ConsumerUTXOUpdate(n.Channel, n.Data)
 			case redis.Subscription:
 				if n.Count == 0 {
+					log.Printf("[INFO] redis subscription 0, close")
 					close(done)
 				}
 			}

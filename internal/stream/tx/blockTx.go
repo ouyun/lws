@@ -193,7 +193,7 @@ func (h *BlockTxHandler) queryExistanceTxids(txids [][]byte) ([][]byte, error) {
 		return nil, results.Error
 	}
 
-	log.Printf("newHashes = %+v\n", newHashes)
+	// log.Printf("newHashes = %+v\n", newHashes)
 
 	return newHashes, nil
 }
@@ -212,6 +212,7 @@ func (h *BlockTxHandler) deleteTxs(hashes [][]byte) error {
 }
 
 func (h *BlockTxHandler) insertTxs(txs []*lws.Transaction, block *model.Block) (map[[33]byte][]mqtt.UTXOUpdate, error) {
+	defer helper.MeasureTime(helper.MeasureTitle("handle insertTxs len txs %d", len(txs)))
 	updates := make(map[[33]byte][]mqtt.UTXOUpdate)
 	if len(txs) == 0 {
 		return updates, nil
@@ -240,6 +241,7 @@ func (h *BlockTxHandler) insertTxs(txs []*lws.Transaction, block *model.Block) (
 		}
 	}
 
+	logStr, logTime := helper.MeasureTitle("insert txs sql ")
 	sql, args := ib.Build()
 	// log.Printf("[DEBUG] sql %v , args %v", sql, args)
 	results, err := h.dbtx.CommonDB().Exec(sql, args...)
@@ -247,6 +249,7 @@ func (h *BlockTxHandler) insertTxs(txs []*lws.Transaction, block *model.Block) (
 		log.Printf("[ERROR] bulk tx insertion failed: [%s]", err)
 		return nil, err
 	}
+	helper.MeasureTime(logStr, logTime)
 	if cnt, err := results.RowsAffected(); int(cnt) != len(txs) {
 		if err != nil {
 			log.Printf("[ERROR] can not get inserted cnt error [%s]", err)
