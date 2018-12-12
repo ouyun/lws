@@ -98,8 +98,11 @@ func insertTx(dbtx *gorm.DB, tx *lws.Transaction) (map[[33]byte][]mqtt.UTXOUpdat
 		Transaction: tx,
 		Sender:      sender,
 	}
-	updates, err := utxo.HandleTx(dbtx, streamTx, nil)
+
+	txs := []*streamModel.StreamTx{streamTx}
+	updates, err := utxo.HandleUtxos(dbtx, txs, nil, nil)
 	if err != nil {
+		log.Printf("[ERROR] txpool handle utxo failed %s", err)
 		return nil, err
 	}
 

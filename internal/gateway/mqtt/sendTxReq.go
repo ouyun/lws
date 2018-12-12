@@ -30,18 +30,18 @@ var sendTxReqReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.
 }
 
 var sendTxReqReqHandlerDo mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
-	defer helper.MeasureTime(helper.MeasureTitle("handle send tx"))
 	log.Println("[DEBUG] Received sendTxReq !")
 	s := SendTxPayload{}
 	payload := msg.Payload()
 	cliMap := CliMap{}
 	user := model.User{}
 	err := DecodePayload(payload, &s)
-	log.Printf("[DEBUG] SendTxPayload addressId [%d] ", s.AddressId)
 	if err != nil {
 		log.Printf("err: %+v\n", err)
 		return
 	}
+	log.Printf("[DEBUG] SendTxPayload addressId [%d] ", s.AddressId)
+	defer helper.MeasureTime(helper.MeasureTitle("handle sendTxReq addressId [%d]", s.AddressId))
 	// 连接 redis
 	pool := GetRedisPool()
 	redisConn := pool.Get()

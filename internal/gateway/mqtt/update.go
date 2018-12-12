@@ -58,8 +58,8 @@ func InitPubInstance(ctx context.Context) *RedisPublisher {
 func NewUTXOUpdate(utxoUpdateList []UTXOUpdate, address []byte, wg *sync.WaitGroup) {
 	defer helper.MeasureTime(helper.MeasureTitle("queue utxo"))
 	defer wg.Done()
-	defer log.Printf("[DEBUG] wg done")
 	log.Printf("[DEBUG] new utxo update [%s]", hex.EncodeToString(address))
+	lstr, ltime := helper.MeasureTitle("handle queue utxo - get climap")
 	// check should-write via reddis
 	redisPool := GetRedisPool()
 	redisConn := redisPool.Get()
@@ -69,6 +69,7 @@ func NewUTXOUpdate(utxoUpdateList []UTXOUpdate, address []byte, wg *sync.WaitGro
 		log.Printf("[ERROR] getUserByAddress failed: %+v", err)
 		return
 	}
+	helper.MeasureTime(lstr, ltime)
 
 	if cliMap == nil {
 		log.Printf("[DEBUG] can not found climap address [%s]", hex.EncodeToString(address))
@@ -116,6 +117,7 @@ func NewUTXOUpdate(utxoUpdateList []UTXOUpdate, address []byte, wg *sync.WaitGro
 		Address:       address,
 	}
 
+	lstr1, ltime1 := helper.MeasureTitle("handle queue utxo - encode msg")
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
 	err = enc.Encode(queueItem)
@@ -123,25 +125,30 @@ func NewUTXOUpdate(utxoUpdateList []UTXOUpdate, address []byte, wg *sync.WaitGro
 		log.Printf("[ERROR] encode utxoUpdate error: %s, item: %v", err, queueItem)
 	}
 	msg := buf.Bytes()
+	helper.MeasureTime(lstr1, ltime1)
 	// publish utxo update list to mq
 
 	conf := config.GetConfig()
 	topic := conf.UTXO_UPDATE_QUEUE_NAME + "lwsid"
-	log.Printf("[DEBUG] redis topic %s", topic)
-	pubRedisConn := redisPool.Get()
-	defer pubRedisConn.Close()
+	log.Printf("[DEBUG] redis topic %s addr[%s]", topic, hex.EncodeToString(address))
+	// pubRedisConn := redisPool.Get()
+	// log.Printf("[DEBUG] got redis conn from pool addr[%s]", hex.EncodeToString(address))
+	// defer pubRedisConn.Close()
+	// pubRedisConn.Do("PUBLISH", topic, msg)
+	lstr2, ltime2 := helper.MeasureTitle("handle queue utxo - publish msg")
 	redisConn.Do("PUBLISH", topic, msg)
+	helper.MeasureTime(lstr2, ltime2)
 	// _, err = redis.DoWithTimeout(redisPublisher.GetConn(), 5*time.Second, "PUBLISH", topic, msg)
 	// if err != nil {
 	// 	log.Printf("[ERROR] send redis failed [%s]", err)
 	// }
-	log.Printf("[DEBUG] New utxo update done")
+	log.Printf("[DEBUG] New utxo update done addr[%s]", hex.EncodeToString(address))
 }
 
 // send UTXO update list
 func SendUTXOUpdate(item *UTXOUpdateQueueItem) {
 	utxoUList := item.UpdateList
-	log.Printf("[DEBUG] send utxo update cnt[%d] address: %+v !", len(utxoUList), item.Address)
+	log.Printf("[VERB] send utxo update cnt[%d] address: [%s] !", len(utxoUList), hex.EncodeToString(item.Address))
 
 	pool := GetRedisPool()
 	redisConn := pool.Get()

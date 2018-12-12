@@ -10,8 +10,8 @@ import (
 
 func main() {
 	filter := &logutils.LevelFilter{
-		Levels:   []logutils.LogLevel{"DEBUG", "INFO", "WARN", "ERROR"},
-		MinLevel: logutils.LogLevel("DEBUG"),
+		Levels:   []logutils.LogLevel{"DEBUG", "VERB", "INFO", "WARN", "ERROR"},
+		MinLevel: logutils.LogLevel("VERB"),
 		Writer:   os.Stdout,
 	}
 	log.SetOutput(filter)

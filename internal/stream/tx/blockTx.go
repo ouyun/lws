@@ -29,8 +29,6 @@ func StartBlockTxHandler(db *gorm.DB, txs []*lws.Transaction, blockModel *model.
 	defer helper.MeasureTime(helper.MeasureTitle("StartBlockTxHandler len txs %d", len(txs)))
 	log.Printf("StartBlockTxHandler len txs [%d]", len(txs))
 
-	var updates map[[33]byte][]mqtt.UTXOUpdate
-
 	h := &BlockTxHandler{
 		txs:        txs,
 		blockModel: blockModel,
@@ -51,21 +49,36 @@ func StartBlockTxHandler(db *gorm.DB, txs []*lws.Transaction, blockModel *model.
 		return nil, err
 	}
 
-	newTxs, oldTxs := h.getOldNewTxList(oldHashes)
-	err = h.deleteTxs(oldHashes)
+	newTxs, _ := h.getOldNewTxList(oldHashes)
+	// err = h.deleteTxs(oldHashes)
+	// if err != nil {
+	// 	log.Printf("delete hashex failed for [%s]", err)
+	// 	return nil, err
+	// }
+
+	// update tx height
+	err = h.updateTxsHeight(oldHashes, blockModel.Height)
 	if err != nil {
-		log.Printf("delete hashex failed for [%s]", err)
+		log.Printf("update txs height [%d] failed for [%s]", err)
 		return nil, err
 	}
 
-	pendingTxs := []*lws.Transaction{}
-	pendingTxs = append(pendingTxs, oldTxs...)
-	pendingTxs = append(pendingTxs, newTxs...)
-
-	updates, err = h.insertTxs(pendingTxs, h.blockModel)
+	// add new tx (non-tx-pool)
+	err = h.insertTxs(newTxs, h.blockModel, oldHashes)
 	if err != nil {
-		log.Printf("insert old/new hashex failed for [%s]", err)
+		log.Printf("insert new hashex failed for [%s]", err)
 		return nil, err
+	}
+
+	// TODO handle utxos
+	streamTxs := make([]*streamModel.StreamTx, len(txs))
+	for idx, tx := range txs {
+		streamTx := mapLwsTxToStreamTx(tx, h.mapTxToSender)
+		streamTxs[idx] = streamTx
+	}
+	updates, err := utxo.HandleUtxos(h.dbtx, streamTxs, blockModel, oldHashes)
+	if err != nil {
+		log.Printf("[ERROR] handle utxos in block[%s](#%d) failed %s", hex.EncodeToString(blockModel.Hash), blockModel.Height, err)
 	}
 
 	return updates, nil
@@ -211,11 +224,22 @@ func (h *BlockTxHandler) deleteTxs(hashes [][]byte) error {
 	return nil
 }
 
-func (h *BlockTxHandler) insertTxs(txs []*lws.Transaction, block *model.Block) (map[[33]byte][]mqtt.UTXOUpdate, error) {
+func (h *BlockTxHandler) updateTxsHeight(hashes [][]byte, blockHeight uint32) error {
+	if len(hashes) == 0 {
+		return nil
+	}
+	result := h.dbtx.Model(&model.Tx{}).Where("hash in (?)", hashes).UpdateColumn("block_height", blockHeight)
+	if result.Error != nil {
+		log.Printf("update txs height failed [%s]", result.Error)
+		return result.Error
+	}
+	return nil
+}
+
+func (h *BlockTxHandler) insertTxs(txs []*lws.Transaction, block *model.Block, oldHashes [][]byte) error {
 	defer helper.MeasureTime(helper.MeasureTitle("handle insertTxs len txs %d", len(txs)))
-	updates := make(map[[33]byte][]mqtt.UTXOUpdate)
 	if len(txs) == 0 {
-		return updates, nil
+		return nil
 	}
 	ib := sqlbuilder.NewInsertBuilder()
 	ib.InsertInto("tx")
@@ -228,17 +252,6 @@ func (h *BlockTxHandler) insertTxs(txs []*lws.Transaction, block *model.Block) (
 	for _, tx := range txs {
 		streamTx := mapLwsTxToStreamTx(tx, h.mapTxToSender)
 		insertBuilderTxValue(ib, streamTx, block)
-		txUpdates, err := utxo.HandleTx(h.dbtx, streamTx, block)
-		if err != nil {
-			log.Printf("[ERROR] handle tx failed [%s], tx hash[%s]", err, hex.EncodeToString(streamTx.Hash))
-			return nil, err
-		}
-		for destination, items := range txUpdates {
-			if updates[destination] == nil {
-				updates[destination] = []mqtt.UTXOUpdate{}
-			}
-			updates[destination] = append(updates[destination], items...)
-		}
 	}
 
 	logStr, logTime := helper.MeasureTitle("insert txs sql ")
@@ -247,19 +260,19 @@ func (h *BlockTxHandler) insertTxs(txs []*lws.Transaction, block *model.Block) (
 	results, err := h.dbtx.CommonDB().Exec(sql, args...)
 	if err != nil {
 		log.Printf("[ERROR] bulk tx insertion failed: [%s]", err)
-		return nil, err
+		return err
 	}
 	helper.MeasureTime(logStr, logTime)
 	if cnt, err := results.RowsAffected(); int(cnt) != len(txs) {
 		if err != nil {
 			log.Printf("[ERROR] can not get inserted cnt error [%s]", err)
-			return nil, err
+			return err
 		}
 		err = fmt.Errorf("[INFO] try to insert [%d] tx, but [%d] success", len(txs), cnt)
 		log.Printf("[ERROR] insert cnt error [%s]", err)
-		return nil, err
+		return err
 	}
-	return updates, nil
+	return nil
 }
 
 func mapLwsTxToStreamTx(lwsTx *lws.Transaction, mapTxToSender map[[32]byte][]byte) *streamModel.StreamTx {
@@ -302,7 +315,7 @@ func getSenderFromMap(txHash []byte, mapTxToSender map[[32]byte][]byte) []byte {
 		log.Printf("sender not found hash[%v]", hashArr)
 		return nil
 	}
-	log.Printf("got sender [%v]", sender)
+	// log.Printf("got sender [%v]", sender)
 	return sender
 }
 

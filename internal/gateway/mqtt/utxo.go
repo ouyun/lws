@@ -26,6 +26,11 @@ type UTXOUpdate struct {
 	UTXO        *UTXO  `len:"0"`
 }
 
+type UTXOUpdateWithDestination struct {
+	*UTXOUpdate
+	Destination []byte
+}
+
 type UTXOUpdateQueueItem struct {
 	UpdatePayload UpdatePayload
 	UpdateList    []UTXOUpdate
@@ -84,7 +89,7 @@ func UTXOUpdateListToByte(u *[]UTXOUpdate) (result []byte, err error) {
 			buf.Write(IntToBytes((*u)[index].BlockHeight))
 		case 3:
 			(*u)[index].UTXO.DataSize = uint16(len((*u)[index].UTXO.Data))
-			log.Printf("utxo %d: %+v", index, *((*u)[index].UTXO))
+			// log.Printf("utxo %d: %+v", index, *((*u)[index].UTXO))
 			if len((*u)[index].UTXO.Sender) == 0 {
 				(*u)[index].UTXO.Sender = make([]byte, 33)
 			}
