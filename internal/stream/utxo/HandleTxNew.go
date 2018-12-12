@@ -174,6 +174,8 @@ func writeUtxoDb(db *gorm.DB, updateList []*mqtt.UTXOUpdateWithDestination, bloc
 		utxoIndex[32] = item.UTXO.Out
 		if !utils.IncludeHash(utxoIndex[:], removeIndexList) {
 			actualAddList = append(actualAddList, addList[idx])
+		} else {
+			log.Printf("[DEBUG] ignore utxo [%s] out[%d] from actual add list", hex.EncodeToString(item.UTXO.TXID), item.UTXO.Out)
 		}
 	}
 
@@ -181,6 +183,8 @@ func writeUtxoDb(db *gorm.DB, updateList []*mqtt.UTXOUpdateWithDestination, bloc
 	for idx, _ := range changeIndexList {
 		if !utils.IncludeHash(changeIndexList[idx], removeIndexList) {
 			actualChangeList = append(actualChangeList, changeIndexList[idx])
+		} else {
+			log.Printf("[DEBUG] ignore utxo [%s] from actual remove list", hex.EncodeToString(changeIndexList[idx]))
 		}
 	}
 
@@ -249,6 +253,7 @@ func changeUtxoDb(db *gorm.DB, changeList [][]byte, blockModel *model.Block) err
 			"tx_hash": hash,
 			"out":     out,
 		})
+		log.Printf("[DEBUG] change utxo hash [%s] out[%d] to height[%d]", hex.EncodeToString(hash), out, blockModel.Height)
 	}
 
 	result := query.Updates(map[string]interface{}{

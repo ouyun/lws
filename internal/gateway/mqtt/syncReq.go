@@ -145,7 +145,7 @@ func ReplySyncReq(client *mqtt.Client, s *SyncPayload, u *[]UTXO, cliMap *CliMap
 	reply.Nonce = s.Nonce
 	reply.Error = uint8(err)
 	if err == 0 {
-		tailBlock := block.GetTailBlock()
+		tailBlock := block.GetTailBlockFromDb()
 		if tailBlock != nil {
 			reply.BlockHash = tailBlock.Hash
 			reply.BlockHeight = tailBlock.Height
@@ -155,7 +155,7 @@ func ReplySyncReq(client *mqtt.Client, s *SyncPayload, u *[]UTXO, cliMap *CliMap
 		reply.Continue = uint8(end)
 	}
 	if err == 1 {
-		tailBlock := block.GetTailBlock()
+		tailBlock := block.GetTailBlockFromDb()
 		if tailBlock != nil {
 			reply.BlockHash = tailBlock.Hash
 			reply.BlockHeight = tailBlock.Height
@@ -184,7 +184,7 @@ func ReplySyncReqWithChan(client *mqtt.Client, s *SyncPayload, u []UTXO, cliMap 
 	reply.Nonce = s.Nonce
 	reply.Error = uint8(err)
 	if err == 0 || err == 1 {
-		tailBlock := block.GetTailBlock()
+		tailBlock := block.GetTailBlockFromDb()
 		reply.BlockHash = tailBlock.Hash
 		reply.BlockHeight = tailBlock.Height
 		reply.BlockTime = tailBlock.Tstamp

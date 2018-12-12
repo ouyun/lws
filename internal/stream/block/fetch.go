@@ -284,5 +284,7 @@ func clearForkedChain(height uint32) error {
 		return res.Error
 	}
 
+	blockService.GetAndUpdateTailBlock()
+
 	return nil
 }

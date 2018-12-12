@@ -125,6 +125,8 @@ func writeBlock(block *lws.Block) error {
 
 	dbtx.Commit()
 
+	blockService.SetTailBlock(ormBlock)
+
 	defer helper.MeasureTime(helper.MeasureTitle("block send utxo update [%s](#%d)", hex.EncodeToString(block.Hash), block.NHeight))
 	var wg sync.WaitGroup
 	wg.Add(len(updates))
