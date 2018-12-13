@@ -92,6 +92,9 @@ var syncReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Messa
 	for idx, item := range UTXOs {
 		log.Printf("[DEBUG] utxo[%d] hash[%s] out[%d]", idx, hex.EncodeToString(item.TXID), item.Out)
 	}
+	//TODO create sync addr chan
+	NewSyncAddrChan(s.AddressId)
+
 	// 计算utxo hash
 	utxoHash := UTXOHash(&UTXOs)
 	log.Printf("get UTXOs %+v\n", UTXOs)

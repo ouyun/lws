@@ -202,6 +202,34 @@ func GetUserByAddress(address []byte, redisConn *redis.Conn) (*CliMap, error) {
 	return cliMap, nil
 }
 
+func GetUserByAddressId(addrId uint32, redisConnArg *redis.Conn) (*CliMap, error) {
+	cliMap := &CliMap{}
+	var redisConn redis.Conn
+
+	// get redisConn if not provided
+	if redisConnArg == nil {
+		pool := GetRedisPool()
+		redisConn = pool.Get()
+		defer redisConn.Close()
+	} else {
+		redisConn = *redisConnArg
+	}
+
+	addressIdStr := strconv.FormatUint(uint64(addrId), 10)
+	value, err := redis.Values(redisConn.Do("hgetall", addressIdStr))
+	if err != nil {
+		return nil, err
+	}
+	if value == nil {
+		return nil, nil
+	}
+	err = redis.ScanStruct(value, cliMap)
+	if err != nil {
+		return nil, err
+	}
+	return cliMap, nil
+}
+
 func PayloadToUser(user *model.User, s *ServicePayload) []byte {
 	user.Address = s.Address
 	user.ForkList = s.ForkList

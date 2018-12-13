@@ -11,7 +11,7 @@ import (
 func main() {
 	filter := &logutils.LevelFilter{
 		Levels:   []logutils.LogLevel{"DEBUG", "VERB", "INFO", "WARN", "ERROR"},
-		MinLevel: logutils.LogLevel("VERB"),
+		MinLevel: logutils.LogLevel("DEBUG"),
 		Writer:   os.Stdout,
 	}
 	log.SetOutput(filter)

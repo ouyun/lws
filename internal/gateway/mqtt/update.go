@@ -255,7 +255,6 @@ func SendUpdateMessage(client *mqtt.Client, redisConn *redis.Conn, uPayload *Upd
 }
 
 func ConsumerUTXOUpdate(channel string, message []byte) {
-	log.Printf("[DEBUG] Consumer utxo update channel [%s]", channel)
 	dec := gob.NewDecoder(bytes.NewBuffer(message))
 	var item UTXOUpdateQueueItem
 	err := dec.Decode(&item)
@@ -263,7 +262,13 @@ func ConsumerUTXOUpdate(channel string, message []byte) {
 		log.Printf("[ERROR] decode error %s", err)
 		return
 	}
-	SendUTXOUpdate(&item)
+	// SendUTXOUpdate(&item)
+
+	log.Printf("[DEBUG] Consumer utxo update channel [%s] addrId[%d]", channel, item.UpdatePayload.AddressId)
+	queueChan := GetSyncAddrChan(item.UpdatePayload.AddressId)
+	if queueChan != nil {
+		queueChan <- &item
+	}
 }
 
 func ListenUTXOUpdateConsumer(ctx context.Context) error {

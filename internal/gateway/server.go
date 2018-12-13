@@ -44,5 +44,6 @@ func (s *Server) Start() {
 	log.Printf("[INFO] received kill/interrupt signal")
 	// p.Stop()
 	// cancel()
+	mqtt.CloseAllSyncAddrChan()
 	log.Print("[INFO] gateway server exit")
 }
