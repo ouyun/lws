@@ -163,8 +163,10 @@ CREATE TABLE `utxo` (
   `amount` bigint(20) DEFAULT NULL,
   `block_height` int(10) unsigned DEFAULT NULL,
   `out` tinyint(3) unsigned DEFAULT NULL,
+  `idx` varbinary(33) NOT NULL,
   PRIMARY KEY (`id`),
-  KEY `idx_utxo_deleted_at` (`deleted_at`)
+  KEY `idx_utxo_deleted_at` (`deleted_at`),
+  KEY `utxo_idx_IDX` (`idx`) 
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 

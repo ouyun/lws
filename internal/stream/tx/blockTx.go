@@ -92,6 +92,7 @@ func (h *BlockTxHandler) rollbackIfErr(err error) {
 }
 
 func (h *BlockTxHandler) prepareSenders() error {
+	defer helper.MeasureTime(helper.MeasureTitle("handle cnt [%d] prepare senders ", len(h.txs)))
 	if len(h.txs) == 0 {
 		return nil
 	}
@@ -225,6 +226,7 @@ func (h *BlockTxHandler) deleteTxs(hashes [][]byte) error {
 }
 
 func (h *BlockTxHandler) updateTxsHeight(hashes [][]byte, blockHeight uint32) error {
+	defer helper.MeasureTime(helper.MeasureTitle("handle cnt [%d] updateHeight ", len(hashes)))
 	if len(hashes) == 0 {
 		return nil
 	}

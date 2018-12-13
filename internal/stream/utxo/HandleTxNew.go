@@ -217,9 +217,14 @@ func addUtxoDb(db *gorm.DB, addList []*mqtt.UTXOUpdateWithDestination) error {
 	}
 	ib := sqlbuilder.NewInsertBuilder()
 	ib.InsertInto("utxo")
-	ib.Cols("created_at", "updated_at", "tx_hash", "destination", "amount", "block_height", "`out`")
+	ib.Cols("created_at", "updated_at", "tx_hash", "destination", "amount", "block_height", "`out`", "idx")
 
 	for _, item := range addList {
+		var utxoIndex [33]byte
+		// utxoIndex = append(utxoIndex, item.UTXO.TXID..., uint8(item.UTXO.Out))
+		copy(utxoIndex[:], item.UTXO.TXID)
+		utxoIndex[32] = uint8(item.UTXO.Out)
+
 		ib.Values(
 			sqlbuilder.Raw("now()"),
 			sqlbuilder.Raw("now()"),
@@ -228,6 +233,7 @@ func addUtxoDb(db *gorm.DB, addList []*mqtt.UTXOUpdateWithDestination) error {
 			item.UTXO.Amount,
 			item.UTXO.BlockHeight,
 			item.UTXO.Out,
+			utxoIndex[:],
 		)
 		log.Printf("[DEBUG] utxo new [%s] out[%d] height[%d] dest[%s]", hex.EncodeToString(item.UTXO.TXID), item.UTXO.Out, item.UTXO.BlockHeight, hex.EncodeToString(item.Destination))
 	}
@@ -240,23 +246,23 @@ func addUtxoDb(db *gorm.DB, addList []*mqtt.UTXOUpdateWithDestination) error {
 }
 
 func changeUtxoDb(db *gorm.DB, changeList [][]byte, blockModel *model.Block) error {
-	defer helper.MeasureTime(helper.MeasureTitle("handle utxo changeUtxoDb"))
+	defer helper.MeasureTime(helper.MeasureTitle("handle utxo cnt[%d] changeUtxoDb", len(changeList)))
 	if len(changeList) == 0 {
 		return nil
 	}
 	query := db.Model(&model.Utxo{})
 
-	for idx, _ := range changeList {
-		hash := changeList[idx][:32]
-		out := uint8(changeList[idx][32])
-		query = query.Or(map[string]interface{}{
-			"tx_hash": hash,
-			"out":     out,
-		})
-		log.Printf("[DEBUG] change utxo hash [%s] out[%d] to height[%d]", hex.EncodeToString(hash), out, blockModel.Height)
-	}
+	// for idx, _ := range changeList {
+	// 	hash := changeList[idx][:32]
+	// 	out := uint8(changeList[idx][32])
+	// 	// query = query.Or(map[string]interface{}{
+	// 	// 	"tx_hash": hash,
+	// 	// 	"out":     out,
+	// 	// })
+	// 	log.Printf("[DEBUG] change utxo hash [%s] out[%d] to height[%d]", hex.EncodeToString(hash), out, blockModel.Height)
+	// }
 
-	result := query.Updates(map[string]interface{}{
+	result := query.Where("idx in (?)", changeList).Updates(map[string]interface{}{
 		"block_height": blockModel.Height,
 		"block_id":     blockModel.ID,
 		"block_hash":   blockModel.Hash,
@@ -268,24 +274,24 @@ func changeUtxoDb(db *gorm.DB, changeList [][]byte, blockModel *model.Block) err
 }
 
 func removeUtxoDb(db *gorm.DB, removeList [][]byte) error {
-	defer helper.MeasureTime(helper.MeasureTitle("handle utxo removeUtxoDb"))
+	defer helper.MeasureTime(helper.MeasureTitle("handle utxo cnt[%d] removeUtxoDb", len(removeList)))
 	if len(removeList) == 0 {
 		return nil
 	}
 
 	query := db.Model(&model.Utxo{})
 
-	for idx, _ := range removeList {
-		hash := removeList[idx][:32]
-		out := uint8(removeList[idx][32])
-		query = query.Or(map[string]interface{}{
-			"tx_hash": hash,
-			"out":     out,
-		})
-		log.Printf("[DEBUG] remove utxo hash [%s] out[%d]", hex.EncodeToString(hash), out)
-	}
+	// for idx, _ := range removeList {
+	// 	hash := removeList[idx][:32]
+	// 	out := uint8(removeList[idx][32])
+	// 	// query = query.Or(map[string]interface{}{
+	// 	// 	"tx_hash": hash,
+	// 	// 	"out":     out,
+	// 	// })
+	// 	log.Printf("[DEBUG] remove utxo hash [%s] out[%d]", hex.EncodeToString(hash), out)
+	// }
 
-	result := query.Unscoped().Delete(model.Utxo{})
+	result := query.Unscoped().Where("idx in (?)", removeList).Delete(model.Utxo{})
 
 	if result.Error != nil {
 		return result.Error
