@@ -72,8 +72,8 @@ func (p *Program) Start() error {
 
 // init client
 func (p *Program) Init() {
-	// mqtt.DEBUG = log.New(os.Stdout, "", 20)
-	mqtt.ERROR = log.New(os.Stdout, "", 0)
+	mqtt.DEBUG = log.New(os.Stdout, "[DEBUG] paho-mqtt ", log.LstdFlags|log.Lmicroseconds)
+	mqtt.ERROR = log.New(os.Stdout, "[ERROR] paho-mqtt ", log.LstdFlags|log.Lmicroseconds)
 	opts := mqtt.NewClientOptions().AddBroker(os.Getenv("MQTT_URL")).SetClientID(p.Id)
 
 	username := os.Getenv("MQTT_USERNAME")
@@ -85,7 +85,7 @@ func (p *Program) Init() {
 		opts.SetPassword(password)
 	}
 
-	opts.SetKeepAlive(10 * time.Second)
+	opts.SetKeepAlive(30 * time.Second)
 	opts.SetAutoReconnect(true)
 	opts.SetCleanSession(false)
 	// opts.SetDefaultPublishHandler(clientHandler)
@@ -93,7 +93,8 @@ func (p *Program) Init() {
 		opts.SetOnConnectHandler(p.GetOnConnectHandler())
 	}
 	opts.SetConnectTimeout(30 * time.Second)
-	opts.SetPingTimeout(3 * time.Second)
+	opts.SetPingTimeout(10 * time.Second)
+	opts.SetOrderMatters(false)
 	p.Client = mqtt.NewClient(opts)
 }
 

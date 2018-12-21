@@ -15,6 +15,7 @@ func main() {
 		Writer:   os.Stdout,
 	}
 	log.SetOutput(filter)
+	log.SetFlags(log.LstdFlags | log.Lmicroseconds | log.Lshortfile)
 
 	var lwsId string
 

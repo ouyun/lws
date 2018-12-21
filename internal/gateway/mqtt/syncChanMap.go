@@ -30,8 +30,10 @@ func GetSyncAddrChan(addrId uint32) chan *UTXOUpdateQueueItem {
 	defer helper.MeasureTime(helper.MeasureTitle("GetSyncAddrChan %d", addrId))
 	m := GetSyncAddrChanMap()
 	m.RLock()
+	log.Printf("[DEBUG] GetSyncAddrChan got read lock addr [%d]", addrId)
 	queueChan, ok := m.Map[addrId]
 	m.RUnlock()
+	log.Printf("[DEBUG] GetSyncAddrChan read unlock addr [%d]", addrId)
 	if ok {
 		return queueChan
 	}
@@ -42,8 +44,10 @@ func CloseSyncAddrChan(addrId uint32) {
 	defer helper.MeasureTime(helper.MeasureTitle("CloseSyncAddrChan %d", addrId))
 	m := GetSyncAddrChanMap()
 	m.RLock()
+	log.Printf("[DEBUG] close sync got read lock addr [%d]", addrId)
 	_, ok := m.Map[addrId]
 	m.RUnlock()
+	log.Printf("[DEBUG] close sync read unlock addr [%d]", addrId)
 
 	// chan is not existed
 	if !ok {
@@ -72,10 +76,12 @@ func CloseAllSyncAddrChan() {
 	m := GetSyncAddrChanMap()
 	var addrIds []uint32
 	m.RLock()
+	log.Printf("[DEBUG] close all got read lock ")
 	for key, _ := range m.Map {
 		addrIds = append(addrIds, key)
 	}
 	m.RUnlock()
+	log.Printf("[DEBUG] close all read unlock ")
 
 	for _, key := range addrIds {
 		CloseSyncAddrChan(key)
@@ -88,8 +94,10 @@ func NewSyncAddrChan(addrId uint32) {
 	defer helper.MeasureTime(helper.MeasureTitle("NewSyncAddrChan %d", addrId))
 	m := GetSyncAddrChanMap()
 	m.RLock()
+	log.Printf("[DEBUG] new read lock addr [%d]", addrId)
 	_, ok := m.Map[addrId]
 	m.RUnlock()
+	log.Printf("[DEBUG] new read unlock addr [%d]", addrId)
 
 	// chan is existed already
 	if ok {

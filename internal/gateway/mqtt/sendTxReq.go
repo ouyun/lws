@@ -26,11 +26,7 @@ type UTXOIndex struct {
 }
 
 var sendTxReqReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
-	go sendTxReqReqHandlerDo(client, msg)
-}
-
-var sendTxReqReqHandlerDo mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
-	log.Println("[DEBUG] Received sendTxReq !")
+	log.Println("[DEBUG] Received sendTxReq  msgId: [%d]!", msg.MessageID())
 	s := SendTxPayload{}
 	payload := msg.Payload()
 	cliMap := CliMap{}
@@ -41,6 +37,7 @@ var sendTxReqReqHandlerDo mqtt.MessageHandler = func(client mqtt.Client, msg mqt
 		return
 	}
 	log.Printf("[DEBUG] SendTxPayload addressId [%d] ", s.AddressId)
+	log.Printf("[DEBUG] SendTxReq txData [%s]", hex.EncodeToString(s.TxData))
 	defer helper.MeasureTime(helper.MeasureTitle("handle sendTxReq addressId [%d]", s.AddressId))
 	// 连接 redis
 	pool := GetRedisPool()
@@ -137,6 +134,8 @@ var sendTxReqReqHandlerDo mqtt.MessageHandler = func(client mqtt.Client, msg mqt
 
 // reply send tx
 func ReplySendTx(client *mqtt.Client, s *SendTxPayload, err int, errCode int, errDesc string, cliMap *CliMap) {
+	t := cliMap.TopicPrefix + "/fnfn/SendTxReply"
+	defer helper.MeasureTime(helper.MeasureTitle("%s txData[%s]", t, hex.EncodeToString(s.TxData)))
 	reply := SendTxReply{}
 	reply.Nonce = s.Nonce
 	reply.Error = uint8(err)
@@ -148,9 +147,15 @@ func ReplySendTx(client *mqtt.Client, s *SendTxPayload, err int, errCode int, er
 	if errs != nil {
 		log.Printf("err: %+v\n", err)
 	}
-	t := cliMap.TopicPrefix + "/fnfn/SendTxReply"
 	// TODO
-	(*client).Publish(t, 1, false, result)
+	token := (*client).Publish(t, 1, false, result)
+	token.Wait()
+	tokenErr := token.Error()
+	if tokenErr != nil {
+		log.Printf("[ERROR] [%s] error: %s", t, tokenErr)
+	} else {
+		log.Printf("[DEBUG] [%s] done msgId [%d]", t, token.(*mqtt.PublishToken).MessageID())
+	}
 }
 
 func SendTxToCore(client *coreclient.Client, s *SendTxPayload) (resultMessage *lws.SendTxRet, err error) {

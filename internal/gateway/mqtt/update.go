@@ -12,6 +12,7 @@ import (
 	"sync"
 
 	"github.com/FissionAndFusion/lws/internal/config"
+	"github.com/FissionAndFusion/lws/internal/constant"
 	"github.com/FissionAndFusion/lws/internal/db/service/block"
 	"github.com/FissionAndFusion/lws/test/helper"
 	"github.com/eclipse/paho.mqtt.golang"
@@ -117,6 +118,19 @@ func NewUTXOUpdate(utxoUpdateList []UTXOUpdate, address []byte, wg *sync.WaitGro
 		Address:       address,
 	}
 
+	for _, item := range utxoUpdateList {
+		switch item.OpType {
+		case constant.UTXO_UPDATE_TYPE_NEW:
+			log.Printf("[DEBUG] queue utxo new [%s] [%d]", hex.EncodeToString(item.UTXO.TXID), item.UTXO.Out)
+		case constant.UTXO_UPDATE_TYPE_CHANGE:
+			log.Printf("[DEBUG] queue utxo change [%s] to height [%d]", hex.EncodeToString(item.UTXOIndex), item.BlockHeight)
+		case constant.UTXO_UPDATE_TYPE_REMOVE:
+			log.Printf("[DEBUG] queue utxo remove [%s]", hex.EncodeToString(item.UTXOIndex))
+		default:
+			log.Printf("[WARN] Unkonwn utxo update type [%d]", item.OpType)
+		}
+	}
+
 	lstr1, ltime1 := helper.MeasureTitle("handle queue utxo - encode msg")
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
@@ -178,6 +192,19 @@ func SendUTXOUpdate(item *UTXOUpdateQueueItem) {
 	}
 
 	log.Printf("[DEBUG] send utxo update to %s", cliMap.TopicPrefix)
+
+	for _, item := range item.UpdateList {
+		switch item.OpType {
+		case constant.UTXO_UPDATE_TYPE_NEW:
+			log.Printf("[DEBUG] queue utxo new [%s] [%d]", hex.EncodeToString(item.UTXO.TXID), item.UTXO.Out)
+		case constant.UTXO_UPDATE_TYPE_CHANGE:
+			log.Printf("[DEBUG] queue utxo change [%s] to height [%d]", hex.EncodeToString(item.UTXOIndex), item.BlockHeight)
+		case constant.UTXO_UPDATE_TYPE_REMOVE:
+			log.Printf("[DEBUG] queue utxo remove [%s]", hex.EncodeToString(item.UTXOIndex))
+		default:
+			log.Printf("[WARN] Unkonwn utxo update type [%d]", item.OpType)
+		}
+	}
 
 	client := GetProgram()
 	if client == nil || client.Client == nil {
@@ -302,7 +329,8 @@ func ListenUTXOUpdateConsumer(ctx context.Context) error {
 			switch n := psc.Receive().(type) {
 			case error:
 				log.Printf("[ERROR] redis subscribe received error %s", n)
-				close(done)
+				return
+				// close(done)
 			case redis.Message:
 				ConsumerUTXOUpdate(n.Channel, n.Data)
 			case redis.Subscription:

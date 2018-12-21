@@ -28,6 +28,7 @@ var syncReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Messa
 	if err != nil {
 		log.Printf("err: %+v\n", err)
 	}
+	log.Println("[DEBUG] Received syncReq from addr [%d]!", s.AddressId)
 	// 连接 redis
 	redisConn := pool.Get()
 	connection := db.GetConnection()
@@ -51,7 +52,7 @@ var syncReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Messa
 	}
 	if !inRedis && !inDb {
 		log.Printf("err: %+v", err)
-		ReplySyncReq(&client, &s, &UTXOs, &cliMap, 2, 0)
+		go ReplySyncReq(&client, &s, &UTXOs, &cliMap, 2, 0)
 		return
 	}
 	// 检查分支
@@ -59,12 +60,12 @@ var syncReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Messa
 	if err != nil {
 		// 内部错误
 		log.Printf("err: %+v", err)
-		ReplySyncReq(&client, &s, &UTXOs, &cliMap, 16, 0)
+		go ReplySyncReq(&client, &s, &UTXOs, &cliMap, 16, 0)
 		return
 	}
 	if bytes.Compare(forkId, s.ForkID) != 0 {
 		// 无效分支
-		ReplySyncReq(&client, &s, &UTXOs, &cliMap, 3, 0)
+		go ReplySyncReq(&client, &s, &UTXOs, &cliMap, 3, 0)
 		return
 	}
 	//get utxo list
@@ -84,7 +85,7 @@ var syncReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Messa
 		"AND utxo.destination = ? "+
 		"ORDER BY REVERSE(utxo.tx_hash) ASC, utxo.out ASC ", cliMap.Address).Find(&UTXOs).Error
 	if err != nil {
-		ReplySyncReq(&client, &s, &UTXOs, &cliMap, 16, 0)
+		go ReplySyncReq(&client, &s, &UTXOs, &cliMap, 16, 0)
 		return
 	}
 	log.Printf("utxos：%+v", UTXOs)
@@ -92,15 +93,15 @@ var syncReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Messa
 	for idx, item := range UTXOs {
 		log.Printf("[DEBUG] utxo[%d] hash[%s] out[%d]", idx, hex.EncodeToString(item.TXID), item.Out)
 	}
-	//TODO create sync addr chan
-	NewSyncAddrChan(s.AddressId)
+	// create sync addr chan
+	go NewSyncAddrChan(s.AddressId)
 
 	// 计算utxo hash
 	utxoHash := UTXOHash(&UTXOs)
 	log.Printf("get UTXOs %+v\n", UTXOs)
 	if bytes.Compare(utxoHash, []byte(s.UTXOHash)) == 0 {
 		log.Printf("client hash equals local hash!")
-		ReplySyncReq(&client, &s, &UTXOs, &cliMap, 0, 0)
+		go ReplySyncReq(&client, &s, &UTXOs, &cliMap, 0, 0)
 
 		updateRedis(&redisConn, &cliMap, "Nonce", s.Nonce)
 		return
@@ -132,7 +133,7 @@ var syncReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Messa
 	} else {
 		log.Printf("send utxo in one data pack \n")
 		// 一次发送
-		ReplySyncReq(&client, &s, &UTXOs, &cliMap, 1, 0)
+		go ReplySyncReq(&client, &s, &UTXOs, &cliMap, 1, 0)
 	}
 	// save nonce
 	err = updateRedis(&redisConn, &cliMap, "Nonce", s.Nonce)
@@ -173,10 +174,16 @@ func ReplySyncReq(client *mqtt.Client, s *SyncPayload, u *[]UTXO, cliMap *CliMap
 	if errs != nil {
 		log.Printf("err: %+v\n", err)
 	}
+	log.Printf("[DEBUG] send syncReply addr [%d]", cliMap.AddressId)
 	t := cliMap.TopicPrefix + "/fnfn/SyncReply"
 	token := (*client).Publish(t, 1, false, result)
 	if token.Wait() {
-		log.Printf("publish err: %+v", token.Error())
+		tokenErr := token.Error()
+		if tokenErr != nil {
+			log.Printf("[ERROR] publish err: %+v", tokenErr)
+		} else {
+			log.Printf("[DEBUG] done send syncReply addr [%d] done", cliMap.AddressId)
+		}
 	}
 }
 
@@ -202,11 +209,21 @@ func ReplySyncReqWithChan(client *mqtt.Client, s *SyncPayload, u []UTXO, cliMap 
 	}
 	t := cliMap.TopicPrefix + "/fnfn/SyncReply"
 	token := (*client).Publish(t, 1, false, result)
-	for {
-		if token.Wait() && token.Error() == nil {
-			send <- 1
-			log.Printf("err: %+v\n", token.Error())
-			break
+	// for {
+	// 	if token.Wait() && token.Error() == nil {
+	// 		send <- 1
+	// 		log.Printf("err: %+v\n", token.Error())
+	// 		break
+	// 	}
+	// }
+
+	if token.Wait() {
+		send <- 1
+		tokenErr := token.Error()
+		if tokenErr != nil {
+			log.Printf("[ERROR] publish err: %+v", tokenErr)
+		} else {
+			log.Printf("[DEBUG] done send syncReply addr [%d] done", cliMap.AddressId)
 		}
 	}
 }
