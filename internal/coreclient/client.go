@@ -2,13 +2,14 @@ package coreclient
 
 import (
 	"fmt"
-	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/dbp"
 	"io"
 	"runtime"
 	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/dbp"
 )
 
 // Client implements RPC client.
@@ -696,6 +697,7 @@ func clientWriter(c *Client, w io.Writer, pendingRequests map[string]*AsyncResul
 			err = fmt.Errorf("gorpc.Client: [%s]. Cannot send request to wire: [%s]", c.Addr, err)
 			return
 		}
+		// log.Printf("[DEBUG] write to socket msgId[%d] hex[%s]", msgID, hex.EncodeToString(wr.Request.([]byte)))
 		wr.Request = nil
 	}
 }
@@ -721,6 +723,8 @@ func clientReader(c *Client, r io.Reader, pendingRequests map[string]*AsyncResul
 			err = fmt.Errorf("gorpc.Client: [%s]. Cannot decode response: [%s]", c.Addr, err)
 			return
 		}
+
+		// log.Printf("[DEBUG] receive stocket msgId[%s] hex[%s]", wr.ID, hex.EncodeToString(wr.Response.([]byte)))
 
 		if wr.ID == "" {
 			err = fmt.Errorf("coreclient: empty ID message received: [%s]", wr.Response)

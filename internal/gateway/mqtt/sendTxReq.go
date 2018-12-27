@@ -177,11 +177,14 @@ func SendTxToCore(client *coreclient.Client, s *SendTxPayload) (resultMessage *l
 	if err != nil {
 		return resultMessage, err
 	}
+
+	log.Printf("build sendTxReq args done addrId[%d]", s.AddressId)
 	response, err := client.Call(method)
 	if err != nil {
 		log.Printf("[ERROR] sendTx failed, get err: %+v \n", err)
 		return nil, err
 	}
+	log.Printf("sendTxReq got result addrId[%d]", s.AddressId)
 	result, ok := response.(*dbp.Result)
 	if !ok {
 		log.Println("[ERROR] unsuport dbp type")

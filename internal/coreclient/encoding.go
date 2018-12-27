@@ -3,6 +3,7 @@ package coreclient
 import (
 	"bufio"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"log"
@@ -54,6 +55,7 @@ func (enc *messageEncoder) WriteMsg(wr *wireRequest) error {
 		log.Println("pack error", err)
 		return err
 	}
+	log.Printf("[DEBUG] pack msg id[%s] hex[%s]", wr.ID, hex.EncodeToString(buf))
 
 	_, err = enc.Write(buf)
 	return err
@@ -127,9 +129,11 @@ func (dec *messageDecoder) ReadMsg(wr *wireResponse) error {
 		msgValues := reflect.ValueOf(msg)
 		if field := msgValues.Elem().FieldByName("Id"); field.IsValid() {
 			wr.ID = field.String()
+			log.Printf("[DEBUG] received msgId [%s]", wr.ID)
 		}
 	default:
 	}
+	log.Printf("[DEBUG] received msg [%s]", hex.EncodeToString(buf))
 	return nil
 }
 

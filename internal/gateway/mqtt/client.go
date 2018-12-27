@@ -72,7 +72,7 @@ func (p *Program) Start() error {
 
 // init client
 func (p *Program) Init() {
-	mqtt.DEBUG = log.New(os.Stdout, "[DEBUG] paho-mqtt ", log.LstdFlags|log.Lmicroseconds)
+	// mqtt.DEBUG = log.New(os.Stdout, "[DEBUG] paho-mqtt ", log.LstdFlags|log.Lmicroseconds)
 	mqtt.ERROR = log.New(os.Stdout, "[ERROR] paho-mqtt ", log.LstdFlags|log.Lmicroseconds)
 	opts := mqtt.NewClientOptions().AddBroker(os.Getenv("MQTT_URL")).SetClientID(p.Id)
 
