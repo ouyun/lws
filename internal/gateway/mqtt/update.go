@@ -139,11 +139,12 @@ func NewUTXOUpdate(utxoUpdateList []UTXOUpdate, address []byte, wg *sync.WaitGro
 		log.Printf("[ERROR] encode utxoUpdate error: %s, item: %v", err, queueItem)
 	}
 	msg := buf.Bytes()
+
 	helper.MeasureTime(lstr1, ltime1)
 	// publish utxo update list to mq
 
 	conf := config.GetConfig()
-	topic := conf.UTXO_UPDATE_QUEUE_NAME + "lwsid"
+	topic := conf.UTXO_UPDATE_QUEUE_NAME + cliMap.LwsId
 	log.Printf("[DEBUG] redis topic %s addr[%s]", topic, hex.EncodeToString(address))
 	// pubRedisConn := redisPool.Get()
 	// log.Printf("[DEBUG] got redis conn from pool addr[%s]", hex.EncodeToString(address))
@@ -314,7 +315,7 @@ func ListenUTXOUpdateConsumer(ctx context.Context) error {
 
 	conf := config.GetConfig()
 	log.Printf("[DEBUG] conf %v", conf)
-	topic := conf.UTXO_UPDATE_QUEUE_NAME + "lwsid"
+	topic := conf.UTXO_UPDATE_QUEUE_NAME + conf.INSTANCE_ID
 
 	if err := psc.Subscribe(redis.Args{}.AddFlat(topic)...); err != nil {
 		log.Printf("[ERROR] subscribe [%s] failed", topic)

@@ -8,6 +8,7 @@ import (
 
 type Configs struct {
 	UTXO_UPDATE_QUEUE_NAME string
+	INSTANCE_ID            string
 }
 
 var config *Configs
@@ -18,6 +19,7 @@ func InitConfigs() *Configs {
 
 	config = &Configs{
 		UTXO_UPDATE_QUEUE_NAME: fmt.Sprintf("LWS%s.utxoupdate.", identifier),
+		INSTANCE_ID:            identifier,
 	}
 
 	log.Printf("[INFO] init config %v", config)

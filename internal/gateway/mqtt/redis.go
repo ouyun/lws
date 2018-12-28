@@ -16,6 +16,7 @@ type CliMap struct {
 	TopicPrefix string `redis:"TopicPrefix"`
 	ReplyUTXON  uint16 `redis:"ReplyUTXON"`
 	Nonce       uint16 `redis:"Nonce"`
+	LwsId       string `redis:"LwsId"`
 }
 
 var redisPool *redis.Pool

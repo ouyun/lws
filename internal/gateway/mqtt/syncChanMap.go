@@ -2,6 +2,7 @@ package mqtt
 
 import (
 	"log"
+	"strconv"
 	"sync"
 	"time"
 
@@ -117,17 +118,30 @@ func NewSyncAddrChan(addrId uint32) {
 	go HandleSyncAddrUpdate(queueChan, addrId)
 }
 
+func clearNonce(addrId uint32) {
+	pool := GetRedisPool()
+	redisConn := pool.Get()
+	defer redisConn.Close()
+
+	_, err := redisConn.Do("HSET", strconv.FormatUint(uint64(addrId), 10), "Nonce", 0)
+	if err != nil {
+		log.Printf("[ERROR] clear Nonce redis failed [%s]", err)
+	}
+}
+
 func HandleSyncAddrUpdate(queueChan chan *UTXOUpdateQueueItem, addrId uint32) {
 	for {
 		select {
 		case item, ok := <-queueChan:
 			if !ok {
 				CloseSyncAddrChan(addrId)
+				clearNonce(addrId)
 				return
 			}
 			SendUTXOUpdate(item)
 		case <-time.After(2 * time.Minute):
 			CloseSyncAddrChan(addrId)
+			clearNonce(addrId)
 			return
 		}
 	}

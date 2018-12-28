@@ -7,6 +7,7 @@ import (
 	"math"
 	"os"
 
+	"github.com/FissionAndFusion/lws/internal/config"
 	"github.com/FissionAndFusion/lws/internal/db"
 	"github.com/FissionAndFusion/lws/internal/db/model"
 	"github.com/FissionAndFusion/lws/internal/db/service/block"
@@ -47,12 +48,12 @@ var syncReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Messa
 	}
 	if err != nil {
 		log.Printf("err: %+v", err)
-		// ReplySyncReq(&client, &s, &UTXOs, &cliMap, 16, 0)
+		ReplySyncReq(&client, &s, &UTXOs, &cliMap, 16, 0)
 		return
 	}
 	if !inRedis && !inDb {
 		log.Printf("err: %+v", err)
-		go ReplySyncReq(&client, &s, &UTXOs, &cliMap, 2, 0)
+		ReplySyncReq(&client, &s, &UTXOs, &cliMap, 2, 0)
 		return
 	}
 	// 检查分支
@@ -60,12 +61,12 @@ var syncReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Messa
 	if err != nil {
 		// 内部错误
 		log.Printf("err: %+v", err)
-		go ReplySyncReq(&client, &s, &UTXOs, &cliMap, 16, 0)
+		ReplySyncReq(&client, &s, &UTXOs, &cliMap, 16, 0)
 		return
 	}
 	if bytes.Compare(forkId, s.ForkID) != 0 {
 		// 无效分支
-		go ReplySyncReq(&client, &s, &UTXOs, &cliMap, 3, 0)
+		ReplySyncReq(&client, &s, &UTXOs, &cliMap, 3, 0)
 		return
 	}
 	//get utxo list
@@ -85,7 +86,7 @@ var syncReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Messa
 		"AND utxo.destination = ? "+
 		"ORDER BY REVERSE(utxo.tx_hash) ASC, utxo.out ASC ", cliMap.Address).Find(&UTXOs).Error
 	if err != nil {
-		go ReplySyncReq(&client, &s, &UTXOs, &cliMap, 16, 0)
+		ReplySyncReq(&client, &s, &UTXOs, &cliMap, 16, 0)
 		return
 	}
 	log.Printf("utxos：%+v", UTXOs)
@@ -101,9 +102,10 @@ var syncReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Messa
 	log.Printf("get UTXOs %+v\n", UTXOs)
 	if bytes.Compare(utxoHash, []byte(s.UTXOHash)) == 0 {
 		log.Printf("client hash equals local hash!")
-		go ReplySyncReq(&client, &s, &UTXOs, &cliMap, 0, 0)
+		ReplySyncReq(&client, &s, &UTXOs, &cliMap, 0, 0)
 
 		updateRedis(&redisConn, &cliMap, "Nonce", s.Nonce)
+		updateRedis(&redisConn, &cliMap, "LwsId", config.GetConfig().INSTANCE_ID)
 		return
 	}
 	// 计算utxo数量
@@ -133,9 +135,10 @@ var syncReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Messa
 	} else {
 		log.Printf("send utxo in one data pack \n")
 		// 一次发送
-		go ReplySyncReq(&client, &s, &UTXOs, &cliMap, 1, 0)
+		ReplySyncReq(&client, &s, &UTXOs, &cliMap, 1, 0)
 	}
 	// save nonce
+	updateRedis(&redisConn, &cliMap, "LwsId", config.GetConfig().INSTANCE_ID)
 	err = updateRedis(&redisConn, &cliMap, "Nonce", s.Nonce)
 	if err != nil {
 		log.Printf("save nonce err: %+v\n", err)
