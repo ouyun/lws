@@ -66,6 +66,9 @@ func (p *Program) Start() error {
 		err := errors.New("conn mqtt broker failed")
 		return err
 	}
+	if p.IsLws {
+		NewWorkerPool()
+	}
 	log.Printf("[INFO] mqtt client: %s started!", p.Id)
 	return nil
 }
@@ -104,6 +107,9 @@ func (p *Program) Stop() error {
 	if p.Client.IsConnected() {
 		p.Client.Disconnect(250)
 		return nil
+	}
+	if workerPool != nil {
+		workerPool.Stop()
 	}
 	return errors.New("client did not conn broker!")
 }

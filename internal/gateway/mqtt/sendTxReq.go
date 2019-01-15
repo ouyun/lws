@@ -26,6 +26,13 @@ type UTXOIndex struct {
 }
 
 var sendTxReqReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
+	workerPool.SendTxReqChan <- &ClientMsg{client: &client, msg: &msg}
+}
+
+func sendTxReqWorkerHandler(clientMsg *ClientMsg) {
+	client := *clientMsg.client
+	msg := *clientMsg.msg
+
 	log.Printf("[DEBUG] Received sendTxReq msgId: [%d]!", msg.MessageID())
 	s := SendTxPayload{}
 	payload := msg.Payload()
