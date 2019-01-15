@@ -2,7 +2,7 @@ package gateway
 
 import (
 	"context"
-	"fmt"
+	// "fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -37,7 +37,7 @@ func (s *Server) Start() {
 
 	go mqtt.ListenUTXOUpdateConsumer(ctx)
 
-	fmt.Printf("[INFO] gateway server started (status: %d)", 3)
+	log.Printf("[INFO] gateway server started (status: %d)", 3)
 
 	signal.Notify(msgChan, os.Interrupt, os.Kill)
 	<-msgChan

@@ -20,6 +20,8 @@ type PoolTxHandler struct {
 }
 
 func StartPoolTxHandler(tx *lws.Transaction) error {
+	log.Printf("[DEBUG] tx pool hash[%s]", hex.EncodeToString(tx.Hash))
+	defer log.Printf("[DEBUG] tx pool done hash[%s]", hex.EncodeToString(tx.Hash))
 	connection := db.GetConnection()
 
 	dbtx := connection.Begin()

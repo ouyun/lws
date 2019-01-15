@@ -36,7 +36,7 @@ func generateNewTypeUpdateItem(tx *streamModel.StreamTx, blockHeight uint32, amo
 }
 
 func GetUtxoUpdateList(tx *streamModel.StreamTx, blockHeight uint32, inPool bool) ([]*mqtt.UTXOUpdateWithDestination, error) {
-	defer helper.MeasureTime(helper.MeasureTitle("handle utxo.handleTx"))
+	// defer helper.MeasureTime(helper.MeasureTitle("handle utxo.handleTx"))
 
 	inputLength := len(tx.VInput)
 	destination := util.MapPBDestinationToBytes(tx.CDestination)

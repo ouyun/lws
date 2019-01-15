@@ -37,7 +37,7 @@ type Program struct {
 var programInstance *Program
 
 var clientHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
-	log.Printf("TOPIC: %s\n", msg.Topic())
+	log.Printf("[DEBUG] TOPIC: %d", msg.MessageID())
 }
 
 var msgChan = make(chan os.Signal, 1)
@@ -88,13 +88,14 @@ func (p *Program) Init() {
 	opts.SetKeepAlive(30 * time.Second)
 	opts.SetAutoReconnect(true)
 	opts.SetCleanSession(false)
-	// opts.SetDefaultPublishHandler(clientHandler)
+	opts.SetDefaultPublishHandler(clientHandler)
 	if p.IsLws {
 		opts.SetOnConnectHandler(p.GetOnConnectHandler())
 	}
 	opts.SetConnectTimeout(30 * time.Second)
 	opts.SetPingTimeout(10 * time.Second)
 	opts.SetOrderMatters(false)
+	// opts.SetMessageChannelDepth(5000)
 	p.Client = mqtt.NewClient(opts)
 }
 
@@ -111,7 +112,7 @@ func (p *Program) Stop() error {
 func (p *Program) Publish(topic string, qos byte, retained bool, msg []byte) error {
 	token := p.Client.Publish(topic, qos, retained, msg)
 	if token.Wait() && token.Error() != nil {
-		log.Printf("publish get err: %s \n", token.Error())
+		log.Printf("[ERROR] publish msgId[%d] get err: [%s]", token.(*mqtt.PublishToken).MessageID(), token.Error())
 	}
 	return token.Error()
 }

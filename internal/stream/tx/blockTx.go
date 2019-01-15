@@ -29,6 +29,10 @@ func StartBlockTxHandler(db *gorm.DB, txs []*lws.Transaction, blockModel *model.
 	defer helper.MeasureTime(helper.MeasureTitle("StartBlockTxHandler len txs %d", len(txs)))
 	log.Printf("StartBlockTxHandler len txs [%d]", len(txs))
 
+	for _, tx := range txs {
+		log.Printf("[DEBUG] block tx hash[%s]", hex.EncodeToString(tx.Hash))
+	}
+
 	h := &BlockTxHandler{
 		txs:        txs,
 		blockModel: blockModel,

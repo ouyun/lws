@@ -26,7 +26,7 @@ type UTXOIndex struct {
 }
 
 var sendTxReqReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
-	log.Println("[DEBUG] Received sendTxReq  msgId: [%d]!", msg.MessageID())
+	log.Printf("[DEBUG] Received sendTxReq msgId: [%d]!", msg.MessageID())
 	s := SendTxPayload{}
 	payload := msg.Payload()
 	cliMap := CliMap{}
@@ -37,7 +37,7 @@ var sendTxReqReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.
 		return
 	}
 	log.Printf("[DEBUG] SendTxPayload addressId [%d] ", s.AddressId)
-	log.Printf("[DEBUG] SendTxReq txData [%s]", hex.EncodeToString(s.TxData))
+	log.Printf("[DEBUG] SendTxReq received txdata[%s]", hex.EncodeToString(s.TxData))
 	defer helper.MeasureTime(helper.MeasureTitle("handle sendTxReq addressId [%d]", s.AddressId))
 	// 连接 redis
 	pool := GetRedisPool()
@@ -83,6 +83,8 @@ var sendTxReqReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.
 		return
 	}
 
+	log.Printf("[DEBUG] sendTxReq ready to check balance txdata[%s]", hex.EncodeToString(s.TxData))
+
 	log.Printf("[DEBUG] addressId[%d] get utxo summery start", s.AddressId)
 	// get amount
 	amount, cnt, err := utxo.GetSummary(getUtxoIndex(&txData.UtxoIndex), connection)
@@ -112,22 +114,25 @@ var sendTxReqReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.
 	}
 
 	log.Printf("[DEBUG] send tx to core wallet addressId[%d]", s.AddressId)
+	log.Printf("[DEBUG] sendTxReq ready to send core txdata[%s]", hex.EncodeToString(s.TxData))
 
 	// TODO：send tx
 	coreClient := StartCoreClient()
 	// defer coreClient.Stop()
 	result, err := SendTxToCore(coreClient, &s)
+	log.Printf("[DEBUG] sendTxReq received core reply txdata[%s]", hex.EncodeToString(s.TxData))
 	if err != nil {
 		ReplySendTx(&client, &s, 16, 0, "", &cliMap)
-		log.Printf("[INFO] send to corewallet err : %+v", err)
+		log.Printf("[INFO] txdata[%s] prefix[%s] send to corewallet err : %+v", hex.EncodeToString(s.TxData), cliMap.TopicPrefix, err)
 		return
 	}
 	if result.Result == "failed" {
 		ReplySendTx(&client, &s, 3, 0, result.Reason, &cliMap)
-		log.Printf("[INFO] sendtx corewallet error : %+v", result)
+		log.Printf("[INFO] txdata[%s] prefix[%s] sendtx corewallet error : %+v", hex.EncodeToString(s.TxData), cliMap.TopicPrefix, result)
 		return
 	}
 	ReplySendTx(&client, &s, 0, 0, "", &cliMap)
+	log.Printf("[DEBUG] sendTxReq send reply done to iot txdata[%s]", hex.EncodeToString(s.TxData))
 	log.Printf("[DEBUG] send tx success addressId[%d]!", s.AddressId)
 	return
 }

@@ -11,10 +11,11 @@ import (
 func main() {
 	filter := &logutils.LevelFilter{
 		Levels:   []logutils.LogLevel{"DEBUG", "INFO", "WARN", "ERROR"},
-		MinLevel: logutils.LogLevel("INFO"),
+		MinLevel: logutils.LogLevel("DEBUG"),
 		Writer:   os.Stdout,
 	}
 	log.SetOutput(filter)
+	log.SetFlags(log.LstdFlags | log.Lmicroseconds | log.Lshortfile)
 	server := new(stream.Server)
 	defer server.Start()
 }
