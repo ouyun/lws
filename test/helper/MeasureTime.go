@@ -15,7 +15,7 @@ func MeasureTitle(s string, args ...interface{}) (string, time.Time) {
 
 func MeasureTime(s string, startTime time.Time) {
 	endTime := time.Now()
-	log.Println("End:	", s, "took", endTime.Sub(startTime))
+	log.Println("End:	", s, "took", endTime.Sub(startTime).Nanoseconds())
 }
 
 //useage
