@@ -244,6 +244,28 @@ func (h *BlockTxHandler) updateTxsHeight(hashes [][]byte, blockHeight uint32) er
 
 func (h *BlockTxHandler) insertTxs(txs []*lws.Transaction, block *model.Block, oldHashes [][]byte) error {
 	defer helper.MeasureTime(helper.MeasureTitle("handle insertTxs len txs %d", len(txs)))
+	var err error
+	if len(txs) == 0 {
+		return nil
+	}
+
+	txsLen := len(txs)
+
+	for i := 0; i < txsLen; i += 2000 {
+		end := i + 2000
+		if end > txsLen {
+			end = txsLen
+		}
+		err = h.insertTxsSlice(txs[i:end], block, oldHashes)
+		if err != nil {
+			return err
+		}
+	}
+	return err
+}
+
+func (h *BlockTxHandler) insertTxsSlice(txs []*lws.Transaction, block *model.Block, oldHashes [][]byte) error {
+	defer helper.MeasureTime(helper.MeasureTitle("handle insertTxs len txs %d", len(txs)))
 	if len(txs) == 0 {
 		return nil
 	}

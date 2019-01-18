@@ -10,6 +10,7 @@ import (
 	"os"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/FissionAndFusion/lws/internal/config"
 	"github.com/FissionAndFusion/lws/internal/constant"
@@ -172,8 +173,11 @@ func SendUTXOUpdate(item *UTXOUpdateQueueItem) {
 	utxoUList := item.UpdateList
 	log.Printf("[VERB] send utxo update cnt[%d] address: [%s] !", len(utxoUList), hex.EncodeToString(item.Address))
 
+	poolStartTime := time.Now()
 	pool := GetRedisPool()
 	redisConn := pool.Get()
+	poolEndTime := time.Now()
+	log.Printf("[DEBUG] SendUTXOUpdate pool get took [%d]", poolEndTime.Sub(poolStartTime).Nanoseconds())
 
 	address := item.Address
 	updatePayload := item.UpdatePayload

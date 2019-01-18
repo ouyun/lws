@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"os"
+
 	// "os/signal"
 	"strconv"
 	"time"
@@ -13,6 +14,7 @@ import (
 	cclientModule "github.com/FissionAndFusion/lws/internal/coreclient/instance"
 	"github.com/FissionAndFusion/lws/internal/db/model"
 	"github.com/FissionAndFusion/lws/internal/gateway/crypto"
+	"github.com/FissionAndFusion/lws/test/helper"
 	"github.com/eclipse/paho.mqtt.golang"
 	"github.com/gomodule/redigo/redis"
 	"github.com/jinzhu/gorm"
@@ -66,9 +68,6 @@ func (p *Program) Start() error {
 		err := errors.New("conn mqtt broker failed")
 		return err
 	}
-	if p.IsLws {
-		NewWorkerPool()
-	}
 	log.Printf("[INFO] mqtt client: %s started!", p.Id)
 	return nil
 }
@@ -93,12 +92,13 @@ func (p *Program) Init() {
 	opts.SetCleanSession(false)
 	opts.SetDefaultPublishHandler(clientHandler)
 	if p.IsLws {
+		StartDispatcher(200)
 		opts.SetOnConnectHandler(p.GetOnConnectHandler())
 	}
 	opts.SetConnectTimeout(30 * time.Second)
 	opts.SetPingTimeout(10 * time.Second)
-	opts.SetOrderMatters(false)
-	// opts.SetMessageChannelDepth(5000)
+	opts.SetOrderMatters(true)
+	opts.SetMessageChannelDepth(5000)
 	p.Client = mqtt.NewClient(opts)
 }
 
@@ -108,8 +108,8 @@ func (p *Program) Stop() error {
 		p.Client.Disconnect(250)
 		return nil
 	}
-	if workerPool != nil {
-		workerPool.Stop()
+	if dispatcher != nil {
+		dispatcher.Cancel()
 	}
 	return errors.New("client did not conn broker!")
 }
@@ -134,13 +134,18 @@ func (p *Program) Subscribe(topic string, qos byte, handler mqtt.MessageHandler)
 
 func (p *Program) GetOnConnectHandler() mqtt.OnConnectHandler {
 	log.Printf("[INFO] mqtt connect handler %s", p.Topic)
+	serviceReqCallback := dispatcher.NewWorkCallback(serviceReqHandler)
+	syncReqCallback := dispatcher.NewWorkCallback(syncReqHandler)
+	utxoAbortCallback := dispatcher.NewWorkCallback(uTXOAbortReqHandler)
+	sendTxReqCallback := dispatcher.NewWorkCallback(sendTxReqReqHandler)
+
 	var conn mqtt.OnConnectHandler = func(client mqtt.Client) {
 		// log.Printf("program %s", p.Topic)
 		topicSuffix := os.Getenv("MQTT_LWS_TOPIC_SUFFIX")
-		client.Subscribe(p.Topic+"/lws/ServiceReq"+topicSuffix, byte(0), serviceReqHandler)
-		client.Subscribe(p.Topic+"/lws/SyncReq"+topicSuffix, byte(1), syncReqHandler)
-		client.Subscribe(p.Topic+"/lws/UTXOAbort"+topicSuffix, byte(1), uTXOAbortReqHandler)
-		client.Subscribe(p.Topic+"/lws/SendTxReq"+topicSuffix, byte(1), sendTxReqReqHandler)
+		client.Subscribe(p.Topic+"/lws/ServiceReq"+topicSuffix, byte(0), serviceReqCallback)
+		client.Subscribe(p.Topic+"/lws/SyncReq"+topicSuffix, byte(1), syncReqCallback)
+		client.Subscribe(p.Topic+"/lws/UTXOAbort"+topicSuffix, byte(1), utxoAbortCallback)
+		client.Subscribe(p.Topic+"/lws/SendTxReq"+topicSuffix, byte(0), sendTxReqCallback)
 	}
 	return conn
 }
@@ -186,6 +191,7 @@ func CheckAddressId(addressId uint32, conn *gorm.DB, redisConn *redis.Conn, user
 }
 
 func GetUserByAddress(address []byte, redisConn *redis.Conn) (*CliMap, error) {
+	defer helper.MeasureTime(helper.MeasureTitle("GetUserByAddress"))
 	cliMap := &CliMap{}
 	addressStr := hex.EncodeToString(address)
 	exists, err := redis.Bool((*redisConn).Do("EXISTS", addressStr))
@@ -211,6 +217,7 @@ func GetUserByAddress(address []byte, redisConn *redis.Conn) (*CliMap, error) {
 }
 
 func GetUserByAddressId(addrId uint32, redisConnArg *redis.Conn) (*CliMap, error) {
+	defer helper.MeasureTime(helper.MeasureTitle("addr[%d] getUserByAddressId", addrId))
 	cliMap := &CliMap{}
 	var redisConn redis.Conn
 
