@@ -1,10 +1,14 @@
 package coreclient
 
 import (
+	"encoding/hex"
 	"fmt"
+	"log"
 	// "time"
 
 	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/dbp"
+	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/lws"
+	"github.com/golang/protobuf/ptypes"
 )
 
 type Notification struct {
@@ -129,8 +133,34 @@ func (c *Client) deleteSubscription(subId string) error {
 	return nil
 }
 
+func debugAdded(added *dbp.Added) {
+	var err error
+	block := &lws.Block{}
+	err = ptypes.UnmarshalAny(added.Object, block)
+	if err == nil {
+		log.Printf("[DEBUG] socket received added block hash[%s]", hex.EncodeToString(block.Hash))
+	}
+
+	tx := &lws.Transaction{}
+	err = ptypes.UnmarshalAny(added.Object, tx)
+	if err == nil {
+		log.Printf("[DEBUG] socket received added tx hash[%s]", hex.EncodeToString(tx.Hash))
+	}
+}
+
 func (c *Client) handleNotification(subId string, response interface{}) {
 	c.LogDebug("recevied notification id [%s]", subId)
+
+	// debug start
+	added, ok := response.(*dbp.Added)
+	if !ok {
+		log.Printf("ERROR: unexpected sub-notification type [%s]", response)
+		return
+	}
+
+	debugAdded(added)
+	// debug end
+
 	// 1. find Subscription from map by id
 	subscription, ok := c.subscriptions[subId]
 	if !ok {

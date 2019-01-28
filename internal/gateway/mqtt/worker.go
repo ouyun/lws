@@ -124,7 +124,6 @@ func StartDispatcher(workerCount int) *Dispatcher {
 func (this *Dispatcher) NewWorkCallback(handler mqtt.MessageHandler) mqtt.MessageHandler {
 	var res mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
 		log.Printf("[DEBUG] mqtt callback msgId[%d]", msg.MessageID())
-		return
 		work := &Work{
 			Client: &client,
 			Msg:    &msg,

@@ -3,11 +3,13 @@ package pubsub
 import (
 	"context"
 	"sync"
+
 	// "fmt"
 	"log"
 	"os"
 	"time"
 
+	"github.com/FissionAndFusion/lws/test/helper"
 	"github.com/furdarius/rabbitroutine"
 	"github.com/streadway/amqp"
 )
@@ -115,7 +117,9 @@ func (c *Consumer) Consume(ctx context.Context, ch *amqp.Channel) error {
 
 			// fmt.Println("New message:", msg.Body)
 			if c.HandleMutex != nil {
+				title, startTime := helper.MeasureTitle("block txpool mutex")
 				c.HandleMutex.Lock()
+				helper.MeasureTime(title, startTime)
 			}
 			shouldAck := c.HandleConsumer(msg.Body)
 			if c.HandleMutex != nil {

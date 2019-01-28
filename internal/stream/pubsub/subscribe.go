@@ -2,6 +2,7 @@ package pubsub
 
 import (
 	"context"
+	"encoding/hex"
 	"log"
 	"os"
 	"time"
@@ -10,7 +11,9 @@ import (
 
 	"github.com/FissionAndFusion/lws/internal/coreclient"
 	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/dbp"
+	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/lws"
 	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
 
 	"github.com/furdarius/rabbitroutine"
 	"github.com/streadway/amqp"
@@ -58,6 +61,21 @@ func (s *Subscribe) Subscribe() {
 	go s.handleNotification(subscription.CloseChan, subscription.NotificationChan)
 }
 
+func debugAdded(added *dbp.Added) {
+	var err error
+	block := &lws.Block{}
+	err = ptypes.UnmarshalAny(added.Object, block)
+	if err == nil {
+		log.Printf("[DEBUG] dbp received added block hash[%s]", hex.EncodeToString(block.Hash))
+	}
+
+	tx := &lws.Transaction{}
+	err = ptypes.UnmarshalAny(added.Object, tx)
+	if err == nil {
+		log.Printf("[DEBUG] dbp received added tx hash[%s]", hex.EncodeToString(tx.Hash))
+	}
+}
+
 func (s *Subscribe) handleNotification(closeChan chan struct{}, notificationChan chan *coreclient.Notification) {
 	pub := newPublisher(s.ctx)
 
@@ -74,6 +92,10 @@ func (s *Subscribe) handleNotification(closeChan chan struct{}, notificationChan
 				log.Printf("ERROR: unexpected sub-notification type [%s]", noti)
 				continue
 			}
+
+			// debug start
+			debugAdded(added)
+			// debug end
 
 			// log.Printf("added = %+v\n", added)
 
