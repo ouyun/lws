@@ -166,7 +166,7 @@ CREATE TABLE `utxo` (
   `idx` varbinary(33) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_utxo_deleted_at` (`deleted_at`),
-  KEY `utxo_idx_IDX` (`idx`) 
+  KEY `utxo_idx_idx` (`idx`) 
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -178,6 +178,55 @@ LOCK TABLES `utxo` WRITE;
 /*!40000 ALTER TABLE `utxo` DISABLE KEYS */;
 /*!40000 ALTER TABLE `utxo` ENABLE KEYS */;
 UNLOCK TABLES;
+
+--
+-- Table structure for table `tx_pool`
+--
+
+DROP TABLE IF EXISTS `tx_pool`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `tx_pool` (
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `hash` varbinary(32) NOT NULL,
+  `version` int(10) unsigned DEFAULT NULL,
+  `tx_type` int(10) unsigned DEFAULT NULL,
+  `block_height` int(10) unsigned DEFAULT NULL,
+  `lock_until` int(10) unsigned DEFAULT NULL,
+  `inputs` blob,
+  `amount` bigint(20) DEFAULT NULL,
+  `change` bigint(20) DEFAULT NULL,
+  `fee` bigint(20) DEFAULT NULL,
+  `send_to` varbinary(33) DEFAULT NULL,
+  `sender` varbinary(33) DEFAULT NULL,
+  `data` blob,
+  `sig` blob DEFAULT NULL,
+  PRIMARY KEY (`hash`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+DROP TABLE IF EXISTS `utxo_pool`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `utxo_pool` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `tx_hash` varbinary(32) NOT NULL,
+  `destination` varbinary(33) DEFAULT NULL,
+  `amount` bigint(20) DEFAULT NULL,
+  `out` tinyint(3) unsigned DEFAULT NULL,
+  `idx` varbinary(33) NOT NULL,
+  `is_delete` tinyint(1) NOT NULL,
+  `tx_owner` varbinary(32) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_utxo_pool_idx` (`idx`),
+  FOREIGN KEY (`tx_owner`)
+    REFERENCES `tx_pool` (`hash`)
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Dumping routines for database 'test'

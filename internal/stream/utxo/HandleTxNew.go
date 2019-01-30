@@ -103,9 +103,46 @@ func GetUtxoUpdateList(tx *streamModel.StreamTx, blockHeight uint32, inPool bool
 	return results, nil
 }
 
+func HandleUtxoPool(db *gorm.DB, txs []*streamModel.StreamTx) (map[[33]byte][]mqtt.UTXOUpdate, error) {
+	var updateOwnerList []*mqtt.UTXOUpdateWithDestAndOwner
+	var updateList []*mqtt.UTXOUpdateWithDestination
+	blockHeight := constant.BLOCK_HEIGHT_IN_POOL
+
+	for _, tx := range txs {
+		curUpdateList, err := GetUtxoUpdateList(tx, blockHeight, false)
+		if err != nil {
+			log.Printf("[ERROR] handle tx failed [%s], tx hash[%s]", err, hex.EncodeToString(tx.Hash))
+			return nil, err
+		}
+		curLen := len(curUpdateList)
+		curOwnerList := make([]*mqtt.UTXOUpdateWithDestAndOwner, curLen)
+		for idx, item := range curUpdateList {
+			// item := curUpdateList[idx]
+			curOwnerList[idx] = &mqtt.UTXOUpdateWithDestAndOwner{
+				UTXOUpdateWithDestination: item,
+				TxOwner:                   tx.Hash,
+			}
+		}
+
+		updateList = append(updateList, curUpdateList...)
+		updateOwnerList = append(updateOwnerList, curOwnerList...)
+	}
+
+	err := writeUtxoPoolDb(db, updateOwnerList)
+	if err != nil {
+		log.Printf("[ERROR] handle utxos pool to db err: %s", err)
+		return nil, err
+	}
+
+	updatesMap := getDestinationUtxoUpdateMap(updateList)
+	return updatesMap, nil
+}
+
 func HandleUtxos(db *gorm.DB, txs []*streamModel.StreamTx, blockModel *model.Block, oldHashes [][]byte) (map[[33]byte][]mqtt.UTXOUpdate, error) {
 	defer helper.MeasureTime(helper.MeasureTitle("HandleUtxos"))
 	var updateList []*mqtt.UTXOUpdateWithDestination
+	// contains only new and remove without update
+	var dbUpdateList []*mqtt.UTXOUpdateWithDestination
 
 	blockHeight := constant.BLOCK_HEIGHT_IN_POOL
 	if blockModel != nil {
@@ -118,11 +155,17 @@ func HandleUtxos(db *gorm.DB, txs []*streamModel.StreamTx, blockModel *model.Blo
 			log.Printf("[ERROR] handle tx failed [%s], tx hash[%s]", err, hex.EncodeToString(tx.Hash))
 			return nil, err
 		}
+		curDbUpdateList, err := GetUtxoUpdateList(tx, blockHeight, false)
+		if err != nil {
+			log.Printf("[ERROR] handle tx failed [%s], tx hash[%s]", err, hex.EncodeToString(tx.Hash))
+			return nil, err
+		}
 		updateList = append(updateList, curUpdateList...)
+		dbUpdateList = append(dbUpdateList, curDbUpdateList...)
 	}
 
 	// TODO handle db
-	err := writeUtxoDb(db, updateList, blockModel)
+	err := writeUtxoDb(db, dbUpdateList, blockModel)
 	if err != nil {
 		log.Printf("[ERROR] handle utxos to db err: %s", err)
 		return nil, err
@@ -143,6 +186,79 @@ func getDestinationUtxoUpdateMap(updateList []*mqtt.UTXOUpdateWithDestination) m
 		updates[dest] = append(updates[dest], *(item.UTXOUpdate))
 	}
 	return updates
+}
+
+func getIsDeleteUtxoType(opType uint8) (bool, bool) {
+	switch opType {
+	case constant.UTXO_UPDATE_TYPE_NEW:
+		return false, true
+	case constant.UTXO_UPDATE_TYPE_REMOVE:
+		return true, true
+	default:
+		return true, false
+	}
+}
+
+func writeUtxoPoolDb(db *gorm.DB, updateList []*mqtt.UTXOUpdateWithDestAndOwner) error {
+
+	ib := sqlbuilder.NewInsertBuilder()
+	ib.InsertInto("utxo_pool")
+	ib.Cols("created_at", "updated_at", "tx_hash", "destination", "amount", "`out`", "idx", "is_delete", "tx_owner")
+
+	for _, item := range updateList {
+		isDelete, ok := getIsDeleteUtxoType(item.OpType)
+		if !ok {
+			log.Printf("[WARN] Unkonwn utxo pool update type [%d]", item.OpType)
+			continue
+		}
+		// log.Printf("[DEBUG] write utxo pool db item [%v]", item)
+
+		if isDelete {
+			// remove-type record
+			hash := item.UTXOIndex[:32]
+			out := item.UTXOIndex[32]
+			var utxoIndex [33]byte
+			copy(utxoIndex[:], hash)
+			utxoIndex[32] = uint8(out)
+
+			ib.Values(
+				sqlbuilder.Raw("now()"),
+				sqlbuilder.Raw("now()"),
+				hash,
+				item.Destination,
+				0,
+				out,
+				utxoIndex[:],
+				isDelete,
+				item.TxOwner,
+			)
+			log.Printf("[DEBUG] utxo hash[%s] out[%d] dest[%s] is_delete[%t]", hex.EncodeToString(hash), out, hex.EncodeToString(item.Destination), isDelete)
+		} else {
+			// new-type record
+			var utxoIndex [33]byte
+			copy(utxoIndex[:32], item.UTXO.TXID)
+			utxoIndex[32] = item.UTXO.Out
+			ib.Values(
+				sqlbuilder.Raw("now()"),
+				sqlbuilder.Raw("now()"),
+				item.UTXO.TXID,
+				item.Destination,
+				item.UTXO.Amount,
+				item.UTXO.Out,
+				utxoIndex[:],
+				isDelete,
+				item.TxOwner,
+			)
+			log.Printf("[DEBUG] utxo hash[%s] out[%d] dest[%s] is_delete[%t]", hex.EncodeToString(item.UTXO.TXID), item.UTXO.Out, hex.EncodeToString(item.Destination), isDelete)
+		}
+	}
+
+	sql, args := ib.Build()
+	_, err := db.CommonDB().Exec(sql, args...)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func writeUtxoDb(db *gorm.DB, updateList []*mqtt.UTXOUpdateWithDestination, blockModel *model.Block) error {

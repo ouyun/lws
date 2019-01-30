@@ -11,6 +11,7 @@ import (
 	"github.com/FissionAndFusion/lws/internal/gateway/mqtt"
 	streamModel "github.com/FissionAndFusion/lws/internal/stream/model"
 	"github.com/FissionAndFusion/lws/internal/stream/utxo"
+	"github.com/FissionAndFusion/lws/test/helper"
 	"github.com/jinzhu/gorm"
 )
 
@@ -20,6 +21,7 @@ type PoolTxHandler struct {
 }
 
 func StartPoolTxHandler(tx *lws.Transaction) error {
+	defer helper.MeasureTime(helper.MeasureTitle("handle tx pool hash[%s]", hex.EncodeToString(tx.Hash)))
 	log.Printf("[DEBUG] tx pool hash[%s]", hex.EncodeToString(tx.Hash))
 	defer log.Printf("[DEBUG] tx pool done hash[%s]", hex.EncodeToString(tx.Hash))
 	connection := db.GetConnection()
@@ -67,15 +69,25 @@ func StartPoolTxHandler(tx *lws.Transaction) error {
 	return nil
 }
 
-func getSingleTxSender(dbtx *gorm.DB, tx *model.Tx) ([]byte, error) {
-	if len(tx.Inputs) < 33 {
+func getSingleTxSender(dbtx *gorm.DB, inputs []byte) ([]byte, error) {
+	if len(inputs) < 33 {
 		return nil, nil
 	}
-	prevHash := tx.Inputs[:32]
+	prevHash := inputs[:32]
 	prevTx := &model.Tx{}
 
 	res := dbtx.Select("send_to").Where("hash = ?", prevHash).Take(&prevTx)
-	if res.Error != nil {
+	if res.RecordNotFound() {
+		// try to query from tx pool
+		prevTxPool := &model.TxPool{}
+		txPoolRes := dbtx.Select("send_to").Where("hash = ?", prevHash).Take(&prevTxPool)
+		if txPoolRes.Error != nil {
+			log.Printf("[ERROR] error query tx sender failed [%s]", res.Error)
+			return nil, res.Error
+		}
+		return prevTxPool.SendTo, nil
+		// query from tx_pool
+	} else if res.Error != nil {
 		log.Printf("[ERROR] error query tx sender failed [%s]", res.Error)
 		return nil, res.Error
 	}
@@ -83,15 +95,15 @@ func getSingleTxSender(dbtx *gorm.DB, tx *model.Tx) ([]byte, error) {
 }
 
 func insertTx(dbtx *gorm.DB, tx *lws.Transaction) (map[[33]byte][]mqtt.UTXOUpdate, error) {
-	ormTx := convertTxFromDbpToOrm(tx)
+	ormTxPool := convertTxPoolFromDbpToOrm(tx)
 
-	sender, err := getSingleTxSender(dbtx, ormTx)
+	sender, err := getSingleTxSender(dbtx, ormTxPool.Inputs)
 	if err != nil {
 		return nil, err
 	}
-	ormTx.Sender = sender
+	ormTxPool.Sender = sender
 
-	res := dbtx.Create(ormTx)
+	res := dbtx.Create(ormTxPool)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -102,7 +114,7 @@ func insertTx(dbtx *gorm.DB, tx *lws.Transaction) (map[[33]byte][]mqtt.UTXOUpdat
 	}
 
 	txs := []*streamModel.StreamTx{streamTx}
-	updates, err := utxo.HandleUtxos(dbtx, txs, nil, nil)
+	updates, err := utxo.HandleUtxoPool(dbtx, txs)
 	if err != nil {
 		log.Printf("[ERROR] txpool handle utxo failed %s", err)
 		return nil, err
@@ -111,10 +123,10 @@ func insertTx(dbtx *gorm.DB, tx *lws.Transaction) (map[[33]byte][]mqtt.UTXOUpdat
 	return updates, nil
 }
 
-func convertTxFromDbpToOrm(tx *lws.Transaction) *model.Tx {
+func convertTxPoolFromDbpToOrm(tx *lws.Transaction) *model.TxPool {
 	inputs := calculateOrmTxInputs(tx.VInput)
 	sendTo := calculateOrmTxSendTo(tx.CDestination)
-	return &model.Tx{
+	return &model.TxPool{
 		Hash:      tx.Hash,
 		Version:   uint16(tx.NVersion),
 		TxType:    uint16(tx.NType),

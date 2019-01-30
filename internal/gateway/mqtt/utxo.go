@@ -31,6 +31,11 @@ type UTXOUpdateWithDestination struct {
 	Destination []byte
 }
 
+type UTXOUpdateWithDestAndOwner struct {
+	*UTXOUpdateWithDestination
+	TxOwner []byte
+}
+
 type UTXOUpdateQueueItem struct {
 	UpdatePayload UpdatePayload
 	UpdateList    []UTXOUpdate

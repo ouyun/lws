@@ -111,10 +111,10 @@ func writeBlock(block *lws.Block) error {
 	txs = append(txs, block.Vtx...)
 
 	// append tx mint to tx list
-	if block.TxMint != nil {
+	if block.TxMint != nil && uint16(block.NType) != constant.BLOCK_TYPE_VACANT {
 		txs = append(txs, block.TxMint)
 	} else {
-		log.Printf("[INFO] block [%s](#%d) has no tx mint field", hex.EncodeToString(block.Hash), block.NHeight)
+		log.Printf("[INFO] block [%s](#%d) type[%d] has no tx mint field", hex.EncodeToString(block.Hash), block.NHeight, block.NType)
 	}
 	updates, err := tx.StartBlockTxHandler(dbtx, txs, ormBlock)
 	if err != nil {

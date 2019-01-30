@@ -30,7 +30,7 @@ func handleConsumer(body []byte) bool {
 		log.Println("[ERROR] unpack Object failed", err)
 	}
 
-	StartPoolTxHandler(tx)
+	go StartPoolTxHandler(tx)
 
 	return true
 }

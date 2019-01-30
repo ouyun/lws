@@ -19,6 +19,8 @@ var syncReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Messa
 	// TODO ：
 	log.Println("[DEBUG] Received syncReq !")
 	var UTXOs []UTXO
+	var utxos []UTXO
+	var poolUtxos []UTXO
 	s := SyncPayload{}
 	cliMap := CliMap{}
 	pool := GetRedisPool()
@@ -29,7 +31,7 @@ var syncReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Messa
 	if err != nil {
 		log.Printf("err: %+v\n", err)
 	}
-	log.Println("[DEBUG] Received syncReq from addr [%d]!", s.AddressId)
+	log.Printf("[DEBUG] Received syncReq from addr [%d]!", s.AddressId)
 	// 连接 redis
 	redisConn := pool.Get()
 	connection := db.GetConnection()
@@ -47,7 +49,7 @@ var syncReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Messa
 		return
 	}
 	if err != nil {
-		log.Printf("err: %+v", err)
+		log.Printf("[INFO] syncReq check address id err: %+v", err)
 		ReplySyncReq(&client, &s, &UTXOs, &cliMap, 16, 0)
 		return
 	}
@@ -60,12 +62,13 @@ var syncReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Messa
 	forkId, err := hex.DecodeString(os.Getenv("FORK_ID"))
 	if err != nil {
 		// 内部错误
-		log.Printf("err: %+v", err)
+		log.Printf("[ERROR] forkID config err: %+v", err)
 		ReplySyncReq(&client, &s, &UTXOs, &cliMap, 16, 0)
 		return
 	}
 	if bytes.Compare(forkId, s.ForkID) != 0 {
 		// 无效分支
+		log.Printf("[ERROR] syncReq fork id err: %+v", err)
 		ReplySyncReq(&client, &s, &UTXOs, &cliMap, 3, 0)
 		return
 	}
@@ -84,22 +87,59 @@ var syncReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Messa
 		"INNER JOIN tx "+
 		"ON utxo.tx_hash = tx.hash "+
 		"AND utxo.destination = ? "+
-		"ORDER BY REVERSE(utxo.tx_hash) ASC, utxo.out ASC ", cliMap.Address).Find(&UTXOs).Error
+		"LEFT OUTER JOIN utxo_pool "+
+		"ON utxo.idx = utxo_pool.idx AND utxo_pool.is_delete = true "+
+		"WHERE utxo_pool.is_delete is NULL "+
+		"ORDER BY REVERSE(utxo.tx_hash) ASC, utxo.out ASC ", cliMap.Address).Find(&utxos).Error
 	if err != nil {
+		log.Printf("[ERROR] syncReq query utxo err [%s]", err)
 		ReplySyncReq(&client, &s, &UTXOs, &cliMap, 16, 0)
 		return
 	}
-	log.Printf("utxos：%+v", UTXOs)
 
+	err = connection.Raw("SELECT "+
+		"new_utxo.tx_hash AS tx_id, "+
+		"new_utxo.out, "+
+		"0xffffffff, "+
+		"tx_pool.tx_type, "+
+		"new_utxo.amount, "+
+		"tx_pool.sender AS sender, "+
+		"tx_pool.lock_until, "+
+		"tx_pool.data "+
+		"FROM utxo_pool new_utxo "+
+		"INNER JOIN tx_pool "+
+		"ON new_utxo.tx_hash = tx_pool.hash "+
+		"AND new_utxo.destination = ? "+
+		"LEFT OUTER JOIN utxo_pool used_utxo "+
+		"ON new_utxo.idx = used_utxo.idx AND used_utxo.is_delete = true "+
+		"WHERE new_utxo.is_delete = false AND used_utxo.is_delete is NULL "+
+		"ORDER BY REVERSE(new_utxo.tx_hash) ASC, new_utxo.out ASC ", cliMap.Address).Find(&poolUtxos).Error
+	if err != nil {
+		log.Printf("[ERROR] syncReq query utxo pool err [%s]", err)
+		ReplySyncReq(&client, &s, &UTXOs, &cliMap, 16, 0)
+		return
+	}
+
+	log.Printf("[DEBUG] cliMap.Addrsss [%s]", hex.EncodeToString(cliMap.Address))
+	log.Printf("[DEBUG] utxo cnt [%d]", len(utxos))
+	log.Printf("[DEBUG] utxo pool cnt [%d]", len(poolUtxos))
+
+	for idx, item := range utxos {
+		log.Printf("[DEBUG] utxos only syncReply utxo[%d] hash[%s] out[%d]", idx, hex.EncodeToString(item.TXID), item.Out)
+	}
+
+	// merge and order utxos
+	UTXOs = mergeAndOrderUtxos(utxos, poolUtxos)
+
+	log.Printf("[DEBUG] syncReply utxos list below: ")
 	for idx, item := range UTXOs {
-		log.Printf("[DEBUG] utxo[%d] hash[%s] out[%d]", idx, hex.EncodeToString(item.TXID), item.Out)
+		log.Printf("[DEBUG] syncReply utxo[%d] hash[%s] out[%d]", idx, hex.EncodeToString(item.TXID), item.Out)
 	}
 	// create sync addr chan
 	go NewSyncAddrChan(s.AddressId)
 
 	// 计算utxo hash
 	utxoHash := UTXOHash(&UTXOs)
-	log.Printf("get UTXOs %+v\n", UTXOs)
 	if bytes.Compare(utxoHash, []byte(s.UTXOHash)) == 0 {
 		log.Printf("client hash equals local hash!")
 		ReplySyncReq(&client, &s, &UTXOs, &cliMap, 0, 0)
@@ -229,4 +269,52 @@ func ReplySyncReqWithChan(client *mqtt.Client, s *SyncPayload, u []UTXO, cliMap 
 			log.Printf("[DEBUG] done send syncReply addr [%d] done", cliMap.AddressId)
 		}
 	}
+}
+
+func mergeAndOrderUtxos(a []UTXO, b []UTXO) []UTXO {
+	aLen := len(a)
+	bLen := len(b)
+	totalUtxos := make([]UTXO, aLen+bLen)
+	j := 0
+	i := 0
+	pos := 0
+	for ; i < aLen; i++ {
+		shouldLastInsert := true
+		for j < bLen {
+			aItem := a[i]
+			bItem := b[j]
+			aBytes := reverseBytes(aItem.TXID)
+			bBytes := reverseBytes(bItem.TXID)
+			compRes := bytes.Compare(aBytes, bBytes)
+			if compRes == 0 {
+				compRes = int(aItem.Out - bItem.Out)
+			}
+
+			if compRes < 0 {
+				log.Printf("[DEBUG] insert a item i[%d] j[%d] idx[%d]", i, j, pos)
+				totalUtxos[pos] = aItem
+				pos += 1
+				shouldLastInsert = false
+				break
+			} else {
+				log.Printf("[DEBUG] insert b item i[%d] j[%d] idx[%d]", i, j, pos)
+				totalUtxos[pos] = bItem
+				pos += 1
+				j += 1
+			}
+		}
+
+		if shouldLastInsert {
+			log.Printf("[DEBUG] last insert a item i[%d] j[%d] idx[%d]", i, j, pos)
+			totalUtxos[pos] = a[i]
+			pos += 1
+		}
+	}
+
+	for ; j < bLen; j++ {
+		log.Printf("[DEBUG] append insert b item j[%d] idx[%d]", j, pos)
+		totalUtxos[pos] = b[j]
+		pos += 1
+	}
+	return totalUtxos
 }

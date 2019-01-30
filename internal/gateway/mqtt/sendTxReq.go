@@ -91,7 +91,7 @@ var sendTxReqReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.
 
 	log.Printf("[DEBUG] addressId[%d] get utxo summery start", s.AddressId)
 	// get amount
-	amount, cnt, err := utxo.GetSummary(getUtxoIndex(&txData.UtxoIndex), connection)
+	amount, cnt, err := utxo.GetSummary(getUtxoIndex(txData.UtxoIndex), connection)
 	if err != nil {
 		log.Printf("[INFO] get utxo summary failed [%s]", err)
 		ReplySendTx(&client, &s, 16, 0, "", &cliMap)
@@ -103,10 +103,20 @@ var sendTxReqReqHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.
 	//校验 tx amount
 	balance := amount - txData.NAmount - txData.NTxFee
 	if balance < 0 {
-		// return fail
-		ReplySendTx(&client, &s, 4, 0, "balance err", &cliMap)
-		log.Printf("[INFO] balance do not enough")
-		return
+		// try to add utxo pool amount
+		poolAmount, poolCnt, err := utxo.GetPoolSummary(getUtxoIndex(txData.UtxoIndex), connection)
+		if err != nil {
+			log.Printf("[INFO] get utxo pool summary failed [%s]", err)
+			ReplySendTx(&client, &s, 16, 0, "", &cliMap)
+			return
+		}
+		log.Printf("[DEBUG] addressId[%d] get utxo pool summary [%d] utxocnt[%d]", s.AddressId, poolAmount, poolCnt)
+
+		if balance+poolAmount < 0 {
+			ReplySendTx(&client, &s, 4, 0, "balance err", &cliMap)
+			log.Printf("[INFO] balance do not enough")
+			return
+		}
 	}
 
 	// 验证打包费
@@ -211,7 +221,7 @@ func SendTxToCore(client *coreclient.Client, s *SendTxPayload) (resultMessage *l
 	return sendTxResponse, err
 }
 
-func getUtxoIndex(index *[]byte) []*model.Utxo {
+func getUtxoHashAndOut(index *[]byte) []*model.Utxo {
 	legnth := (len(*index) / 33)
 	utxos := make([]*model.Utxo, legnth)
 	log.Printf("[DEBUG] utxo index: %+v", index)
@@ -226,4 +236,13 @@ func getUtxoIndex(index *[]byte) []*model.Utxo {
 		utxos[i] = ut
 	}
 	return utxos
+}
+
+func getUtxoIndex(fullBytes []byte) [][]byte {
+	length := len(fullBytes) / 33
+	indexArr := make([][]byte, length)
+	for i := 0; i < length; i++ {
+		indexArr[i] = fullBytes[(i * 33) : (i*33)+33]
+	}
+	return indexArr
 }

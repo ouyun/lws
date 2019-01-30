@@ -7,6 +7,7 @@ import (
 	"log"
 
 	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/lws"
+	"github.com/FissionAndFusion/lws/internal/db"
 	"github.com/FissionAndFusion/lws/internal/db/model"
 	"github.com/FissionAndFusion/lws/internal/gateway/mqtt"
 	streamModel "github.com/FissionAndFusion/lws/internal/stream/model"
@@ -53,28 +54,22 @@ func StartBlockTxHandler(db *gorm.DB, txs []*lws.Transaction, blockModel *model.
 		return nil, err
 	}
 
-	newTxs, _ := h.getOldNewTxList(oldHashes)
-	// err = h.deleteTxs(oldHashes)
+	// newTxs, _ := h.getOldNewTxList(oldHashes)
+
+	// // update tx height
+	// err = h.updateTxsHeight(oldHashes, blockModel.Height)
 	// if err != nil {
-	// 	log.Printf("delete hashex failed for [%s]", err)
+	// 	log.Printf("update txs height [%d] failed for [%s]", err)
 	// 	return nil, err
 	// }
 
-	// update tx height
-	err = h.updateTxsHeight(oldHashes, blockModel.Height)
-	if err != nil {
-		log.Printf("update txs height [%d] failed for [%s]", err)
-		return nil, err
-	}
-
-	// add new tx (non-tx-pool)
-	err = h.insertTxs(newTxs, h.blockModel, oldHashes)
+	// add new tx
+	err = h.insertTxs(txs, h.blockModel)
 	if err != nil {
 		log.Printf("insert new hashex failed for [%s]", err)
 		return nil, err
 	}
 
-	// TODO handle utxos
 	streamTxs := make([]*streamModel.StreamTx, len(txs))
 	for idx, tx := range txs {
 		streamTx := mapLwsTxToStreamTx(tx, h.mapTxToSender)
@@ -84,6 +79,15 @@ func StartBlockTxHandler(db *gorm.DB, txs []*lws.Transaction, blockModel *model.
 	if err != nil {
 		log.Printf("[ERROR] handle utxos in block[%s](#%d) failed %s", hex.EncodeToString(blockModel.Hash), blockModel.Height, err)
 	}
+
+	// remove txpool
+	// err = h.deleteTxPool(oldHashes)
+	// if err != nil {
+	// 	log.Printf("delete oldHashes txpool failed for [%s]", err)
+	// 	return nil, err
+	// }
+
+	go removeHandledTxPool(oldHashes)
 
 	return updates, nil
 }
@@ -201,7 +205,7 @@ func (h *BlockTxHandler) queryExistance() ([][]byte, error) {
 
 func (h *BlockTxHandler) queryExistanceTxids(txids [][]byte) ([][]byte, error) {
 	var newHashes [][]byte
-	results := h.dbtx.Model(&model.Tx{}).
+	results := h.dbtx.Model(&model.TxPool{}).
 		Where("hash in (?)", txids).
 		Pluck("Hash", &newHashes)
 
@@ -214,6 +218,19 @@ func (h *BlockTxHandler) queryExistanceTxids(txids [][]byte) ([][]byte, error) {
 	// log.Printf("newHashes = %+v\n", newHashes)
 
 	return newHashes, nil
+}
+
+func (h *BlockTxHandler) deleteTxPool(hashes [][]byte) error {
+	if len(hashes) == 0 {
+		return nil
+	}
+	// use hard delete
+	result := h.dbtx.Unscoped().Where("hash in (?)", hashes).Delete(&model.TxPool{})
+	if result.Error != nil {
+		log.Printf("delete txs pool failed [%s]", result.Error)
+		return result.Error
+	}
+	return nil
 }
 
 func (h *BlockTxHandler) deleteTxs(hashes [][]byte) error {
@@ -242,7 +259,7 @@ func (h *BlockTxHandler) updateTxsHeight(hashes [][]byte, blockHeight uint32) er
 	return nil
 }
 
-func (h *BlockTxHandler) insertTxs(txs []*lws.Transaction, block *model.Block, oldHashes [][]byte) error {
+func (h *BlockTxHandler) insertTxs(txs []*lws.Transaction, block *model.Block) error {
 	defer helper.MeasureTime(helper.MeasureTitle("handle insertTxs len txs %d", len(txs)))
 	var err error
 	if len(txs) == 0 {
@@ -256,7 +273,7 @@ func (h *BlockTxHandler) insertTxs(txs []*lws.Transaction, block *model.Block, o
 		if end > txsLen {
 			end = txsLen
 		}
-		err = h.insertTxsSlice(txs[i:end], block, oldHashes)
+		err = h.insertTxsSlice(txs[i:end], block)
 		if err != nil {
 			return err
 		}
@@ -264,7 +281,7 @@ func (h *BlockTxHandler) insertTxs(txs []*lws.Transaction, block *model.Block, o
 	return err
 }
 
-func (h *BlockTxHandler) insertTxsSlice(txs []*lws.Transaction, block *model.Block, oldHashes [][]byte) error {
+func (h *BlockTxHandler) insertTxsSlice(txs []*lws.Transaction, block *model.Block) error {
 	defer helper.MeasureTime(helper.MeasureTitle("handle insertTxs len txs %d", len(txs)))
 	if len(txs) == 0 {
 		return nil
@@ -284,7 +301,7 @@ func (h *BlockTxHandler) insertTxsSlice(txs []*lws.Transaction, block *model.Blo
 
 	logStr, logTime := helper.MeasureTitle("insert txs sql ")
 	sql, args := ib.Build()
-	// log.Printf("[DEBUG] sql %v , args %v", sql, args)
+	// log.Printf("[DEBUG] bulk insert tx sql %v , args %v", sql, args)
 	results, err := h.dbtx.CommonDB().Exec(sql, args...)
 	if err != nil {
 		log.Printf("[ERROR] bulk tx insertion failed: [%s]", err)
@@ -314,6 +331,8 @@ func mapLwsTxToStreamTx(lwsTx *lws.Transaction, mapTxToSender map[[32]byte][]byt
 func insertBuilderTxValue(ib *sqlbuilder.InsertBuilder, tx *streamModel.StreamTx, block *model.Block) {
 	inputs := calculateOrmTxInputs(tx.VInput)
 	sendTo := calculateOrmTxSendTo(tx.CDestination)
+
+	// log.Printf("[DEBUG] bulk insert item: [%s]", hex.EncodeToString(tx.Hash))
 
 	ib.Values(
 		sqlbuilder.Raw("now()"), //created_at
@@ -373,4 +392,18 @@ func calculateOrmTxInputs(vInput []*lws.Transaction_CTxIn) []byte {
 		inputBuf.WriteByte(byte(uint8(input.N)))
 	}
 	return inputBuf.Bytes()
+}
+
+func removeHandledTxPool(hashes [][]byte) {
+	connection := db.GetConnection()
+
+	if len(hashes) == 0 {
+		return
+	}
+	// use hard delete
+	result := connection.Unscoped().Where("hash in (?)", hashes).Delete(&model.TxPool{})
+	if result.Error != nil {
+		log.Printf("delete txs pool failed [%s]", result.Error)
+	}
+	return
 }
