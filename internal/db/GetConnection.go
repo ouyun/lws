@@ -22,6 +22,9 @@ func GetConnection() *gorm.DB {
 	db.SingularTable(true)
 	// db.LogMode(true)
 
+	db.DB().SetMaxIdleConns(10)
+	db.DB().SetMaxOpenConns(30)
+
 	connection = db
 
 	return db

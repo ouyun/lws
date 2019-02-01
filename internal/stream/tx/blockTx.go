@@ -196,6 +196,7 @@ func (h *BlockTxHandler) getOldNewTxList(oldHashes [][]byte) ([]*lws.Transaction
 }
 
 func (h *BlockTxHandler) queryExistance() ([][]byte, error) {
+	defer helper.MeasureTime(helper.MeasureTitle("handle cnt [%d] block tx query existance ", len(h.txs)))
 	txids := make([][]byte, len(h.txs))
 	for idx, tx := range h.txs {
 		txids[idx] = tx.Hash
@@ -282,7 +283,7 @@ func (h *BlockTxHandler) insertTxs(txs []*lws.Transaction, block *model.Block) e
 }
 
 func (h *BlockTxHandler) insertTxsSlice(txs []*lws.Transaction, block *model.Block) error {
-	defer helper.MeasureTime(helper.MeasureTitle("handle insertTxs len txs %d", len(txs)))
+	defer helper.MeasureTime(helper.MeasureTitle("handle insertTxs slice len txs %d", len(txs)))
 	if len(txs) == 0 {
 		return nil
 	}
@@ -395,7 +396,7 @@ func calculateOrmTxInputs(vInput []*lws.Transaction_CTxIn) []byte {
 }
 
 func removeHandledTxPool(hashes [][]byte) {
-	connection := db.GetConnection()
+	connection := db.GetConnection().New()
 
 	if len(hashes) == 0 {
 		return

@@ -5,14 +5,12 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
-	"sync"
 
 	"github.com/FissionAndFusion/lws/internal/constant"
 	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/lws"
 	"github.com/FissionAndFusion/lws/internal/db"
 	"github.com/FissionAndFusion/lws/internal/db/model"
 	blockService "github.com/FissionAndFusion/lws/internal/db/service/block"
-	"github.com/FissionAndFusion/lws/internal/gateway/mqtt"
 	"github.com/FissionAndFusion/lws/internal/stream/tx"
 	"github.com/FissionAndFusion/lws/test/helper"
 )
@@ -23,11 +21,12 @@ func handleSyncBlock(block *lws.Block, shouldRecover bool) (error, bool) {
 
 	var err error
 	// log.Printf("Receive Block hash [%s]", block.Hash)
-	log.Printf("[INFO] Receive Block hash v [%s] type[%d] (#%d)", hex.EncodeToString(block.Hash), block.NType, block.NHeight)
+	log.Printf("[INFO] Receive block hash[%s] type[%d] (#%d)", hex.EncodeToString(block.Hash), block.NType, block.NHeight)
 
 	var skip bool
 	var write bool
 	err, skip, write = validateBlock(block, shouldRecover)
+	log.Printf("[INFO] validate block done hash[%s]", hex.EncodeToString(block.Hash))
 
 	// recovery
 	if err != nil {
@@ -36,6 +35,7 @@ func handleSyncBlock(block *lws.Block, shouldRecover bool) (error, bool) {
 
 	if write {
 		err = writeBlock(block)
+		log.Printf("[INFO] write block done hash[%s]", hex.EncodeToString(block.Hash))
 	}
 
 	return err, skip
@@ -43,6 +43,7 @@ func handleSyncBlock(block *lws.Block, shouldRecover bool) (error, bool) {
 
 // error, skip
 func validateBlock(block *lws.Block, shouldRecover bool) (error, bool, bool) {
+	defer helper.MeasureTime(helper.MeasureTitle("validate block hash[%s](#%d)", hex.EncodeToString(block.Hash), block.NHeight))
 	// 1. 根据高度快速查找该区块是否已经在链上, 在链上则跳过本次操作
 	if ok := isBlockExisted(block.NHeight, block.Hash); ok {
 		log.Printf("[DEBUG] Block hash [%s](#%d) is already existed", hex.EncodeToString(block.Hash), block.NHeight)
@@ -94,13 +95,14 @@ func isTailOrOrigin(block *lws.Block) bool {
 }
 
 func writeBlock(block *lws.Block) error {
+	defer helper.MeasureTime(helper.MeasureTitle("write block hash[%s](#%d)", hex.EncodeToString(block.Hash), block.NHeight))
 	ormBlock := convertBlockFromDbpToOrm(block)
 	connection := db.GetConnection()
 	dbtx := connection.Begin()
 	// dbtx := connection
 
 	res := dbtx.Create(ormBlock)
-	log.Printf("[INFO] write block (#%d) done", ormBlock.Height)
+	log.Printf("[INFO] write block orm (#%d) done", ormBlock.Height)
 	if res.Error != nil {
 		dbtx.Rollback()
 		return res.Error
@@ -127,17 +129,19 @@ func writeBlock(block *lws.Block) error {
 
 	blockService.SetTailBlock(ormBlock)
 
-	defer helper.MeasureTime(helper.MeasureTitle("block send utxo update [%s](#%d)", hex.EncodeToString(block.Hash), block.NHeight))
-	var wg sync.WaitGroup
-	wg.Add(len(updates))
-	for destination, item := range updates {
-		var addr [33]byte
-		copy(addr[:], destination[:])
-		go mqtt.NewUTXOUpdate(item, addr[:], &wg)
-	}
-	log.Printf("[DEBUG] wait NEW UTXO Update len [%d]", len(updates))
-	wg.Wait()
-	log.Printf("[DEBUG] done wait NEW UTXO Update")
+	QueueUtxoUpdates(updates)
+
+	// defer helper.MeasureTime(helper.MeasureTitle("block send utxo update [%s](#%d)", hex.EncodeToString(block.Hash), block.NHeight))
+	// var wg sync.WaitGroup
+	// wg.Add(len(updates))
+	// for destination, item := range updates {
+	// 	var addr [33]byte
+	// 	copy(addr[:], destination[:])
+	// 	go mqtt.NewUTXOUpdate(item, addr[:], &wg)
+	// }
+	// log.Printf("[DEBUG] wait NEW UTXO Update len [%d]", len(updates))
+	// wg.Wait()
+	// log.Printf("[DEBUG] done wait NEW UTXO Update")
 
 	return nil
 }

@@ -12,7 +12,6 @@ import (
 	"github.com/FissionAndFusion/lws/internal/coreclient"
 	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/dbp"
 	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/lws"
-	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 
 	"github.com/furdarius/rabbitroutine"
@@ -26,6 +25,8 @@ type Subscribe struct {
 	QueueName    string
 	ExchangeName string
 	AddedLog     func(*dbp.Added)
+	Consumer     func(*dbp.Added) bool
+	WorkerNum    int
 }
 
 func (s *Subscribe) SetCtxAndCClient(ctx context.Context, cclient *coreclient.Client) {
@@ -58,7 +59,9 @@ func (s *Subscribe) Subscribe() {
 		log.Fatalf("ERROR: unexpected response type [%s]", msg)
 	}
 
-	go s.handleNotification(subscription.CloseChan, subscription.NotificationChan)
+	for w := 0; w < s.WorkerNum; w++ {
+		go s.handleNotification(subscription.CloseChan, subscription.NotificationChan)
+	}
 }
 
 func debugAdded(added *dbp.Added) {
@@ -77,7 +80,7 @@ func debugAdded(added *dbp.Added) {
 }
 
 func (s *Subscribe) handleNotification(closeChan chan struct{}, notificationChan chan *coreclient.Notification) {
-	pub := newPublisher(s.ctx)
+	// pub := newPublisher(s.ctx)
 
 	for {
 		select {
@@ -103,19 +106,24 @@ func (s *Subscribe) handleNotification(closeChan chan struct{}, notificationChan
 				s.AddedLog(added)
 			}
 
-			serializedAdded, err := proto.Marshal(added)
-			if err != nil {
-				log.Println("ERROR: marshal failed", err)
+			// serializedAdded, err := proto.Marshal(added)
+			// if err != nil {
+			// 	log.Println("ERROR: marshal failed", err)
+			// 	continue
+			// }
+
+			if s.Consumer != nil {
+				s.Consumer(added)
 				continue
 			}
 
-			err = s.publishData(pub, serializedAdded)
+			// err = s.publishData(pub, serializedAdded)
 
-			if err != nil {
-				log.Printf("Client publish error: %v", err)
-			} else {
-				log.Println("publish done")
-			}
+			// if err != nil {
+			// 	log.Printf("Client publish error: %v", err)
+			// } else {
+			// 	log.Println("publish done")
+			// }
 		}
 	}
 }

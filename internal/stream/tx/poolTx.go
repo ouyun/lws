@@ -25,32 +25,33 @@ func StartPoolTxHandler(tx *lws.Transaction) error {
 	log.Printf("[DEBUG] tx pool hash[%s]", hex.EncodeToString(tx.Hash))
 	defer log.Printf("[DEBUG] tx pool done hash[%s]", hex.EncodeToString(tx.Hash))
 	connection := db.GetConnection()
-
-	dbtx := connection.Begin()
+	dbtx := connection.New()
+	// dbtx := connection.Begin()
 
 	// check exsitance
 	var count int
+	log.Printf("[DEBUG] query tx existance [%s]", hex.EncodeToString(tx.Hash))
 	res := dbtx.Model(&model.Tx{}).Where("hash = ?", tx.Hash).Count(&count)
 	if res.Error != nil {
-		log.Printf("[ERROR] error check pool tx existance failed [%s]", res.Error)
-		dbtx.Rollback()
+		log.Printf("[ERROR] check pool tx existance failed [%s]", res.Error)
+		// dbtx.Rollback()
 		return res.Error
 	}
 
 	if count != 0 {
 		log.Printf("[DEBUG] pool tx[%s] already exists, skip", hex.EncodeToString(tx.Hash))
-		dbtx.Rollback()
+		// dbtx.Rollback()
 		return nil
 	}
 
 	updates, err := insertTx(dbtx, tx)
 	if err != nil {
 		log.Println("[ERROR] pool tx handler rollback")
-		dbtx.Rollback()
+		// dbtx.Rollback()
 		return err
 	}
 
-	dbtx.Commit()
+	// dbtx.Commit()
 
 	var wg sync.WaitGroup
 	wg.Add(len(updates))
