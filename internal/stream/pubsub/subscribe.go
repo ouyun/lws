@@ -4,18 +4,11 @@ import (
 	"context"
 	"encoding/hex"
 	"log"
-	"os"
-	"time"
-
-	// "sync"
 
 	"github.com/FissionAndFusion/lws/internal/coreclient"
 	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/dbp"
 	"github.com/FissionAndFusion/lws/internal/coreclient/DBPMsg/go/lws"
 	"github.com/golang/protobuf/ptypes"
-
-	"github.com/furdarius/rabbitroutine"
-	"github.com/streadway/amqp"
 )
 
 type Subscribe struct {
@@ -126,57 +119,4 @@ func (s *Subscribe) handleNotification(closeChan chan struct{}, notificationChan
 			// }
 		}
 	}
-}
-
-func (s *Subscribe) publishData(pub rabbitroutine.Publisher, data []byte) error {
-	log.Println("publish block")
-	return pub.Publish(s.ctx, s.ExchangeName, s.QueueName, amqp.Publishing{
-		Body:         data,
-		DeliveryMode: amqp.Persistent,
-	})
-}
-
-func newPublisher(ctx context.Context) rabbitroutine.Publisher {
-	amqpUrl := os.Getenv("AMQP_URL")
-	conn := rabbitroutine.NewConnector(rabbitroutine.Config{
-		// Max reconnect attempts
-		ReconnectAttempts: 0,
-		// How long wait between reconnect
-		Wait: 30 * time.Second,
-	})
-
-	pool := rabbitroutine.NewPool(conn)
-	ensurePub := rabbitroutine.NewEnsurePublisher(pool)
-	pub := rabbitroutine.NewRetryPublisher(ensurePub)
-
-	// TODO consider to DeclareExchange
-	// decCtx, cancelDecCtx := context.WithCancel(context.Background())
-	// chKeeper, err := pool.ChannelWithConfirm(decCtx)
-	// if err != nil {
-	// 	log.Fatal("amqp channelWIthConfirm failed", err)
-	// }
-	// ch := chKeeper.Channel()
-	// err = ch.ExchangeDeclare(
-	// 	EXCHANGE_NAME, // name
-	// 	"direct",      // type
-	// 	// amqp.ExchangeDirect, // type
-	// 	true,  // durable
-	// 	false, // auto-deleted
-	// 	false, // internal
-	// 	false, // no-wait
-	// 	nil,   // arguments
-	// )
-	// if err != nil {
-	// 	log.Fatal("DeclareExchange failed", err)
-	// }
-	// cancelDecCtx()
-
-	go func() {
-		err := conn.Dial(ctx, amqpUrl)
-		if err != nil {
-			log.Println("[ERROR] failed to establish RabbitMQ connection:", err)
-		}
-	}()
-
-	return pub
 }
