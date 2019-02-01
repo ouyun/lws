@@ -9,9 +9,13 @@ import (
 )
 
 func main() {
+	logLevel := os.Getenv("LOG_LEVEL")
+	if logLevel == "" {
+		logLevel = "DEBUG"
+	}
 	filter := &logutils.LevelFilter{
 		Levels:   []logutils.LogLevel{"DEBUG", "INFO", "WARN", "ERROR"},
-		MinLevel: logutils.LogLevel("DEBUG"),
+		MinLevel: logutils.LogLevel(logLevel),
 		Writer:   os.Stdout,
 	}
 	log.SetOutput(filter)
